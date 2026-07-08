@@ -1,0 +1,19 @@
+import type { Metadata } from "next";
+import { ClerkProvider } from "@clerk/nextjs";
+import "./globals.css";
+
+export const metadata: Metadata = {
+  title: "Folyyo — Portfolio generator",
+  description: "Génère et déploie ton portfolio professionnel en quelques minutes avec l'IA.",
+  icons: { icon: "/favicon.ico" },
+};
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <ClerkProvider>
+      <html lang="fr" className="dark">
+        <body className="min-h-screen">{children}</body>
+      </html>
+    </ClerkProvider>
+  );
+}

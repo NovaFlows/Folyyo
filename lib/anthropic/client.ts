@@ -1,0 +1,29 @@
+import Anthropic from "@anthropic-ai/sdk";
+
+let _client: Anthropic | null = null;
+
+export function getAnthropicClient(): Anthropic {
+  if (!_client) {
+    _client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+  }
+  return _client;
+}
+
+export async function callClaude(
+  systemPrompt: string,
+  userPrompt: string,
+  maxTokens = 4096
+): Promise<string> {
+  const client = getAnthropicClient();
+
+  const message = await client.messages.create({
+    model: "claude-sonnet-4-6",
+    max_tokens: maxTokens,
+    system: systemPrompt,
+    messages: [{ role: "user", content: userPrompt }],
+  });
+
+  const block = message.content[0];
+  if (block.type !== "text") throw new Error("Réponse Claude inattendue");
+  return block.text;
+}
