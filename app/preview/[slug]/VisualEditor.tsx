@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import type { ValidatedPortfolioJSON } from "@/lib/anthropic/schema";
 import { THEME_PRESETS } from "@/lib/portfolio/themes";
@@ -310,6 +310,27 @@ function SectionRender({ section, meta, theme, bg, txt, pri, acc, hFont }: {
   }
 }
 
+// Resize + compress image to max 400px, returns JPEG data URL (~15-40 KB)
+function resizeImage(file: File): Promise<string> {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const MAX = 400;
+        const scale = Math.min(MAX / img.width, MAX / img.height, 1);
+        const canvas = document.createElement("canvas");
+        canvas.width  = Math.round(img.width  * scale);
+        canvas.height = Math.round(img.height * scale);
+        canvas.getContext("2d")!.drawImage(img, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL("image/jpeg", 0.85));
+      };
+      img.src = e.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 // ── Theme editor (right panel — no section selected) ──────────────────────────
 function ThemeEditor({ meta, theme, updateMeta, updateTheme, profileType, portfolioId }: {
   meta: VMeta; theme: VTheme;
@@ -320,6 +341,22 @@ function ThemeEditor({ meta, theme, updateMeta, updateTheme, profileType, portfo
 }) {
   const [aiStatus, setAiStatus] = useState<"idle" | "loading" | "done" | "error">("idle");
   const [aiReason, setAiReason] = useState("");
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+
+  async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setAvatarUploading(true);
+    try {
+      const dataUrl = await resizeImage(file);
+      updateMeta({ avatar_url: dataUrl });
+    } finally {
+      setAvatarUploading(false);
+      // reset so re-selecting the same file triggers onChange again
+      e.target.value = "";
+    }
+  }
 
   const filteredPresets = THEME_PRESETS.filter((p) => p.profile_types.includes(profileType));
 
@@ -424,6 +461,49 @@ function ThemeEditor({ meta, theme, updateMeta, updateTheme, profileType, portfo
       </PanelSection>
 
       <PanelSection title="Identité">
+
+        {/* ── Avatar upload ── */}
+        <div style={{ marginBottom: "1rem" }}>
+          <label style={{ display: "block", fontSize: "0.7rem", color: "#78716c", marginBottom: "0.5rem" }}>Photo principale</label>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+
+            {/* Preview circle */}
+            <div style={{ width: 52, height: 52, borderRadius: "50%", background: "#f0ece6", border: "1px solid rgba(0,0,0,0.1)", overflow: "hidden", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              {meta.avatar_url
+                ? <img src={meta.avatar_url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                : <span style={{ fontSize: "1.25rem", color: "#c8c4bf" }}>?</span>
+              }
+            </div>
+
+            <div style={{ flex: 1, minWidth: 0 }}>
+              {/* Hidden file input */}
+              <input
+                ref={avatarInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                style={{ display: "none" }}
+                onChange={handleAvatarChange}
+              />
+              <button
+                onClick={() => avatarInputRef.current?.click()}
+                disabled={avatarUploading}
+                style={{ display: "block", width: "100%", padding: "0.4rem 0.625rem", fontSize: "0.7375rem", color: "#1c1917", background: "white", border: "1px solid rgba(0,0,0,0.1)", borderRadius: "0.4rem", cursor: avatarUploading ? "wait" : "pointer", marginBottom: "0.3rem", textAlign: "center" }}
+              >
+                {avatarUploading ? "Chargement…" : meta.avatar_url ? "Changer la photo" : "Ajouter une photo"}
+              </button>
+              {meta.avatar_url && (
+                <button
+                  onClick={() => updateMeta({ avatar_url: undefined })}
+                  style={{ fontSize: "0.675rem", color: "#a09a94", background: "none", border: "none", cursor: "pointer", padding: 0, width: "100%", textAlign: "center" }}
+                >
+                  Supprimer la photo
+                </button>
+              )}
+            </div>
+          </div>
+          <p style={{ fontSize: "0.65rem", color: "#c8c4bf", marginTop: "0.375rem" }}>JPG, PNG ou WebP · redimensionné auto à 400×400</p>
+        </div>
+
         <PanelField label="Nom"        value={meta.name}     onChange={(v) => updateMeta({ name: v })} />
         <PanelField label="Titre"      value={meta.title}    onChange={(v) => updateMeta({ title: v })} />
         <PanelField label="Tagline"    value={meta.tagline}  onChange={(v) => updateMeta({ tagline: v })} />
