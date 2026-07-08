@@ -105,6 +105,8 @@ export default function VisualEditor({ initialData, portfolioId, slug, profileTy
             idx={selectedIdx}
             updateSection={updateSection}
             onClose={() => setSelectedIdx(null)}
+            meta={data.meta}
+            updateMeta={updateMeta}
           />
         )}
       </div>
@@ -341,22 +343,6 @@ function ThemeEditor({ meta, theme, updateMeta, updateTheme, profileType, portfo
 }) {
   const [aiStatus, setAiStatus] = useState<"idle" | "loading" | "done" | "error">("idle");
   const [aiReason, setAiReason] = useState("");
-  const [avatarUploading, setAvatarUploading] = useState(false);
-  const avatarInputRef = useRef<HTMLInputElement>(null);
-
-  async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setAvatarUploading(true);
-    try {
-      const dataUrl = await resizeImage(file);
-      updateMeta({ avatar_url: dataUrl });
-    } finally {
-      setAvatarUploading(false);
-      // reset so re-selecting the same file triggers onChange again
-      e.target.value = "";
-    }
-  }
 
   const filteredPresets = THEME_PRESETS.filter((p) => p.profile_types.includes(profileType));
 
@@ -462,47 +448,10 @@ function ThemeEditor({ meta, theme, updateMeta, updateTheme, profileType, portfo
 
       <PanelSection title="Identité">
 
-        {/* ── Avatar upload ── */}
-        <div style={{ marginBottom: "1rem" }}>
-          <label style={{ display: "block", fontSize: "0.7rem", color: "#78716c", marginBottom: "0.5rem" }}>Photo principale</label>
-          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-
-            {/* Preview circle */}
-            <div style={{ width: 52, height: 52, borderRadius: "50%", background: "#f0ece6", border: "1px solid rgba(0,0,0,0.1)", overflow: "hidden", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-              {meta.avatar_url
-                ? <img src={meta.avatar_url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                : <span style={{ fontSize: "1.25rem", color: "#c8c4bf" }}>?</span>
-              }
-            </div>
-
-            <div style={{ flex: 1, minWidth: 0 }}>
-              {/* Hidden file input */}
-              <input
-                ref={avatarInputRef}
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                style={{ display: "none" }}
-                onChange={handleAvatarChange}
-              />
-              <button
-                onClick={() => avatarInputRef.current?.click()}
-                disabled={avatarUploading}
-                style={{ display: "block", width: "100%", padding: "0.4rem 0.625rem", fontSize: "0.7375rem", color: "#1c1917", background: "white", border: "1px solid rgba(0,0,0,0.1)", borderRadius: "0.4rem", cursor: avatarUploading ? "wait" : "pointer", marginBottom: "0.3rem", textAlign: "center" }}
-              >
-                {avatarUploading ? "Chargement…" : meta.avatar_url ? "Changer la photo" : "Ajouter une photo"}
-              </button>
-              {meta.avatar_url && (
-                <button
-                  onClick={() => updateMeta({ avatar_url: undefined })}
-                  style={{ fontSize: "0.675rem", color: "#a09a94", background: "none", border: "none", cursor: "pointer", padding: 0, width: "100%", textAlign: "center" }}
-                >
-                  Supprimer la photo
-                </button>
-              )}
-            </div>
-          </div>
-          <p style={{ fontSize: "0.65rem", color: "#c8c4bf", marginTop: "0.375rem" }}>JPG, PNG ou WebP · redimensionné auto à 400×400</p>
-        </div>
+        <AvatarUpload
+          avatarUrl={meta.avatar_url}
+          onUpdate={(url) => updateMeta({ avatar_url: url })}
+        />
 
         <PanelField label="Nom"        value={meta.name}     onChange={(v) => updateMeta({ name: v })} />
         <PanelField label="Titre"      value={meta.title}    onChange={(v) => updateMeta({ title: v })} />
@@ -521,11 +470,13 @@ const SECTION_LABELS: Record<string, string> = {
   projects: "Projets", experience: "Expérience", contact: "Contact",
 };
 
-function SectionEditor({ section, idx, updateSection, onClose }: {
+function SectionEditor({ section, idx, updateSection, onClose, meta, updateMeta }: {
   section: VSection;
   idx: number;
   updateSection: (i: number, s: VSection) => void;
   onClose: () => void;
+  meta: VMeta;
+  updateMeta: (u: Partial<VMeta>) => void;
 }) {
   const update = (s: VSection) => updateSection(idx, s);
 
@@ -537,6 +488,11 @@ function SectionEditor({ section, idx, updateSection, onClose }: {
       </div>
 
       {section.type === "hero" && <>
+        <AvatarUpload
+          avatarUrl={meta.avatar_url}
+          onUpdate={(url) => updateMeta({ avatar_url: url })}
+        />
+        <div style={{ height: 1, background: "rgba(0,0,0,0.06)", margin: "0.75rem 0 1rem" }} />
         <PanelField label="Titre"           value={section.title}    onChange={(v) => update({ ...section, title: v })} />
         <PanelTextarea label="Sous-titre"   value={section.subtitle} onChange={(v) => update({ ...section, subtitle: v })} />
         <PanelField label="Texte du bouton" value={section.cta_text} onChange={(v) => update({ ...section, cta_text: v })} />
@@ -620,6 +576,58 @@ function SectionEditor({ section, idx, updateSection, onClose }: {
 }
 
 // ── Shared UI primitives ──────────────────────────────────────────────────────
+function AvatarUpload({ avatarUrl, onUpdate }: { avatarUrl?: string; onUpdate: (url: string | undefined) => void }) {
+  const [uploading, setUploading] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  async function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const dataUrl = await resizeImage(file);
+      onUpdate(dataUrl);
+    } finally {
+      setUploading(false);
+      e.target.value = "";
+    }
+  }
+
+  return (
+    <div style={{ marginBottom: "0.875rem" }}>
+      <label style={{ display: "block", fontSize: "0.7rem", color: "#78716c", marginBottom: "0.5rem" }}>Photo principale</label>
+      <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+        {/* Preview circle */}
+        <div style={{ width: 56, height: 56, borderRadius: "50%", background: "#f0ece6", border: "1px solid rgba(0,0,0,0.1)", overflow: "hidden", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          {avatarUrl
+            ? <img src={avatarUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            : <span style={{ fontSize: "1.375rem", color: "#c8c4bf" }}>+</span>
+          }
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp" style={{ display: "none" }} onChange={handleChange} />
+          <button
+            onClick={() => inputRef.current?.click()}
+            disabled={uploading}
+            style={{ display: "block", width: "100%", padding: "0.45rem 0.625rem", fontSize: "0.7375rem", color: "#1c1917", background: "white", border: "1px solid rgba(0,0,0,0.1)", borderRadius: "0.4rem", cursor: uploading ? "wait" : "pointer", marginBottom: "0.3rem", textAlign: "center", fontWeight: 500 }}
+          >
+            {uploading ? "Chargement…" : avatarUrl ? "Changer la photo" : "Ajouter une photo"}
+          </button>
+          {avatarUrl && (
+            <button
+              onClick={() => onUpdate(undefined)}
+              style={{ fontSize: "0.675rem", color: "#a09a94", background: "none", border: "none", cursor: "pointer", padding: 0, width: "100%", textAlign: "center" }}
+            >
+              Supprimer
+            </button>
+          )}
+        </div>
+      </div>
+      <p style={{ fontSize: "0.625rem", color: "#c8c4bf", marginTop: "0.375rem" }}>JPG · PNG · WebP — max 400×400px</p>
+    </div>
+  );
+}
+
 function PanelSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div style={{ marginBottom: "1.25rem" }}>
