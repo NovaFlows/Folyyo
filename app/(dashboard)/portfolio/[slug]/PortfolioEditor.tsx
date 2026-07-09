@@ -9,6 +9,12 @@ interface Edit {
   created_at: string;
 }
 
+interface ImagePreview {
+  previewUrl: string;  // data URL pour l'aperçu
+  data: string;        // base64 sans préfixe
+  mediaType: "image/jpeg" | "image/png" | "image/webp" | "image/gif";
+}
+
 interface Props {
   portfolioId: string;
   hasCode: boolean;
@@ -23,24 +29,51 @@ const SUGGESTIONS = [
   "Ajoute des icônes aux liens sociaux",
 ];
 
+const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"] as const;
+
+function readImageAsBase64(file: File): Promise<ImagePreview> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const dataUrl = e.target?.result as string;
+      // dataUrl = "data:image/jpeg;base64,XXXX"
+      const [prefix, data] = dataUrl.split(",");
+      const mediaType = prefix.split(":")[1].split(";")[0] as ImagePreview["mediaType"];
+      resolve({ previewUrl: dataUrl, data, mediaType });
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
 export default function PortfolioEditor({ portfolioId, hasCode, edits: initialEdits }: Props) {
-  const [edits, setEdits]           = useState<Edit[]>(initialEdits);
+  const [edits, setEdits]             = useState<Edit[]>(initialEdits);
   const [instruction, setInstruction] = useState("");
-  const [loading, setLoading]       = useState(false);
-  const [error, setError]           = useState<string | null>(null);
-  const [lastResult, setLastResult] = useState<string | null>(null);
-  const textareaRef  = useRef<HTMLTextAreaElement>(null);
+  const [images, setImages]           = useState<ImagePreview[]>([]);
+  const [loading, setLoading]         = useState(false);
+  const [error, setError]             = useState<string | null>(null);
+  const [lastResult, setLastResult]   = useState<string | null>(null);
+  const textareaRef   = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef  = useRef<HTMLInputElement>(null);
   const chatBottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     chatBottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [edits]);
 
+  async function handleImageFiles(files: FileList | null) {
+    if (!files) return;
+    const valid = Array.from(files).filter((f) => ALLOWED_TYPES.includes(f.type as typeof ALLOWED_TYPES[number]));
+    const previews = await Promise.all(valid.slice(0, 4).map(readImageAsBase64));
+    setImages((prev) => [...prev, ...previews].slice(0, 4));
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!instruction.trim() || loading) return;
     const inst = instruction.trim();
-    setInstruction(""); setLoading(true); setError(null); setLastResult(null);
+    const imgs = images;
+    setInstruction(""); setImages([]); setLoading(true); setError(null); setLastResult(null);
 
     const tempEdit: Edit = { id: `temp-${Date.now()}`, instruction: inst, status: "pending", created_at: new Date().toISOString() };
     setEdits((prev) => [tempEdit, ...prev]);
@@ -49,7 +82,11 @@ export default function PortfolioEditor({ portfolioId, hasCode, edits: initialEd
       const res = await fetch("/api/portfolio/edit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ portfolioId, instruction: inst }),
+        body: JSON.stringify({
+          portfolioId,
+          instruction: inst,
+          images: imgs.length ? imgs.map(({ data, mediaType }) => ({ data, mediaType })) : undefined,
+        }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -84,7 +121,7 @@ export default function PortfolioEditor({ portfolioId, hasCode, edits: initialEd
       {/* Header */}
       <div className="px-6 py-4" style={{ borderBottom: "1px solid rgba(0,0,0,0.06)" }}>
         <h2 className="text-sm font-semibold" style={{ color: "#1c1917" }}>Éditer par instruction</h2>
-        <p className="text-xs mt-0.5" style={{ color: "#a09a94" }}>Décris la modification en langage naturel.</p>
+        <p className="text-xs mt-0.5" style={{ color: "#a09a94" }}>Décris la modification en langage naturel. Tu peux joindre des images de référence.</p>
       </div>
 
       {/* Chat history */}
@@ -139,8 +176,35 @@ export default function PortfolioEditor({ portfolioId, hasCode, edits: initialEd
         ))}
       </div>
 
+      {/* Image previews */}
+      {images.length > 0 && (
+        <div className="px-4 pb-2 flex gap-2 flex-wrap">
+          {images.map((img, i) => (
+            <div key={i} className="relative" style={{ width: 56, height: 56 }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={img.previewUrl} alt="" style={{ width: 56, height: 56, objectFit: "cover", borderRadius: 8, border: "1px solid rgba(0,0,0,0.1)" }} />
+              <button
+                onClick={() => setImages((prev) => prev.filter((_, j) => j !== i))}
+                style={{ position: "absolute", top: -6, right: -6, width: 18, height: 18, borderRadius: "50%", background: "#dc2626", color: "white", border: "none", cursor: "pointer", fontSize: 10, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700 }}>
+                ✕
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Input */}
-      <form onSubmit={handleSubmit} className="flex gap-3 px-4 py-3" style={{ borderTop: "1px solid rgba(0,0,0,0.06)" }}>
+      <form onSubmit={handleSubmit} className="flex gap-2 px-4 py-3 items-end" style={{ borderTop: "1px solid rgba(0,0,0,0.06)" }}>
+        {/* Image upload button */}
+        <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" multiple className="hidden"
+          onChange={(e) => handleImageFiles(e.target.files)} />
+        <button type="button" onClick={() => fileInputRef.current?.click()} disabled={loading || images.length >= 4}
+          title="Joindre une image"
+          className="shrink-0 rounded-xl flex items-center justify-center transition hover:opacity-70 disabled:opacity-30"
+          style={{ width: 42, height: 42, background: "white", border: "1px solid rgba(0,0,0,0.1)", color: "#78716c", fontSize: "1.1rem" }}>
+          🖼
+        </button>
+
         <textarea ref={textareaRef} value={instruction}
           onChange={(e) => setInstruction(e.target.value)}
           onKeyDown={handleKeyDown}
@@ -148,9 +212,10 @@ export default function PortfolioEditor({ portfolioId, hasCode, edits: initialEd
           rows={2} disabled={loading}
           className="flex-1 resize-none rounded-xl px-4 py-3 text-sm outline-none transition disabled:opacity-50"
           style={{ background: "white", border: "1px solid rgba(0,0,0,0.1)", color: "#1c1917" }} />
+
         <button type="submit" disabled={loading || !instruction.trim()}
-          className="self-end rounded-xl px-5 py-3 text-sm font-semibold text-white transition hover:opacity-80 disabled:opacity-40"
-          style={{ background: "#1c1917" }}>
+          className="shrink-0 rounded-xl text-sm font-semibold text-white transition hover:opacity-80 disabled:opacity-40"
+          style={{ background: "#1c1917", width: 42, height: 42, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1rem" }}>
           {loading ? "…" : "→"}
         </button>
       </form>

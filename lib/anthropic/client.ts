@@ -27,3 +27,36 @@ export async function callClaude(
   if (block.type !== "text") throw new Error("Réponse Claude inattendue");
   return block.text;
 }
+
+export interface ImageAttachment {
+  data: string;          // base64 sans le préfixe data:...
+  mediaType: "image/jpeg" | "image/png" | "image/webp" | "image/gif";
+}
+
+export async function callClaudeWithImages(
+  systemPrompt: string,
+  userPrompt: string,
+  images: ImageAttachment[],
+  maxTokens = 4096
+): Promise<string> {
+  const client = getAnthropicClient();
+
+  const content: Anthropic.MessageParam["content"] = [
+    ...images.map((img) => ({
+      type: "image" as const,
+      source: { type: "base64" as const, media_type: img.mediaType, data: img.data },
+    })),
+    { type: "text" as const, text: userPrompt },
+  ];
+
+  const message = await client.messages.create({
+    model: "claude-sonnet-4-6",
+    max_tokens: maxTokens,
+    system: systemPrompt,
+    messages: [{ role: "user", content }],
+  });
+
+  const block = message.content[0];
+  if (block.type !== "text") throw new Error("Réponse Claude inattendue");
+  return block.text;
+}

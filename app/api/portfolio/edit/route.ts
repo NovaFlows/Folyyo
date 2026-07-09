@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { callClaude } from "@/lib/anthropic/client";
+import { callClaude, callClaudeWithImages, type ImageAttachment } from "@/lib/anthropic/client";
 import { buildEditSystemPrompt, buildEditUserPrompt } from "@/lib/anthropic/prompts/edit-portfolio";
 import { PortfolioJSONSchema } from "@/lib/anthropic/schema";
 import { generateDeveloperCode } from "@/lib/portfolio/code-generator";
@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
 
-  const { portfolioId, instruction } = await request.json();
+  const { portfolioId, instruction, images } = await request.json() as { portfolioId: string; instruction: string; images?: ImageAttachment[] };
   if (!portfolioId || !instruction?.trim()) {
     return NextResponse.json({ error: "portfolioId et instruction requis" }, { status: 400 });
   }
@@ -54,7 +54,10 @@ export async function POST(request: NextRequest) {
 
   try {
     const systemPrompt = buildEditSystemPrompt();
-    let raw = await callClaude(systemPrompt, buildEditUserPrompt(siteJson, instruction), 4096);
+    const userPrompt = buildEditUserPrompt(siteJson, instruction);
+    let raw = images?.length
+      ? await callClaudeWithImages(systemPrompt, userPrompt, images, 4096)
+      : await callClaude(systemPrompt, userPrompt, 4096);
     let cleaned = raw.replace(/^```json\s*/i, "").replace(/\s*```$/, "").trim();
 
     let parsed: PortfolioJSON & { _summary?: string };
