@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import type { ValidatedPortfolioJSON } from "@/lib/anthropic/schema";
 import { THEME_PRESETS } from "@/lib/portfolio/themes";
@@ -17,28 +17,59 @@ interface Props {
 }
 
 // ── Main ──────────────────────────────────────────────────────────────────────
+const MAX_HISTORY = 50;
+
 export default function VisualEditor({ initialData, portfolioId, slug, profileType }: Props) {
   const router = useRouter();
-  const [data, setData]             = useState<ValidatedPortfolioJSON>(initialData);
+  const [data, setData]               = useState<ValidatedPortfolioJSON>(initialData);
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
-  const [saveStatus, setSaveStatus] = useState<"idle"|"saving"|"saved"|"error">("idle");
+  const [saveStatus, setSaveStatus]   = useState<"idle"|"saving"|"saved"|"error">("idle");
+  const [canUndo, setCanUndo]         = useState(false);
+  const historyRef = useRef<ValidatedPortfolioJSON[]>([]);
+
+  // Push current state to history before any mutation
+  const snapshot = (current: ValidatedPortfolioJSON) => {
+    historyRef.current = [...historyRef.current.slice(-MAX_HISTORY + 1), current];
+    setCanUndo(true);
+  };
+
+  const undo = () => {
+    const prev = historyRef.current.pop();
+    if (!prev) return;
+    setData(prev);
+    setSaveStatus("idle");
+    setCanUndo(historyRef.current.length > 0);
+  };
+
+  // Ctrl+Z / Cmd+Z global shortcut
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "z" && !e.shiftKey) {
+        e.preventDefault();
+        undo();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
 
   const updateMeta = (u: Partial<VMeta>) => {
-    setData(d => ({ ...d, meta: { ...d.meta, ...u } }));
+    setData(d => { snapshot(d); return { ...d, meta: { ...d.meta, ...u } }; });
     setSaveStatus("idle");
   };
   const updateTheme = (u: Partial<VTheme>) => {
-    setData(d => ({ ...d, theme: { ...d.theme, ...u } }));
+    setData(d => { snapshot(d); return { ...d, theme: { ...d.theme, ...u } }; });
     setSaveStatus("idle");
   };
   const updateSection = (idx: number, updated: VSection) => {
-    setData(d => { const s = [...d.sections]; s[idx] = updated; return { ...d, sections: s }; });
+    setData(d => { snapshot(d); const s = [...d.sections]; s[idx] = updated; return { ...d, sections: s }; });
     setSaveStatus("idle");
   };
   const moveSection = (idx: number, dir: -1 | 1) => {
     const ni = idx + dir;
     if (ni < 0 || ni >= data.sections.length) return;
     setData(d => {
+      snapshot(d);
       const s = [...d.sections];
       [s[idx], s[ni]] = [s[ni], s[idx]];
       return { ...d, sections: s };
@@ -46,7 +77,7 @@ export default function VisualEditor({ initialData, portfolioId, slug, profileTy
     setSelectedIdx(ni);
   };
   const removeSection = (idx: number) => {
-    setData(d => ({ ...d, sections: d.sections.filter((_, i) => i !== idx) }));
+    setData(d => { snapshot(d); return { ...d, sections: d.sections.filter((_, i) => i !== idx) }; });
     setSelectedIdx(null);
     setSaveStatus("idle");
   };
@@ -81,6 +112,10 @@ export default function VisualEditor({ initialData, portfolioId, slug, profileTy
           <span style={{ flex: 1, fontSize: "0.725rem", color: "#6b7280" }}>
             Clique une section pour l'éditer · ↑↓ pour réordonner
           </span>
+          <button onClick={undo} disabled={!canUndo} title="Annuler (Ctrl+Z)"
+            style={{ background: canUndo ? "rgba(255,255,255,0.08)" : "transparent", color: canUndo ? "#c8c4bf" : "#3f3f3f", border: "1px solid rgba(255,255,255,0.1)", padding: "0.35rem 0.75rem", borderRadius: "0.5rem", cursor: canUndo ? "pointer" : "default", fontSize: "0.75rem", whiteSpace: "nowrap", transition: "all 0.15s" }}>
+            ↩ Annuler
+          </button>
           <a href={`/preview/${slug}`} target="_blank" rel="noopener noreferrer"
             style={{ fontSize: "0.75rem", color: "#9ca3af", border: "1px solid rgba(255,255,255,0.12)", padding: "0.35rem 0.75rem", borderRadius: "0.5rem", textDecoration: "none", whiteSpace: "nowrap" }}>
             Aperçu ↗
