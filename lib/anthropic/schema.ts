@@ -11,10 +11,11 @@ const MetaSchema = z.object({
   title: z.string(),
   tagline: z.string(),
   email: z.string().email(),
-  github_url:   optionalUrl,
-  linkedin_url: optionalUrl,
-  twitter_url:  optionalUrl,
-  avatar_url:   optionalUrl,
+  github_url:    optionalUrl,
+  instagram_url: optionalUrl,
+  linkedin_url:  optionalUrl,
+  twitter_url:   optionalUrl,
+  avatar_url:    optionalUrl,
 });
 
 const ThemeSchema = z.object({
@@ -81,7 +82,7 @@ const ContactSectionSchema = z.object({
   message: z.string(),
   links: z.array(z.object({
     label: z.string(),
-    url:   z.string().url(),
+    url:   z.string(),  // accepte mailto:, #, chemins relatifs
     icon:  z.string(),
   })),
 });

@@ -55,18 +55,20 @@ export async function POST(request: NextRequest) {
   try {
     const systemPrompt = buildEditSystemPrompt();
     const userPrompt = buildEditUserPrompt(siteJson, instruction);
-    let raw = images?.length
-      ? await callClaudeWithImages(systemPrompt, userPrompt, images, 4096)
-      : await callClaude(systemPrompt, userPrompt, 4096);
+    const callWithOrWithout = (prompt: string) =>
+      images?.length
+        ? callClaudeWithImages(systemPrompt, prompt, images, 8192)
+        : callClaude(systemPrompt, prompt, 8192);
+
+    let raw = await callWithOrWithout(userPrompt);
     let cleaned = raw.replace(/^```json\s*/i, "").replace(/\s*```$/, "").trim();
 
     let parsed: PortfolioJSON & { _summary?: string };
     try {
       parsed = JSON.parse(cleaned);
     } catch {
-      // Retry once with a stricter correction prompt
-      const retryPrompt = `Ta réponse précédente n'était pas du JSON valide. Voici ce que tu as retourné :\n\n${raw.slice(0, 400)}\n\nRetourne UNIQUEMENT le JSON complet du portfolio, sans aucun texte autour.`;
-      raw = await callClaude(systemPrompt, retryPrompt, 4096);
+      const retryPrompt = `Ta réponse précédente n'était pas du JSON valide. Voici ce que tu as retourné :\n\n${raw.slice(0, 600)}\n\nRetourne UNIQUEMENT le JSON complet du portfolio, sans aucun texte autour.`;
+      raw = await callWithOrWithout(retryPrompt);
       cleaned = raw.replace(/^```json\s*/i, "").replace(/\s*```$/, "").trim();
       try {
         parsed = JSON.parse(cleaned);
@@ -79,7 +81,14 @@ export async function POST(request: NextRequest) {
     const { _summary: _s, ...jsonWithoutSummary } = parsed;
     void _s;
 
-    const validated = PortfolioJSONSchema.parse(jsonWithoutSummary);
+    let validated;
+    try {
+      validated = PortfolioJSONSchema.parse(jsonWithoutSummary);
+    } catch (zodErr) {
+      const msg = zodErr instanceof Error ? zodErr.message : "Schéma invalide";
+      console.error("[edit] zod error:", msg);
+      throw new Error(`Données invalides générées par Claude : ${msg.slice(0, 200)}`);
+    }
     const newCode = generateDeveloperCode(validated);
 
     const codeKey = `source-code/${portfolioId}/portfolio.json`;
