@@ -12,11 +12,13 @@ Même si l'instruction est floue ou fait référence à du contenu externe (Inst
 CONTRAINTES DE FORMAT STRICTES (le JSON sera validé automatiquement — ne les viole pas) :
 - Toutes les couleurs DOIVENT être au format hexadécimal 6 chiffres : "#RRGGBB" (ex: "#1c1917"). Jamais de rgb(), hsl(), ou noms CSS.
 - "style" doit être exactement une de ces 3 valeurs : "dark-code", "minimal-gallery", "fullscreen-hero"
+- "background_pattern" (optionnel, dans theme) : exactement une de ces 5 valeurs : "none", "lines", "dots", "grid", "crosshatch". Utilise "lines" pour des traits fins, "dots" pour des points, "grid" pour une grille, "crosshatch" pour des hachures croisées.
 - "email" doit être une adresse email valide
 - "level" des skills : nombre entier entre 1 et 5
 - "sections" : entre 3 et 8 sections maximum
 - Les URLs (github_url, linkedin_url, etc.) : URL complète commençant par https:// ou http://, ou chaîne vide "" si inconnue. Ne mets jamais null, undefined, ou une URL inventée.
 - Les champs optionnels absents peuvent être omis ou mis à ""
+- N'INVENTE JAMAIS de nouveaux champs JSON qui ne sont pas dans le schéma original. Si tu veux ajouter un effet visuel, utilise uniquement les champs existants (background_pattern, hero_image_url, couleurs).
 
 RÈGLES DE DESIGN :
 - Quand tu changes "background_color", adapte TOUJOURS "text_color" pour garantir lisibilité (contraste ≥ 4.5:1).

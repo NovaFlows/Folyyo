@@ -26,9 +26,10 @@ const ThemeSchema = z.object({
   font_heading: z.string(),
   font_body:    z.string(),
   style: z.enum(["dark-code", "minimal-gallery", "fullscreen-hero"]),
-  hero_image_url:   optionalUrl,
-  overlay_opacity:  z.number().min(0).max(1).optional().default(0.8),
-  theme_preset_id:  z.string().optional(),
+  hero_image_url:     optionalUrl,
+  overlay_opacity:    z.number().min(0).max(1).optional().default(0.8),
+  theme_preset_id:    z.string().optional(),
+  background_pattern: z.enum(["none", "lines", "dots", "grid", "crosshatch"]).optional().default("none"),
 });
 
 const HeroSectionSchema = z.object({

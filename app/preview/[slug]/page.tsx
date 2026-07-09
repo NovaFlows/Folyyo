@@ -5,6 +5,39 @@ import type { ValidatedPortfolioJSON } from "@/lib/anthropic/schema";
 import Image from "next/image";
 import VisualEditor from "./VisualEditor";
 
+function BackgroundPatternStatic({ pattern, color }: { pattern: string; color: string }) {
+  if (!pattern || pattern === "none") return null;
+  const seed = (i: number, o = 0) => Math.abs(Math.sin(i * 127.1 + o * 311.7));
+  const style: React.CSSProperties = { position: "fixed", inset: 0, width: "100%", height: "100%", pointerEvents: "none", zIndex: 0 };
+
+  if (pattern === "lines") {
+    const lines = Array.from({ length: 28 }, (_, i) => ({
+      x1: seed(i, 0) * 100, y1: seed(i, 1) * 100,
+      x2: seed(i, 0) * 100 + (seed(i, 2) - 0.5) * 40,
+      y2: seed(i, 1) * 100 + (seed(i, 3) - 0.5) * 60,
+      opacity: 0.06 + seed(i, 4) * 0.1, width: 0.3 + seed(i, 5) * 0.5,
+    }));
+    return (
+      <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={style}>
+        {lines.map((l, i) => <line key={i} x1={l.x1} y1={l.y1} x2={l.x2} y2={l.y2} stroke={color} strokeWidth={l.width} opacity={l.opacity} />)}
+      </svg>
+    );
+  }
+  if (pattern === "dots") {
+    const dots = Array.from({ length: 80 }, (_, i) => ({ cx: seed(i,0)*100, cy: seed(i,1)*100, r: 0.15+seed(i,2)*0.3, opacity: 0.05+seed(i,3)*0.12 }));
+    return <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={style}>{dots.map((d,i)=><circle key={i} cx={d.cx} cy={d.cy} r={d.r} fill={color} opacity={d.opacity}/>)}</svg>;
+  }
+  if (pattern === "grid") {
+    const s = Array.from({length:11},(_,i)=>i*10);
+    return <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={style}>{s.map(v=><><line key={`h${v}`} x1={0} y1={v} x2={100} y2={v} stroke={color} strokeWidth={0.15} opacity={0.08}/><line key={`v${v}`} x1={v} y1={0} x2={v} y2={100} stroke={color} strokeWidth={0.15} opacity={0.08}/></>)}</svg>;
+  }
+  if (pattern === "crosshatch") {
+    const n=15;
+    return <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={style}>{Array.from({length:n},(_,i)=>{const v=(i/n)*140-20;return<><line key={`d1${i}`} x1={v} y1={0} x2={v+60} y2={100} stroke={color} strokeWidth={0.3} opacity={0.07}/><line key={`d2${i}`} x1={v} y1={100} x2={v+60} y2={0} stroke={color} strokeWidth={0.3} opacity={0.07}/></>;})}</svg>;
+  }
+  return null;
+}
+
 export default async function PreviewPage({
   params,
   searchParams,
@@ -42,8 +75,11 @@ export default async function PreviewPage({
   const hFont = `'${theme.font_heading}', Georgia, serif`;
   const bFont = `'${theme.font_body}', system-ui, sans-serif`;
 
+  const pattern = (theme as { background_pattern?: string }).background_pattern ?? "none";
+
   return (
-    <main style={{ fontFamily: bFont, background: bg, color: txt, minHeight: "100vh" }}>
+    <main style={{ fontFamily: bFont, background: bg, color: txt, minHeight: "100vh", position: "relative" }}>
+      <BackgroundPatternStatic pattern={pattern} color={txt} />
       {/* Nav */}
       <nav style={{ position: "fixed", top: 0, zIndex: 50, width: "100%", borderBottom: `1px solid ${txt}10`, background: `${bg}e8`, backdropFilter: "blur(12px)" }}>
         <div style={{ maxWidth: 960, margin: "0 auto", padding: "1rem 1.5rem", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
