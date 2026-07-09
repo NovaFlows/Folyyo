@@ -3,13 +3,15 @@
 import { useEffect, useState } from "react";
 import type { OnboardingData } from "../page";
 
-const STEPS = [
-  "upload cv.pdf",
-  "fetch github data",
-  "generate portfolio.json",
-  "build source code",
-  "deploy → production",
-];
+function getSteps(profileType: string | null) {
+  return [
+    "upload cv.pdf",
+    profileType === "developer" ? "fetch github data" : "analyse du profil…",
+    "generate portfolio.json",
+    "build source code",
+    "deploy → production",
+  ];
+}
 
 interface Props {
   data: OnboardingData;
@@ -20,24 +22,35 @@ export default function GeneratingStep({ data, onDone }: Props) {
   const [currentStep, setCurrentStep] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
+  const STEPS = getSteps(data.profileType);
+
   useEffect(() => {
     let cancelled = false;
 
     async function run() {
       try {
         setCurrentStep(0);
-        const formData = new FormData();
-        formData.append("cv", data.cvFile!);
-        formData.append("profileType", data.profileType!);
-        const uploadRes = await fetch("/api/upload", { method: "POST", body: formData });
-        if (!uploadRes.ok) throw new Error("Échec upload CV");
-        const { cvStoragePath } = await uploadRes.json();
+        let cvStoragePath = "";
+        if (data.cvFile) {
+          const formData = new FormData();
+          formData.append("cv", data.cvFile);
+          formData.append("profileType", data.profileType!);
+          const uploadRes = await fetch("/api/upload", { method: "POST", body: formData });
+          if (!uploadRes.ok) throw new Error("Échec upload CV");
+          ({ cvStoragePath } = await uploadRes.json());
+        }
 
         if (cancelled) return;
         setCurrentStep(1);
-        const ghRes = await fetch(`/api/github/fetch?username=${encodeURIComponent(data.githubUsername)}`);
-        if (!ghRes.ok) throw new Error("Impossible de récupérer le profil GitHub");
-        const { githubData } = await ghRes.json();
+        let githubData = null;
+        if (data.profileType === "developer" && data.githubUsername) {
+          const ghRes = await fetch(`/api/github/fetch?username=${encodeURIComponent(data.githubUsername)}`);
+          if (!ghRes.ok) throw new Error("Impossible de récupérer le profil GitHub");
+          const parsed = await ghRes.json();
+          githubData = parsed.githubData;
+        } else {
+          await new Promise((r) => setTimeout(r, 1200));
+        }
 
         if (cancelled) return;
         setCurrentStep(2);
@@ -47,7 +60,8 @@ export default function GeneratingStep({ data, onDone }: Props) {
           body: JSON.stringify({
             profileType: data.profileType, slug: data.slug,
             name: data.name, title: data.title,
-            email: data.email, githubUsername: data.githubUsername,
+            email: data.email, githubUsername: data.githubUsername || undefined,
+            instagramHandle: data.instagramHandle || undefined,
             linkedinUrl: data.linkedinUrl, twitterUrl: data.twitterUrl,
             cvStoragePath, githubData,
           }),
@@ -81,7 +95,7 @@ export default function GeneratingStep({ data, onDone }: Props) {
 
     run();
     return () => { cancelled = true; };
-  }, [data, onDone]);
+  }, [data, onDone]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (error) {
     return (
@@ -125,9 +139,8 @@ export default function GeneratingStep({ data, onDone }: Props) {
         {/* Steps */}
         <div className="px-5 py-5 space-y-3">
           {STEPS.map((label, i) => {
-            const done    = i < currentStep;
-            const active  = i === currentStep;
-            const waiting = i > currentStep;
+            const done   = i < currentStep;
+            const active = i === currentStep;
             return (
               <div key={i} className="flex items-center gap-3">
                 <span className="mono text-xs w-3 shrink-0 select-none" style={{

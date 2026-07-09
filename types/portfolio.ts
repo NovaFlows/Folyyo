@@ -4,7 +4,8 @@ export interface DeveloperInputData {
   name: string;
   title: string;
   email: string;
-  github_username: string;
+  github_username?: string;
+  instagram_url?: string;
   linkedin_url?: string;
   twitter_url?: string;
   cv_storage_path: string;
@@ -46,6 +47,7 @@ export interface PortfolioMeta {
   tagline: string;
   email: string;
   github_url?: string;
+  instagram_url?: string;
   linkedin_url?: string;
   twitter_url?: string;
   avatar_url?: string;

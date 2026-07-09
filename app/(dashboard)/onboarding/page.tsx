@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import ProfileTypeStep from "./_steps/ProfileTypeStep";
 import DeveloperFormStep from "./_steps/DeveloperFormStep";
+import ArtistFormStep from "./_steps/ArtistFormStep";
+import FashionFormStep from "./_steps/FashionFormStep";
 import GeneratingStep from "./_steps/GeneratingStep";
 
 export type OnboardingData = {
@@ -13,6 +15,7 @@ export type OnboardingData = {
   title: string;
   email: string;
   githubUsername: string;
+  instagramHandle: string;
   linkedinUrl: string;
   twitterUrl: string;
   cvFile: File | null;
@@ -20,7 +23,7 @@ export type OnboardingData = {
 
 const INITIAL_DATA: OnboardingData = {
   profileType: null, slug: "", name: "", title: "", email: "",
-  githubUsername: "", linkedinUrl: "", twitterUrl: "", cvFile: null,
+  githubUsername: "", instagramHandle: "", linkedinUrl: "", twitterUrl: "", cvFile: null,
 };
 
 const STEP_LABELS = ["Profil", "Infos", "Génération"];
@@ -65,10 +68,27 @@ export default function OnboardingPage() {
           <ProfileTypeStep selected={data.profileType}
             onSelect={(type) => { updateData({ profileType: type }); setStep("form"); }} />
         )}
+
         {step === "form" && data.profileType === "developer" && (
           <DeveloperFormStep data={data} onChange={updateData}
             onBack={() => setStep("type")} onSubmit={() => setStep("generating")} />
         )}
+
+        {step === "form" && data.profileType === "artist" && (
+          <ArtistFormStep data={data} onChange={updateData}
+            onBack={() => setStep("type")} onSubmit={() => setStep("generating")} />
+        )}
+
+        {step === "form" && data.profileType === "fashion" && (
+          <FashionFormStep data={data} onChange={updateData}
+            onBack={() => setStep("type")} onSubmit={() => setStep("generating")} />
+        )}
+
+        {step === "form" && data.profileType === "other" && (
+          <ArtistFormStep data={data} onChange={updateData}
+            onBack={() => setStep("type")} onSubmit={() => setStep("generating")} />
+        )}
+
         {step === "generating" && (
           <GeneratingStep data={data} onDone={(id) => router.push(`/portfolio/${id}`)} />
         )}

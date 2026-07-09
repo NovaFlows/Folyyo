@@ -45,6 +45,11 @@ export default function VisualEditor({ initialData, portfolioId, slug, profileTy
     });
     setSelectedIdx(ni);
   };
+  const removeSection = (idx: number) => {
+    setData(d => ({ ...d, sections: d.sections.filter((_, i) => i !== idx) }));
+    setSelectedIdx(null);
+    setSaveStatus("idle");
+  };
 
   const save = async () => {
     setSaveStatus("saving");
@@ -92,6 +97,7 @@ export default function VisualEditor({ initialData, portfolioId, slug, profileTy
           selectedIdx={selectedIdx}
           onSelect={(i) => setSelectedIdx(i === selectedIdx ? null : i)}
           onMove={moveSection}
+          onRemove={removeSection}
         />
       </div>
 
@@ -104,6 +110,7 @@ export default function VisualEditor({ initialData, portfolioId, slug, profileTy
             section={data.sections[selectedIdx]}
             idx={selectedIdx}
             updateSection={updateSection}
+            removeSection={removeSection}
             onClose={() => setSelectedIdx(null)}
             meta={data.meta}
             updateMeta={updateMeta}
@@ -116,11 +123,12 @@ export default function VisualEditor({ initialData, portfolioId, slug, profileTy
 }
 
 // ── Portfolio preview (left pane) ─────────────────────────────────────────────
-function PortfolioPreview({ data, selectedIdx, onSelect, onMove }: {
+function PortfolioPreview({ data, selectedIdx, onSelect, onMove, onRemove }: {
   data: ValidatedPortfolioJSON;
   selectedIdx: number | null;
   onSelect: (i: number) => void;
   onMove: (i: number, dir: -1 | 1) => void;
+  onRemove: (i: number) => void;
 }) {
   const { meta, theme, sections } = data;
   const { background_color: bg, text_color: txt, primary_color: pri, accent_color: acc, font_heading, font_body } = theme;
@@ -144,6 +152,7 @@ function PortfolioPreview({ data, selectedIdx, onSelect, onMove }: {
           onClick={() => onSelect(i)}
           onMoveUp={i > 0 ? () => onMove(i, -1) : undefined}
           onMoveDown={i < sections.length - 1 ? () => onMove(i, 1) : undefined}
+          onRemove={section.type !== "hero" ? () => onRemove(i) : undefined}
           pri={pri}>
           <SectionRender section={section} meta={meta} theme={theme} bg={bg} txt={txt} pri={pri} acc={acc} hFont={hFont} />
         </SectionWrapper>
@@ -157,12 +166,13 @@ function PortfolioPreview({ data, selectedIdx, onSelect, onMove }: {
 }
 
 // ── Section wrapper (hover + click + move) ────────────────────────────────────
-function SectionWrapper({ children, selected, onClick, onMoveUp, onMoveDown, pri }: {
+function SectionWrapper({ children, selected, onClick, onMoveUp, onMoveDown, onRemove, pri }: {
   children: React.ReactNode;
   selected: boolean;
   onClick: () => void;
   onMoveUp?: () => void;
   onMoveDown?: () => void;
+  onRemove?: () => void;
   pri: string;
 }) {
   const [hovered, setHovered] = useState(false);
@@ -187,6 +197,10 @@ function SectionWrapper({ children, selected, onClick, onMoveUp, onMoveDown, pri
           <span style={{ background: pri, color: "#1c1917", borderRadius: 6, padding: "0 8px", height: 28, display: "flex", alignItems: "center", fontSize: "0.65rem", fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase" }}>
             Éditer →
           </span>
+          {onRemove && (
+            <button onClick={onRemove} title="Supprimer"
+              style={{ background: "#dc2626", color: "#fff", border: "none", borderRadius: 6, width: 28, height: 28, cursor: "pointer", fontSize: 14, fontWeight: 700, lineHeight: 1 }}>✕</button>
+          )}
         </div>
       )}
       {children}
@@ -470,15 +484,22 @@ const SECTION_LABELS: Record<string, string> = {
   projects: "Projets", experience: "Expérience", contact: "Contact",
 };
 
-function SectionEditor({ section, idx, updateSection, onClose, meta, updateMeta }: {
+function SectionEditor({ section, idx, updateSection, removeSection, onClose, meta, updateMeta }: {
   section: VSection;
   idx: number;
   updateSection: (i: number, s: VSection) => void;
+  removeSection: (i: number) => void;
   onClose: () => void;
   meta: VMeta;
   updateMeta: (u: Partial<VMeta>) => void;
 }) {
   const update = (s: VSection) => updateSection(idx, s);
+
+  function handleRemove() {
+    if (confirm(`Supprimer la section "${SECTION_LABELS[section.type] ?? section.type}" ?`)) {
+      removeSection(idx);
+    }
+  }
 
   return (
     <div style={{ padding: "1.25rem" }}>
@@ -571,6 +592,15 @@ function SectionEditor({ section, idx, updateSection, onClose, meta, updateMeta 
         <PanelField    label="Email"   value={section.email}   onChange={(v) => update({ ...section, email: v })} />
         <PanelTextarea label="Message" value={section.message} onChange={(v) => update({ ...section, message: v })} />
       </>}
+
+      {section.type !== "hero" && (
+        <div style={{ marginTop: "1.5rem", paddingTop: "1rem", borderTop: "1px solid rgba(0,0,0,0.06)" }}>
+          <button onClick={handleRemove}
+            style={{ width: "100%", padding: "0.5rem", fontSize: "0.75rem", color: "#dc2626", background: "rgba(220,38,38,0.05)", border: "1px solid rgba(220,38,38,0.15)", borderRadius: "0.5rem", cursor: "pointer" }}>
+            Supprimer cette section
+          </button>
+        </div>
+      )}
     </div>
   );
 }

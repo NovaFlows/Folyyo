@@ -51,9 +51,10 @@ export async function POST(request: NextRequest) {
   if (!userId) return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
 
   const body = await request.json();
-  const { profileType, slug, name, title, email, githubUsername, linkedinUrl, twitterUrl, cvStoragePath, githubData } = body;
+  const { profileType, slug, name, title, email, githubUsername, instagramHandle, linkedinUrl, twitterUrl, cvStoragePath, githubData } = body;
 
-  if (!profileType || !name || !email || !cvStoragePath) {
+  const requiresCv = profileType === "developer";
+  if (!profileType || !name || !email || (requiresCv && !cvStoragePath)) {
     return NextResponse.json({ error: "Champs requis manquants" }, { status: 400 });
   }
 
@@ -80,15 +81,16 @@ export async function POST(request: NextRequest) {
 
     const inputData: DeveloperInputData = {
       name, title, email,
-      github_username: githubUsername,
-      linkedin_url:    linkedinUrl,
-      twitter_url:     twitterUrl,
+      github_username: githubUsername || undefined,
+      instagram_url:   instagramHandle ? `https://instagram.com/${instagramHandle}` : undefined,
+      linkedin_url:    linkedinUrl || undefined,
+      twitter_url:     twitterUrl  || undefined,
       cv_storage_path: cvStoragePath,
       cv_text:         cvText,
-      github_data:     githubData,
+      github_data:     githubData  || undefined,
     };
 
-    const rawJson = await callClaude(buildGenerateSystemPrompt(), buildGenerateUserPrompt(inputData), 8192);
+    const rawJson = await callClaude(buildGenerateSystemPrompt(), buildGenerateUserPrompt(inputData, profileType), 8192);
     const cleaned = rawJson.replace(/^```json\s*/i, "").replace(/\s*```$/, "").trim();
 
     let siteJson;

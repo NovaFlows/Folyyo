@@ -11,8 +11,9 @@ RÈGLES ABSOLUES :
 - Les couleurs doivent être en format hexadécimal #RRGGBB.
 - Le tagline doit être percutant, court (max 12 mots), et refléter la valeur unique de la personne.
 - Les sections doivent être dans cet ordre : hero, about, skills, projects, experience (si dispo), contact.
-- Pour les skills, déduis les niveaux (1-5) depuis la fréquence d'utilisation sur GitHub et le CV.
-- Pour les projets, prends les plus impressionnants du GitHub, maximum 4.
+- Pour les skills, déduis les niveaux (1-5) depuis le CV et les informations disponibles.
+- Pour les projets (développeurs) : prends les plus impressionnants du GitHub, maximum 4.
+- Pour les créatifs (artistes, mode) : les "projets" sont des travaux/réalisations marquants déduits du CV.
 - CHOISIS UN THÈME depuis la liste fournie — c'est crucial pour que chaque portfolio soit visuellement unique.`;
 }
 
@@ -34,6 +35,8 @@ ${input.github_data.repos
 `
     : "";
 
+  const instagramLine = input.instagram_url ? `- Instagram: ${input.instagram_url}` : "";
+
   const cvSummary = input.cv_text
     ? `\nCONTENU DU CV (extrait):\n${input.cv_text.slice(0, 3000)}`
     : "";
@@ -41,13 +44,21 @@ ${input.github_data.repos
   // Pick a random preset to vary across generations
   const randomPreset = presets[Math.floor(Math.random() * presets.length)];
 
+  const profileLabel = profileType === "artist" ? "Créatif / Artiste"
+    : profileType === "fashion" ? "Mode / Mannequin / Styliste"
+    : profileType === "other"   ? "Profil divers"
+    : "Développeur";
+
   return `Génère le portfolio JSON pour ce profil.
+
+TYPE DE PROFIL : ${profileLabel}
 
 INFORMATIONS DE BASE :
 - Nom: ${input.name}
 - Titre/Poste: ${input.title}
 - Email: ${input.email}
-- GitHub: https://github.com/${input.github_username}
+${input.github_username ? `- GitHub: https://github.com/${input.github_username}` : ""}
+${instagramLine}
 ${input.linkedin_url ? `- LinkedIn: ${input.linkedin_url}` : ""}
 ${input.twitter_url ? `- Twitter: ${input.twitter_url}` : ""}
 ${githubSummary}${cvSummary}
@@ -66,6 +77,7 @@ SCHÉMA JSON ATTENDU (respecte-le exactement) :
     "tagline": "string (accroche courte et percutante)",
     "email": "string (email valide)",
     "github_url": "string (URL optionnelle)",
+    "instagram_url": "string (URL optionnelle)",
     "linkedin_url": "string (URL optionnelle)",
     "twitter_url": "string (URL optionnelle)",
     "avatar_url": "string (URL GitHub avatar si disponible)"
