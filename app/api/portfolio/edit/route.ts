@@ -53,14 +53,23 @@ export async function POST(request: NextRequest) {
   const editLog = await createEdit({ portfolio_id: portfolioId, instruction });
 
   try {
-    const raw = await callClaude(buildEditSystemPrompt(), buildEditUserPrompt(siteJson, instruction), 4096);
-    const cleaned = raw.replace(/^```json\s*/i, "").replace(/\s*```$/, "").trim();
+    const systemPrompt = buildEditSystemPrompt();
+    let raw = await callClaude(systemPrompt, buildEditUserPrompt(siteJson, instruction), 4096);
+    let cleaned = raw.replace(/^```json\s*/i, "").replace(/\s*```$/, "").trim();
 
     let parsed: PortfolioJSON & { _summary?: string };
     try {
       parsed = JSON.parse(cleaned);
     } catch {
-      throw new Error("Réponse non-JSON de Claude");
+      // Retry once with a stricter correction prompt
+      const retryPrompt = `Ta réponse précédente n'était pas du JSON valide. Voici ce que tu as retourné :\n\n${raw.slice(0, 400)}\n\nRetourne UNIQUEMENT le JSON complet du portfolio, sans aucun texte autour.`;
+      raw = await callClaude(systemPrompt, retryPrompt, 4096);
+      cleaned = raw.replace(/^```json\s*/i, "").replace(/\s*```$/, "").trim();
+      try {
+        parsed = JSON.parse(cleaned);
+      } catch {
+        throw new Error("Réponse non-JSON de Claude");
+      }
     }
 
     const summary = parsed._summary ?? instruction;
