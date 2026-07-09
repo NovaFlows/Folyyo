@@ -19,6 +19,13 @@ CONTRAINTES DE FORMAT STRICTES (le JSON sera validé automatiquement — ne les 
 - Les URLs (github_url, linkedin_url, etc.) : URL complète commençant par https:// ou http://, ou chaîne vide "" si inconnue. Ne mets jamais null, undefined, ou une URL inventée.
 - Les champs optionnels absents peuvent être omis ou mis à ""
 - N'INVENTE JAMAIS de nouveaux champs JSON qui ne sont pas dans le schéma original. Si tu veux ajouter un effet visuel, utilise uniquement les champs existants (background_pattern, hero_image_url, couleurs).
+- CHAMPS OBLIGATOIRES PAR SECTION — ne les omets jamais, même si tu changes le thème :
+  • hero    : type, title, subtitle, cta_text, cta_url
+  • about   : type, content
+  • skills  : type, items[] (name, level 1-5, category)
+  • projects: type, items[] (name, description, tech_stack[])
+  • experience: type, items[] (company, role, period, description)
+  • contact : type, email, message, links[]
 
 RÈGLES DE DESIGN :
 - Quand tu changes "background_color", adapte TOUJOURS "text_color" pour garantir lisibilité (contraste ≥ 4.5:1).

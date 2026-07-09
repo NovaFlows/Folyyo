@@ -34,15 +34,15 @@ const ThemeSchema = z.object({
 
 const HeroSectionSchema = z.object({
   type:     z.literal("hero"),
-  title:    z.string(),
-  subtitle: z.string(),
-  cta_text: z.string(),
-  cta_url:  z.string(),
+  title:    z.string().default(""),
+  subtitle: z.string().default(""),
+  cta_text: z.string().default("Voir mes projets"),
+  cta_url:  z.string().default("#projects"),
 });
 
 const AboutSectionSchema = z.object({
   type:      z.literal("about"),
-  content:   z.string(),
+  content:   z.string().default(""),
   highlight: z.string().optional().nullable(),
 });
 
@@ -79,13 +79,13 @@ const ExperienceSectionSchema = z.object({
 
 const ContactSectionSchema = z.object({
   type:    z.literal("contact"),
-  email:   z.string().email(),
-  message: z.string(),
+  email:   z.string().email().catch("contact@example.com"),
+  message: z.string().default(""),
   links: z.array(z.object({
-    label: z.string(),
-    url:   z.string(),  // accepte mailto:, #, chemins relatifs
-    icon:  z.string(),
-  })),
+    label: z.string().default(""),
+    url:   z.string().default(""),
+    icon:  z.string().default(""),
+  })).default([]),
 });
 
 const SectionSchema = z.discriminatedUnion("type", [
