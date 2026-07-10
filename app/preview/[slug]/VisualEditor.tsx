@@ -251,7 +251,10 @@ function PortfolioPreview({ data, selectedIdx, onSelect, onMove, onRemove }: {
         <div style={{ maxWidth: 960, margin: "0 auto", padding: "0.875rem 1.5rem", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <span style={{ fontWeight: 700, color: pri, fontFamily: hFont, fontSize: "1rem" }}>{meta.name}</span>
           <div style={{ display: "flex", gap: "1.25rem", fontSize: "0.8125rem", color: `${txt}70` }}>
-            <span>À propos</span><span>Projets</span><span>Contact</span>
+            {sections.filter((s) => s.type !== "hero").map((s) => {
+              const DEFAULTS: Record<string, string> = { about: "À propos", skills: "Compétences", projects: "Projets", experience: "Expérience", contact: "Contact" };
+              return <span key={s.type}>{(s as { section_title?: string }).section_title ?? DEFAULTS[s.type] ?? s.type}</span>;
+            })}
           </div>
         </div>
       </nav>
@@ -347,17 +350,29 @@ function SectionRender({ section, meta, theme, bg, txt, pri, acc, hFont }: {
     case "about": return (
       <section style={{ padding: "5rem 1.5rem", background: `${bg}f0` }}>
         <div style={{ maxWidth: 720, margin: "0 auto" }}>
-          <h2 style={{ fontFamily: hFont, fontSize: "1.75rem", fontWeight: 700, color: txt, marginBottom: "1.25rem" }}>À propos</h2>
+          <h2 style={{ fontFamily: hFont, fontSize: "1.75rem", fontWeight: 700, color: txt, marginBottom: "1.25rem" }}>{section.section_title ?? "À propos"}</h2>
           <p style={{ fontSize: "1.0rem", lineHeight: 1.75, color: `${txt}cc` }}>{section.content}</p>
           {section.highlight && <p style={{ marginTop: "1rem", borderLeft: `3px solid ${pri}`, paddingLeft: "1rem", color: pri, fontStyle: "italic" }}>{section.highlight}</p>}
         </div>
       </section>
     );
 
-    case "skills": return (
+    case "skills": {
+      const hideLevel = (section as { hide_level?: boolean }).hide_level === true;
+      return (
       <section style={{ padding: "5rem 1.5rem", background: bg }}>
         <div style={{ maxWidth: 960, margin: "0 auto" }}>
-          <h2 style={{ fontFamily: hFont, fontSize: "1.75rem", fontWeight: 700, color: txt, marginBottom: "2rem" }}>Compétences</h2>
+          <h2 style={{ fontFamily: hFont, fontSize: "1.75rem", fontWeight: 700, color: txt, marginBottom: "2rem" }}>{section.section_title ?? "Compétences"}</h2>
+          {hideLevel ? (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
+              {section.items.map((s) => (
+                <div key={s.name} style={{ border: `1px solid ${pri}30`, borderRadius: "2rem", padding: "0.4rem 1rem", background: `${pri}0a` }}>
+                  <span style={{ fontWeight: 600, fontSize: "0.8125rem", color: txt }}>{s.name}</span>
+                  {s.category && <span style={{ fontSize: "0.7rem", color: `${txt}50`, marginLeft: "0.375rem" }}>{s.category}</span>}
+                </div>
+              ))}
+            </div>
+          ) : (
           <div style={{ display: "grid", gap: "0.625rem", gridTemplateColumns: "repeat(auto-fill, minmax(190px, 1fr))" }}>
             {section.items.map((s) => (
               <div key={s.name} style={{ border: `1px solid ${txt}12`, borderRadius: "0.75rem", padding: "0.875rem", background: `${txt}04` }}>
@@ -372,27 +387,34 @@ function SectionRender({ section, meta, theme, bg, txt, pri, acc, hFont }: {
               </div>
             ))}
           </div>
+          )}
         </div>
       </section>
-    );
+      );
+    }
 
     case "projects": return (
       <section style={{ padding: "5rem 1.5rem", background: `${bg}f0` }}>
         <div style={{ maxWidth: 960, margin: "0 auto" }}>
-          <h2 style={{ fontFamily: hFont, fontSize: "1.75rem", fontWeight: 700, color: txt, marginBottom: "2rem" }}>Projets</h2>
+          <h2 style={{ fontFamily: hFont, fontSize: "1.75rem", fontWeight: 700, color: txt, marginBottom: "2rem" }}>{section.section_title ?? "Projets"}</h2>
           <div style={{ display: "grid", gap: "1.25rem", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))" }}>
-            {section.items.map((p) => (
-              <div key={p.name} style={{ border: `1px solid ${txt}12`, borderRadius: "1rem", padding: "1.25rem", background: `${txt}03` }}>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.625rem" }}>
-                  <h3 style={{ fontWeight: 600, color: txt, fontSize: "0.9375rem" }}>{p.name}</h3>
-                  {p.stars ? <span style={{ fontSize: "0.7rem", color: pri }}>★ {p.stars}</span> : null}
-                </div>
-                <p style={{ fontSize: "0.8125rem", color: `${txt}80`, marginBottom: "0.875rem", lineHeight: 1.6 }}>{p.description}</p>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: "0.375rem" }}>
-                  {p.tech_stack.map((t) => <span key={t} style={{ fontSize: "0.7rem", padding: "0.2rem 0.5rem", borderRadius: "0.3rem", background: `${pri}18`, color: pri }}>{t}</span>)}
+            {section.items.map((p) => {
+              const imgUrl = (p as { image_url?: string }).image_url;
+              return (
+              <div key={p.name} style={{ border: `1px solid ${txt}12`, borderRadius: "1rem", overflow: "hidden", background: `${txt}03` }}>
+                {imgUrl ? (
+                  <img src={imgUrl} alt={p.name} style={{ width: "100%", height: 180, objectFit: "cover", display: "block" }} />
+                ) : null}
+                <div style={{ padding: "1.25rem" }}>
+                  <h3 style={{ fontWeight: 600, color: txt, fontSize: "0.9375rem", marginBottom: "0.5rem" }}>{p.name}</h3>
+                  <p style={{ fontSize: "0.8125rem", color: `${txt}80`, marginBottom: "0.625rem", lineHeight: 1.6 }}>{p.description}</p>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "0.375rem" }}>
+                    {p.tech_stack.map((t) => <span key={t} style={{ fontSize: "0.7rem", padding: "0.2rem 0.5rem", borderRadius: "0.3rem", background: `${pri}18`, color: pri }}>{t}</span>)}
+                  </div>
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </section>
@@ -401,7 +423,7 @@ function SectionRender({ section, meta, theme, bg, txt, pri, acc, hFont }: {
     case "experience": return (
       <section style={{ padding: "5rem 1.5rem", background: bg }}>
         <div style={{ maxWidth: 720, margin: "0 auto" }}>
-          <h2 style={{ fontFamily: hFont, fontSize: "1.75rem", fontWeight: 700, color: txt, marginBottom: "2rem" }}>Expérience</h2>
+          <h2 style={{ fontFamily: hFont, fontSize: "1.75rem", fontWeight: 700, color: txt, marginBottom: "2rem" }}>{section.section_title ?? "Expérience"}</h2>
           <div style={{ display: "flex", flexDirection: "column", gap: "1.75rem" }}>
             {section.items.map((exp) => (
               <div key={exp.company} style={{ borderLeft: `2px solid ${pri}30`, paddingLeft: "1.25rem", position: "relative" }}>
@@ -422,7 +444,7 @@ function SectionRender({ section, meta, theme, bg, txt, pri, acc, hFont }: {
     case "contact": return (
       <section style={{ padding: "5rem 1.5rem", textAlign: "center", background: `${bg}f0` }}>
         <div style={{ maxWidth: 480, margin: "0 auto" }}>
-          <h2 style={{ fontFamily: hFont, fontSize: "1.75rem", fontWeight: 700, color: txt, marginBottom: "1rem" }}>Contact</h2>
+          <h2 style={{ fontFamily: hFont, fontSize: "1.75rem", fontWeight: 700, color: txt, marginBottom: "1rem" }}>{section.section_title ?? "Contact"}</h2>
           <p style={{ color: `${txt}80`, marginBottom: "1.75rem", lineHeight: 1.6 }}>{section.message}</p>
           <div style={{ display: "inline-block", background: pri, color: "#fff", padding: "0.875rem 2rem", borderRadius: "0.75rem", fontWeight: 600, marginBottom: "1.75rem" }}>{section.email}</div>
           <div style={{ display: "flex", justifyContent: "center", gap: "1.5rem" }}>
@@ -637,6 +659,15 @@ function SectionEditor({ section, idx, updateSection, removeSection, onClose, me
         <PanelField label="Lien du bouton"  value={section.cta_url}  onChange={(v) => update({ ...section, cta_url: v })} />
       </>}
 
+      {/* Section title — all non-hero sections */}
+      {section.type !== "hero" && (
+        <PanelField
+          label="Titre de la section"
+          value={(section as { section_title?: string }).section_title ?? ""}
+          onChange={(v) => update({ ...section, section_title: v || undefined } as VSection)}
+        />
+      )}
+
       {section.type === "about" && <>
         <PanelTextarea label="Contenu"       value={section.content}      onChange={(v) => update({ ...section, content: v })} rows={5} />
         <PanelTextarea label="Citation (opt)" value={section.highlight ?? ""} onChange={(v) => update({ ...section, highlight: v || undefined })} />
@@ -644,22 +675,33 @@ function SectionEditor({ section, idx, updateSection, removeSection, onClose, me
 
       {section.type === "skills" && (
         <div>
-          <p style={{ fontSize: "0.725rem", color: "#a09a94", marginBottom: "0.875rem" }}>{section.items.length} compétences</p>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.875rem" }}>
+            <p style={{ fontSize: "0.725rem", color: "#a09a94" }}>{section.items.length} éléments</p>
+            <label style={{ display: "flex", alignItems: "center", gap: "0.375rem", fontSize: "0.7rem", color: "#78716c", cursor: "pointer" }}>
+              <input type="checkbox"
+                checked={(section as { hide_level?: boolean }).hide_level === true}
+                onChange={(e) => update({ ...section, hide_level: e.target.checked } as VSection)}
+                style={{ accentColor: "#c9a96e" }} />
+              Masquer les niveaux
+            </label>
+          </div>
           {section.items.map((skill, si) => (
             <div key={si} style={{ marginBottom: "0.75rem", padding: "0.75rem", background: "white", borderRadius: "0.5rem", border: "1px solid rgba(0,0,0,0.06)" }}>
               <PanelField label="Nom" value={skill.name} onChange={(v) => {
                 const items = section.items.map((item, j) => j === si ? { ...item, name: v } : item);
                 update({ ...section, items });
               }} />
-              <div style={{ marginBottom: "0.625rem" }}>
-                <label style={{ display: "block", fontSize: "0.7rem", color: "#78716c", marginBottom: "0.2rem" }}>Niveau — {skill.level}/5</label>
-                <input type="range" min={1} max={5} value={skill.level}
-                  onChange={(e) => {
-                    const items = section.items.map((item, j) => j === si ? { ...item, level: Number(e.target.value) } : item);
-                    update({ ...section, items });
-                  }}
-                  style={{ width: "100%", accentColor: "#c9a96e" }} />
-              </div>
+              {!(section as { hide_level?: boolean }).hide_level && (
+                <div style={{ marginBottom: "0.625rem" }}>
+                  <label style={{ display: "block", fontSize: "0.7rem", color: "#78716c", marginBottom: "0.2rem" }}>Niveau — {skill.level}/5</label>
+                  <input type="range" min={1} max={5} value={skill.level}
+                    onChange={(e) => {
+                      const items = section.items.map((item, j) => j === si ? { ...item, level: Number(e.target.value) } : item);
+                      update({ ...section, items });
+                    }}
+                    style={{ width: "100%", accentColor: "#c9a96e" }} />
+                </div>
+              )}
               <PanelField label="Catégorie" value={skill.category} onChange={(v) => {
                 const items = section.items.map((item, j) => j === si ? { ...item, category: v } : item);
                 update({ ...section, items });
@@ -671,9 +713,20 @@ function SectionEditor({ section, idx, updateSection, removeSection, onClose, me
 
       {section.type === "projects" && (
         <div>
-          {section.items.map((project, pi) => (
+          {section.items.map((project, pi) => {
+            const imgUrl = (project as { image_url?: string }).image_url;
+            return (
             <div key={pi} style={{ marginBottom: "0.75rem", padding: "0.75rem", background: "white", borderRadius: "0.5rem", border: "1px solid rgba(0,0,0,0.06)" }}>
-              <p style={{ fontSize: "0.7rem", fontWeight: 600, color: "#a09a94", marginBottom: "0.5rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>Projet {pi + 1}</p>
+              <p style={{ fontSize: "0.7rem", fontWeight: 600, color: "#a09a94", marginBottom: "0.5rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                {(section as { section_title?: string }).section_title ? `${(section as { section_title?: string }).section_title} ${pi + 1}` : `Item ${pi + 1}`}
+              </p>
+              <ItemImageUpload
+                imageUrl={imgUrl}
+                onUpdate={(url) => {
+                  const items = section.items.map((item, j) => j === pi ? { ...item, image_url: url } : item);
+                  update({ ...section, items });
+                }}
+              />
               <PanelField label="Nom" value={project.name} onChange={(v) => {
                 const items = section.items.map((item, j) => j === pi ? { ...item, name: v } : item);
                 update({ ...section, items });
@@ -682,12 +735,13 @@ function SectionEditor({ section, idx, updateSection, removeSection, onClose, me
                 const items = section.items.map((item, j) => j === pi ? { ...item, description: v } : item);
                 update({ ...section, items });
               }} />
-              <PanelField label="Stack (virgule)" value={project.tech_stack.join(", ")} onChange={(v) => {
+              <PanelField label="Tags (virgule)" value={project.tech_stack.join(", ")} onChange={(v) => {
                 const items = section.items.map((item, j) => j === pi ? { ...item, tech_stack: v.split(",").map(s => s.trim()).filter(Boolean) } : item);
                 update({ ...section, items });
               }} />
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
@@ -831,6 +885,42 @@ function BgImageUpload({ heroImageUrl, overlayOpacity, onUpdate }: {
           <p style={{ fontSize: "0.625rem", color: "#c8c4bf", marginTop: "0.2rem" }}>0% = photo seule · 100% = fond couleur seul</p>
         </div>
       )}
+    </div>
+  );
+}
+
+function ItemImageUpload({ imageUrl, onUpdate }: { imageUrl?: string; onUpdate: (url: string | undefined) => void }) {
+  const [uploading, setUploading] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  async function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const dataUrl = await resizeImage(file, 800, 0.75);
+      onUpdate(dataUrl);
+    } finally {
+      setUploading(false);
+      e.target.value = "";
+    }
+  }
+
+  return (
+    <div style={{ marginBottom: "0.75rem" }}>
+      <label style={{ display: "block", fontSize: "0.7rem", color: "#78716c", marginBottom: "0.375rem" }}>Photo</label>
+      {imageUrl ? (
+        <div style={{ position: "relative", borderRadius: "0.5rem", overflow: "hidden", marginBottom: "0.375rem", height: 100 }}>
+          <img src={imageUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+          <button onClick={() => onUpdate(undefined)}
+            style={{ position: "absolute", top: 4, right: 4, width: 20, height: 20, borderRadius: "50%", background: "rgba(0,0,0,0.55)", color: "white", border: "none", cursor: "pointer", fontSize: 10, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
+        </div>
+      ) : null}
+      <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp" style={{ display: "none" }} onChange={handleChange} />
+      <button onClick={() => inputRef.current?.click()} disabled={uploading}
+        style={{ width: "100%", padding: "0.35rem 0.5rem", fontSize: "0.7rem", color: "#1c1917", background: "white", border: "1px dashed rgba(0,0,0,0.2)", borderRadius: "0.4rem", cursor: uploading ? "wait" : "pointer", textAlign: "center" }}>
+        {uploading ? "Chargement…" : imageUrl ? "Changer la photo" : "+ Ajouter une photo"}
+      </button>
     </div>
   );
 }

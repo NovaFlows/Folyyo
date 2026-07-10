@@ -33,21 +33,25 @@ const ThemeSchema = z.object({
 });
 
 const HeroSectionSchema = z.object({
-  type:     z.literal("hero"),
-  title:    z.string().default(""),
-  subtitle: z.string().default(""),
-  cta_text: z.string().default("Voir mes projets"),
-  cta_url:  z.string().default("#projects"),
+  type:          z.literal("hero"),
+  section_title: z.string().optional(),
+  title:         z.string().default(""),
+  subtitle:      z.string().default(""),
+  cta_text:      z.string().default("Voir mes projets"),
+  cta_url:       z.string().default("#projects"),
 });
 
 const AboutSectionSchema = z.object({
-  type:      z.literal("about"),
-  content:   z.string().default(""),
-  highlight: z.string().optional().nullable(),
+  type:          z.literal("about"),
+  section_title: z.string().optional(),
+  content:       z.string().default(""),
+  highlight:     z.string().optional().nullable(),
 });
 
 const SkillsSectionSchema = z.object({
-  type: z.literal("skills"),
+  type:          z.literal("skills"),
+  section_title: z.string().optional(),
+  hide_level:    z.boolean().optional(),
   items: z.array(z.object({
     name:     z.string(),
     level:    z.number().min(1).max(5),
@@ -56,7 +60,8 @@ const SkillsSectionSchema = z.object({
 });
 
 const ProjectsSectionSchema = z.object({
-  type: z.literal("projects"),
+  type:          z.literal("projects"),
+  section_title: z.string().optional(),
   items: z.array(z.object({
     name:        z.string(),
     description: z.string(),
@@ -64,11 +69,13 @@ const ProjectsSectionSchema = z.object({
     github_url:  optionalUrl,
     live_url:    optionalUrl,
     stars:       z.number().optional().nullable(),
+    image_url:   z.string().optional(),
   })),
 });
 
 const ExperienceSectionSchema = z.object({
-  type: z.literal("experience"),
+  type:          z.literal("experience"),
+  section_title: z.string().optional(),
   items: z.array(z.object({
     company:     z.string(),
     role:        z.string(),
@@ -78,9 +85,10 @@ const ExperienceSectionSchema = z.object({
 });
 
 const ContactSectionSchema = z.object({
-  type:    z.literal("contact"),
-  email:   z.string().email().catch("contact@example.com"),
-  message: z.string().default(""),
+  type:          z.literal("contact"),
+  section_title: z.string().optional(),
+  email:         z.string().email().catch("contact@example.com"),
+  message:       z.string().default(""),
   links: z.array(z.object({
     label: z.string().default(""),
     url:   z.string().default(""),

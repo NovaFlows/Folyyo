@@ -38,6 +38,14 @@ function BackgroundPatternStatic({ pattern, color }: { pattern: string; color: s
   return null;
 }
 
+function sectionDefaultTitle(type: string): string {
+  const map: Record<string, string> = {
+    about: "À propos", skills: "Compétences", projects: "Projets",
+    experience: "Expérience", contact: "Contact",
+  };
+  return map[type] ?? type;
+}
+
 export default async function PreviewPage({
   params,
   searchParams,
@@ -61,12 +69,9 @@ export default async function PreviewPage({
 
   // View mode (public)
   const { meta, theme, sections } = data;
-  const hero       = sections.find((s) => s.type === "hero");
-  const about      = sections.find((s) => s.type === "about");
-  const skills     = sections.find((s) => s.type === "skills");
-  const projects   = sections.find((s) => s.type === "projects");
-  const experience = sections.find((s) => s.type === "experience");
-  const contact    = sections.find((s) => s.type === "contact");
+  const about   = sections.find((s) => s.type === "about");
+  const projects = sections.find((s) => s.type === "projects");
+  const contact  = sections.find((s) => s.type === "contact");
 
   const bg   = theme.background_color;
   const txt  = theme.text_color;
@@ -85,9 +90,11 @@ export default async function PreviewPage({
         <div style={{ maxWidth: 960, margin: "0 auto", padding: "1rem 1.5rem", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <span style={{ fontWeight: 700, color: pri, fontFamily: hFont }}>{meta.name}</span>
           <div style={{ display: "flex", gap: "1.5rem", fontSize: "0.875rem", color: `${txt}80` }}>
-            {about  && <a href="#about"    style={{ color: "inherit", textDecoration: "none" }}>À propos</a>}
-            {projects && <a href="#projects" style={{ color: "inherit", textDecoration: "none" }}>Projets</a>}
-            {contact  && <a href="#contact"  style={{ color: "inherit", textDecoration: "none" }}>Contact</a>}
+            {sections.filter((s) => s.type !== "hero").map((s) => (
+              <a key={s.type} href={`#${s.type}`} style={{ color: "inherit", textDecoration: "none" }}>
+                {(s as { section_title?: string }).section_title ?? sectionDefaultTitle(s.type)}
+              </a>
+            ))}
           </div>
         </div>
       </nav>
@@ -128,7 +135,9 @@ export default async function PreviewPage({
           case "about": return (
             <section key={i} id="about" style={{ padding: "5rem 1.5rem", background: `${bg}f0` }}>
               <div style={{ maxWidth: 720, margin: "0 auto" }}>
-                <h2 style={{ fontFamily: hFont, fontSize: "1.875rem", fontWeight: 700, color: txt, marginBottom: "1.5rem" }}>À propos</h2>
+                <h2 style={{ fontFamily: hFont, fontSize: "1.875rem", fontWeight: 700, color: txt, marginBottom: "1.5rem" }}>
+                  {section.section_title ?? "À propos"}
+                </h2>
                 <p style={{ fontSize: "1.0625rem", lineHeight: 1.75, color: `${txt}cc` }}>{section.content}</p>
                 {section.highlight && (
                   <p style={{ marginTop: "1rem", borderLeft: `3px solid ${pri}`, paddingLeft: "1rem", color: pri, fontStyle: "italic" }}>{section.highlight}</p>
@@ -137,51 +146,80 @@ export default async function PreviewPage({
             </section>
           );
 
-          case "skills": return (
-            <section key={i} id="skills" style={{ padding: "5rem 1.5rem", background: bg }}>
-              <div style={{ maxWidth: 960, margin: "0 auto" }}>
-                <h2 style={{ fontFamily: hFont, fontSize: "1.875rem", fontWeight: 700, color: txt, marginBottom: "2.5rem" }}>Compétences</h2>
-                <div style={{ display: "grid", gap: "0.75rem", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))" }}>
-                  {section.items.map((skill) => (
-                    <div key={skill.name} style={{ border: `1px solid ${txt}12`, borderRadius: "0.75rem", padding: "1rem", background: `${txt}04` }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.5rem" }}>
-                        <span style={{ fontWeight: 600, fontSize: "0.875rem", color: txt }}>{skill.name}</span>
-                        <span style={{ fontSize: "0.75rem", color: pri }}>{skill.level}/5</span>
-                      </div>
-                      <div style={{ height: 4, borderRadius: 2, background: `${txt}15`, overflow: "hidden" }}>
-                        <div style={{ height: "100%", width: `${(skill.level / 5) * 100}%`, background: pri, borderRadius: 2 }} />
-                      </div>
-                      <span style={{ fontSize: "0.75rem", color: `${txt}50`, marginTop: "0.25rem", display: "block" }}>{skill.category}</span>
+          case "skills": {
+            const hideLevel = (section as { hide_level?: boolean }).hide_level === true;
+            return (
+              <section key={i} id="skills" style={{ padding: "5rem 1.5rem", background: bg }}>
+                <div style={{ maxWidth: 960, margin: "0 auto" }}>
+                  <h2 style={{ fontFamily: hFont, fontSize: "1.875rem", fontWeight: 700, color: txt, marginBottom: "2.5rem" }}>
+                    {section.section_title ?? "Compétences"}
+                  </h2>
+                  {hideLevel ? (
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "0.625rem" }}>
+                      {section.items.map((skill) => (
+                        <div key={skill.name} style={{ border: `1px solid ${pri}30`, borderRadius: "2rem", padding: "0.5rem 1.125rem", background: `${pri}0a` }}>
+                          <span style={{ fontWeight: 600, fontSize: "0.875rem", color: txt }}>{skill.name}</span>
+                          {skill.category && <span style={{ fontSize: "0.75rem", color: `${txt}50`, marginLeft: "0.5rem" }}>{skill.category}</span>}
+                        </div>
+                      ))}
                     </div>
-                  ))}
+                  ) : (
+                    <div style={{ display: "grid", gap: "0.75rem", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))" }}>
+                      {section.items.map((skill) => (
+                        <div key={skill.name} style={{ border: `1px solid ${txt}12`, borderRadius: "0.75rem", padding: "1rem", background: `${txt}04` }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.5rem" }}>
+                            <span style={{ fontWeight: 600, fontSize: "0.875rem", color: txt }}>{skill.name}</span>
+                            <span style={{ fontSize: "0.75rem", color: pri }}>{skill.level}/5</span>
+                          </div>
+                          <div style={{ height: 4, borderRadius: 2, background: `${txt}15`, overflow: "hidden" }}>
+                            <div style={{ height: "100%", width: `${(skill.level / 5) * 100}%`, background: pri, borderRadius: 2 }} />
+                          </div>
+                          <span style={{ fontSize: "0.75rem", color: `${txt}50`, marginTop: "0.25rem", display: "block" }}>{skill.category}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              </div>
-            </section>
-          );
+              </section>
+            );
+          }
 
           case "projects": return (
             <section key={i} id="projects" style={{ padding: "5rem 1.5rem", background: `${bg}f0` }}>
               <div style={{ maxWidth: 960, margin: "0 auto" }}>
-                <h2 style={{ fontFamily: hFont, fontSize: "1.875rem", fontWeight: 700, color: txt, marginBottom: "2.5rem" }}>Projets</h2>
+                <h2 style={{ fontFamily: hFont, fontSize: "1.875rem", fontWeight: 700, color: txt, marginBottom: "2.5rem" }}>
+                  {section.section_title ?? "Projets"}
+                </h2>
                 <div style={{ display: "grid", gap: "1.5rem", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))" }}>
-                  {section.items.map((p) => (
-                    <div key={p.name} style={{ border: `1px solid ${txt}12`, borderRadius: "1rem", padding: "1.5rem", background: `${txt}03` }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.75rem" }}>
-                        <h3 style={{ fontWeight: 600, color: txt }}>{p.name}</h3>
-                        {p.stars ? <span style={{ fontSize: "0.75rem", color: pri }}>★ {p.stars}</span> : null}
+                  {section.items.map((p) => {
+                    const imgUrl = (p as { image_url?: string }).image_url;
+                    return (
+                      <div key={p.name} style={{ border: `1px solid ${txt}12`, borderRadius: "1rem", overflow: "hidden", background: `${txt}03` }}>
+                        {imgUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={imgUrl} alt={p.name} style={{ width: "100%", height: 200, objectFit: "cover", display: "block" }} />
+                        ) : null}
+                        <div style={{ padding: "1.25rem" }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.75rem" }}>
+                            <h3 style={{ fontWeight: 600, color: txt }}>{p.name}</h3>
+                            {p.stars ? <span style={{ fontSize: "0.75rem", color: pri }}>★ {p.stars}</span> : null}
+                          </div>
+                          <p style={{ fontSize: "0.875rem", color: `${txt}80`, marginBottom: "1rem", lineHeight: 1.6 }}>{p.description}</p>
+                          {p.tech_stack.length > 0 && (
+                            <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", marginBottom: "1rem" }}>
+                              {p.tech_stack.map((t) => (
+                                <span key={t} style={{ fontSize: "0.75rem", padding: "0.25rem 0.625rem", borderRadius: "0.375rem", background: `${pri}18`, color: pri }}>{t}</span>
+                              ))}
+                            </div>
+                          )}
+                          <div style={{ display: "flex", gap: "1rem" }}>
+                            {p.github_url && <a href={p.github_url} target="_blank" rel="noopener noreferrer" style={{ fontSize: "0.75rem", color: `${txt}60`, textDecoration: "none" }}>GitHub →</a>}
+                            {p.live_url   && <a href={p.live_url}   target="_blank" rel="noopener noreferrer" style={{ fontSize: "0.75rem", color: acc, textDecoration: "none" }}>Live →</a>}
+                          </div>
+                        </div>
                       </div>
-                      <p style={{ fontSize: "0.875rem", color: `${txt}80`, marginBottom: "1rem", lineHeight: 1.6 }}>{p.description}</p>
-                      <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", marginBottom: "1rem" }}>
-                        {p.tech_stack.map((t) => (
-                          <span key={t} style={{ fontSize: "0.75rem", padding: "0.25rem 0.625rem", borderRadius: "0.375rem", background: `${pri}18`, color: pri }}>{t}</span>
-                        ))}
-                      </div>
-                      <div style={{ display: "flex", gap: "1rem" }}>
-                        {p.github_url && <a href={p.github_url} target="_blank" rel="noopener noreferrer" style={{ fontSize: "0.75rem", color: `${txt}60`, textDecoration: "none" }}>GitHub →</a>}
-                        {p.live_url   && <a href={p.live_url}   target="_blank" rel="noopener noreferrer" style={{ fontSize: "0.75rem", color: acc, textDecoration: "none" }}>Live →</a>}
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             </section>
@@ -190,7 +228,9 @@ export default async function PreviewPage({
           case "experience": return (
             <section key={i} id="experience" style={{ padding: "5rem 1.5rem", background: bg }}>
               <div style={{ maxWidth: 720, margin: "0 auto" }}>
-                <h2 style={{ fontFamily: hFont, fontSize: "1.875rem", fontWeight: 700, color: txt, marginBottom: "2.5rem" }}>Expérience</h2>
+                <h2 style={{ fontFamily: hFont, fontSize: "1.875rem", fontWeight: 700, color: txt, marginBottom: "2.5rem" }}>
+                  {section.section_title ?? "Expérience"}
+                </h2>
                 <div style={{ display: "flex", flexDirection: "column", gap: "2rem" }}>
                   {section.items.map((exp) => (
                     <div key={exp.company} style={{ borderLeft: `2px solid ${pri}30`, paddingLeft: "1.5rem", position: "relative" }}>
@@ -211,7 +251,9 @@ export default async function PreviewPage({
           case "contact": return (
             <section key={i} id="contact" style={{ padding: "5rem 1.5rem", textAlign: "center", background: `${bg}f0` }}>
               <div style={{ maxWidth: 480, margin: "0 auto" }}>
-                <h2 style={{ fontFamily: hFont, fontSize: "1.875rem", fontWeight: 700, color: txt, marginBottom: "1rem" }}>Contact</h2>
+                <h2 style={{ fontFamily: hFont, fontSize: "1.875rem", fontWeight: 700, color: txt, marginBottom: "1rem" }}>
+                  {section.section_title ?? "Contact"}
+                </h2>
                 <p style={{ color: `${txt}80`, marginBottom: "2rem" }}>{section.message}</p>
                 <a href={`mailto:${section.email}`}
                   style={{ display: "inline-block", background: pri, color: "#fff", padding: "0.875rem 2rem", borderRadius: "0.75rem", textDecoration: "none", fontWeight: 600, marginBottom: "2rem" }}>

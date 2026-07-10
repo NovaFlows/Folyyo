@@ -1,106 +1,197 @@
 import type { DeveloperInputData } from "@/types/portfolio";
-import { buildThemePresetsBlock, getPresetsForProfile } from "@/lib/portfolio/themes";
+import { getPresetsForProfile } from "@/lib/portfolio/themes";
 
 export function buildGenerateSystemPrompt(): string {
-  return `Tu es un expert en création de portfolios professionnels visuellement distinctifs. Tu reçois des informations sur un profil et tu produis un objet JSON strict décrivant la structure et le contenu de son portfolio.
+  return `Tu es un expert en création de portfolios professionnels. Tu analyses le profil d'une personne et tu génères un portfolio JSON parfaitement adapté à son métier, ses objectifs et son secteur d'activité.
 
 RÈGLES ABSOLUES :
-- Réponds UNIQUEMENT avec un objet JSON valide. Aucun texte avant ou après, aucun bloc markdown, aucun commentaire.
-- Respecte exactement le schéma fourni dans le message utilisateur.
+- Réponds UNIQUEMENT avec un objet JSON valide. Aucun texte avant ou après.
+- Respecte exactement le schéma fourni.
 - Si une information est manquante, invente quelque chose de professionnel et plausible.
-- Les couleurs doivent être en format hexadécimal #RRGGBB.
-- Le tagline doit être percutant, court (max 12 mots), et refléter la valeur unique de la personne.
-- Les sections doivent être dans cet ordre : hero, about, skills, projects, experience (si dispo), contact.
-- Pour les skills, déduis les niveaux (1-5) depuis le CV et les informations disponibles.
-- Pour les projets (développeurs) : prends les plus impressionnants du GitHub, maximum 4.
-- Pour les créatifs (artistes, mode) : les "projets" sont des travaux/réalisations marquants déduits du CV.
-- CHOISIS UN THÈME depuis la liste fournie — c'est crucial pour que chaque portfolio soit visuellement unique.`;
+- Les couleurs : format hexadécimal #RRGGBB uniquement.
+- Le tagline : percutant, court (max 12 mots), refléter la valeur unique de la personne. Évite les clichés ("passionné par", "expert en", "je m'appelle").
+- ADAPTE le portfolio au vrai métier de la personne — ne génère pas 6 sections génériques.`;
 }
 
 export function buildGenerateUserPrompt(input: DeveloperInputData, profileType = "developer"): string {
   const presets = getPresetsForProfile(profileType);
-  const presetsBlock = buildThemePresetsBlock(profileType);
+  const preset  = presets[Math.floor(Math.random() * presets.length)];
 
-  const githubSummary = input.github_data
-    ? `
-DONNÉES GITHUB (username: ${input.github_username}):
-- Bio: ${input.github_data.bio ?? "Non renseignée"}
-- Repos publics: ${input.github_data.public_repos}
-- Followers: ${input.github_data.followers}
-- Langages les plus utilisés: ${JSON.stringify(input.github_data.top_languages)}
-- Top projets:
-${input.github_data.repos
-  .map((r) => `  • ${r.name} (${r.stargazers_count}★, ${r.language ?? "?"}): ${r.description ?? "Sans description"} — ${r.html_url}`)
-  .join("\n")}
-`
-    : "";
+  const githubBlock = input.github_data ? `
+DONNÉES GITHUB (${input.github_username}) :
+- Bio : ${input.github_data.bio ?? "—"}
+- Repos publics : ${input.github_data.public_repos} | Followers : ${input.github_data.followers}
+- Langages : ${JSON.stringify(input.github_data.top_languages)}
+- Top projets :
+${input.github_data.repos.slice(0, 6).map((r) =>
+  `  • ${r.name} (${r.stargazers_count}★, ${r.language ?? "?"}) : ${r.description ?? "Sans description"} — ${r.html_url}`
+).join("\n")}` : "";
 
-  const instagramLine = input.instagram_url ? `- Instagram: ${input.instagram_url}` : "";
+  const cvBlock   = input.cv_text ? `\nCONTENU DU CV :\n${input.cv_text.slice(0, 3500)}` : "";
+  const igLine    = input.instagram_url ? `- Instagram : ${input.instagram_url}` : "";
+  const ghLine    = input.github_username ? `- GitHub : https://github.com/${input.github_username}` : "";
+  const liLine    = input.linkedin_url ? `- LinkedIn : ${input.linkedin_url}` : "";
+  const twLine    = input.twitter_url  ? `- Twitter  : ${input.twitter_url}` : "";
 
-  const cvSummary = input.cv_text
-    ? `\nCONTENU DU CV (extrait):\n${input.cv_text.slice(0, 3000)}`
-    : "";
+  return `PROFIL À GÉNÉRER
 
-  // Pick a random preset to vary across generations
-  const randomPreset = presets[Math.floor(Math.random() * presets.length)];
+Type : ${profileType}
+Nom : ${input.name}
+Titre / Poste : ${input.title}
+Email : ${input.email}
+${ghLine}${igLine ? "\n" + igLine : ""}${liLine ? "\n" + liLine : ""}${twLine ? "\n" + twLine : ""}
+${githubBlock}${cvBlock}
 
-  const profileLabel = profileType === "artist" ? "Créatif / Artiste"
-    : profileType === "fashion" ? "Mode / Mannequin / Styliste"
-    : profileType === "other"   ? "Profil divers"
-    : "Développeur";
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+INTELLIGENCE DE SÉLECTION DES SECTIONS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-  return `Génère le portfolio JSON pour ce profil.
+Analyse le titre et le type pour choisir 3 à 6 sections adaptées. Utilise TOUJOURS "section_title" pour nommer les sections de façon pertinente (sauf si le titre standard convient parfaitement).
 
-TYPE DE PROFIL : ${profileLabel}
+DÉVELOPPEUR / INGÉNIEUR / DATA SCIENTIST :
+  sections : hero → about → skills → projects → experience → contact
+  section_title : standard (pas besoin de le préciser)
+  image_url : "" sur les projets si c'est une app web ou mobile (pour screenshots futurs)
+  tech_stack : technologies réelles utilisées
 
-INFORMATIONS DE BASE :
-- Nom: ${input.name}
-- Titre/Poste: ${input.title}
-- Email: ${input.email}
-${input.github_username ? `- GitHub: https://github.com/${input.github_username}` : ""}
-${instagramLine}
-${input.linkedin_url ? `- LinkedIn: ${input.linkedin_url}` : ""}
-${input.twitter_url ? `- Twitter: ${input.twitter_url}` : ""}
-${githubSummary}${cvSummary}
+ARTISTE / ILLUSTRATEUR / GRAPHISTE / PEINTRE / SCULPTEUR :
+  sections : hero → about → projects → [experience si pertinent] → contact
+  projects section_title : "Œuvres" ou "Portfolio" ou "Créations"
+  experience section_title : "Expositions & Distinctions" ou "Clients"
+  image_url : "" sur CHAQUE item de projects (l'utilisateur ajoutera ses photos d'œuvres)
+  tech_stack : matériaux / techniques ("Huile sur toile", "Aquarelle", "Sculpture bois")
+  NE PAS inclure skills avec niveaux sauf si très pertinent (instruments, logiciels)
+  github_url / stars / live_url : laisser vides
 
-THÈMES DISPONIBLES (choisis le plus adapté à ce profil) :
-${presetsBlock}
+PHOTOGRAPHE / VIDÉASTE / RÉALISATEUR :
+  sections : hero → about → projects → [skills si pertinent] → contact
+  projects section_title : "Portfolio" ou "Galerie" ou "Réalisations"
+  image_url : "" sur CHAQUE item (l'utilisateur ajoutera ses meilleures photos)
+  tech_stack : style / sujet / matériel ("Portrait", "Reportage", "Sony A7", "Studio")
+  skills section_title : "Spécialités" ou "Prestations", hide_level : true ou false
 
-THÈME SUGGÉRÉ POUR CETTE GÉNÉRATION : "${randomPreset.id}"
-Tu peux choisir un autre thème si tu juges qu'il correspond mieux au profil et à sa personnalité.
+MANNEQUIN / MODÈLE / STYLISTE / DIRECTEUR ARTISTIQUE MODE :
+  sections : hero → about → projects → experience → contact
+  projects section_title : "Campagnes & Éditos" ou "Portfolio" ou "Shootings"
+  image_url : "" sur CHAQUE item campagne
+  experience section_title : "Agences & Collaborations"
+  tech_stack : marque / magazine / photographe ("Vogue", "Lacoste", "Annie Leibovitz")
+  skills : optionnel — si inclus : section_title : "Spécialités", hide_level : true
 
-SCHÉMA JSON ATTENDU (respecte-le exactement) :
+BOUTIQUE DE MODE / MARQUE / COMMERCE :
+  sections : hero → about → skills → projects → contact (PAS d'experience sauf si pertinent)
+  skills section_title : "Marques distribuées" ou "Notre sélection", hide_level : true
+  skills items : chaque marque = un item, level : 3 (caché), category : segment (Femme, Homme, Accessoires…)
+  projects section_title : "Collections" ou "Nouvelles Arrivées"
+  image_url : "" sur chaque collection (pour photos de produits)
+  tech_stack : saison / style ("Printemps 2024", "Streetwear", "Minimaliste")
+
+MUSICIEN / DJ / COMPOSITEUR / BEATMAKER :
+  sections : hero → about → projects → experience → contact
+  projects section_title : "Discographie" ou "Releases" ou "Projets musicaux"
+  image_url : "" sur chaque album/single (pour pochettes)
+  experience section_title : "Scène & Lives" ou "Collaborations"
+  tech_stack : genre / instruments / ambiance ("R&B", "Afro-beat", "Piano", "Ableton")
+  skills : optionnel — instruments / logiciels si pertinent
+
+CONSULTANT / COACH / FORMATEUR / THÉRAPEUTE :
+  sections : hero → about → skills → experience → contact
+  skills section_title : "Services proposés" ou "Mes accompagnements", hide_level : true
+  skills items : chaque service = un item, category = format (Individuel, Groupe, En ligne…)
+  experience section_title : "Parcours & Clients" ou "Formations suivies"
+  NE PAS inclure projects si peu pertinent
+
+ARCHITECTE / DESIGNER INTÉRIEUR / DESIGNER PRODUIT :
+  sections : hero → about → projects → skills → contact
+  projects section_title : "Réalisations" ou "Projets", image_url : "" sur chaque item
+  skills section_title : "Expertises" ou "Savoir-faire", hide_level : false
+  tech_stack : style / logiciels / matériaux ("Minimalisme", "AutoCAD", "Béton brut")
+
+AUTRE / POLYVALENT :
+  Déduis la configuration la plus proche depuis les exemples ci-dessus.
+  Priorité : bien nommer les sections + mettre image_url : "" là où des visuels sont attendus.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+THÈME (utilise EXACTEMENT ces valeurs)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+{
+  "primary_color":    "${preset.primary_color}",
+  "background_color": "${preset.background_color}",
+  "text_color":       "${preset.text_color}",
+  "accent_color":     "${preset.accent_color}",
+  "font_heading":     "${preset.font_heading}",
+  "font_body":        "${preset.font_body}",
+  "style":            "${preset.style}",
+  "hero_image_url":   ${preset.hero_image_url ? `"${preset.hero_image_url}"` : "null"},
+  "overlay_opacity":  ${preset.overlay_opacity},
+  "theme_preset_id":  "${preset.id}",
+  "background_pattern": "${["none","none","none","dots","lines"][Math.floor(Math.random() * 5)]}"
+}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SCHÉMA JSON ATTENDU
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 {
   "meta": {
     "name": "string",
     "title": "string",
-    "tagline": "string (accroche courte et percutante)",
+    "tagline": "string — accroche courte, percutante, unique",
     "email": "string (email valide)",
-    "github_url": "string (URL optionnelle)",
-    "instagram_url": "string (URL optionnelle)",
-    "linkedin_url": "string (URL optionnelle)",
-    "twitter_url": "string (URL optionnelle)",
-    "avatar_url": "string (URL GitHub avatar si disponible)"
+    "github_url":    "string (URL ou vide)",
+    "instagram_url": "string (URL ou vide)",
+    "linkedin_url":  "string (URL ou vide)",
+    "twitter_url":   "string (URL ou vide)",
+    "avatar_url":    "string (avatar GitHub si disponible, sinon vide)"
   },
-  "theme": {
-    "primary_color": "${randomPreset.primary_color}",
-    "background_color": "${randomPreset.background_color}",
-    "text_color": "${randomPreset.text_color}",
-    "accent_color": "${randomPreset.accent_color}",
-    "font_heading": "${randomPreset.font_heading}",
-    "font_body": "${randomPreset.font_body}",
-    "style": "${randomPreset.style}",
-    "hero_image_url": ${randomPreset.hero_image_url ? `"${randomPreset.hero_image_url}"` : "null"},
-    "overlay_opacity": ${randomPreset.overlay_opacity},
-    "theme_preset_id": "${randomPreset.id}"
-  },
+  "theme": { ... (utilise exactement les valeurs du bloc THÈME ci-dessus) },
   "sections": [
-    { "type": "hero", "title": "string", "subtitle": "string", "cta_text": "string", "cta_url": "#projects" },
-    { "type": "about", "content": "string (2-3 phrases personnalisées)", "highlight": "string optionnel (citation ou fait marquant)" },
-    { "type": "skills", "items": [{ "name": "string", "level": 1, "category": "string" }] },
-    { "type": "projects", "items": [{ "name": "string", "description": "string", "tech_stack": ["string"], "github_url": "string", "live_url": "string optionnel", "stars": 0 }] },
-    { "type": "experience", "items": [{ "company": "string", "role": "string", "period": "string", "description": "string" }] },
-    { "type": "contact", "email": "string", "message": "string", "links": [{ "label": "string", "url": "string", "icon": "string" }] }
+    {
+      "type": "hero",
+      "section_title": "optionnel",
+      "title": "string",
+      "subtitle": "string",
+      "cta_text": "string",
+      "cta_url": "#projets-ou-section-pertinente"
+    },
+    {
+      "type": "about",
+      "section_title": "optionnel — ex: 'Mon histoire', 'La boutique', 'Notre vision'",
+      "content": "string — 2-4 phrases riches, personnalisées, qui reflètent le vrai métier",
+      "highlight": "string optionnel — citation forte ou fait marquant"
+    },
+    {
+      "type": "skills",
+      "section_title": "string — ex: 'Compétences', 'Marques distribuées', 'Services proposés'",
+      "hide_level": false,
+      "items": [{ "name": "string", "level": 1-5, "category": "string" }]
+    },
+    {
+      "type": "projects",
+      "section_title": "string — ex: 'Projets', 'Œuvres', 'Campagnes', 'Collections'",
+      "items": [{
+        "name": "string",
+        "description": "string",
+        "tech_stack": ["string — tags adaptés au métier"],
+        "github_url": "string ou vide",
+        "live_url": "string ou vide",
+        "stars": null,
+        "image_url": "string vide si des photos visuelles sont attendues, omis sinon"
+      }]
+    },
+    {
+      "type": "experience",
+      "section_title": "string — ex: 'Expérience', 'Expositions', 'Agences', 'Scène & Lives'",
+      "items": [{ "company": "string", "role": "string", "period": "string", "description": "string" }]
+    },
+    {
+      "type": "contact",
+      "section_title": "optionnel — 'Contact', 'Me contacter', 'Collaborons'",
+      "email": "string",
+      "message": "string — message d'invitation adapté au profil",
+      "links": [{ "label": "string", "url": "string", "icon": "string" }]
+    }
   ]
 }
 

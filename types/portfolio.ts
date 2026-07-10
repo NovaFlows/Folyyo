@@ -73,6 +73,7 @@ export type PortfolioSection =
 
 export interface HeroSection {
   type: "hero";
+  section_title?: string;
   title: string;
   subtitle: string;
   cta_text: string;
@@ -81,17 +82,21 @@ export interface HeroSection {
 
 export interface AboutSection {
   type: "about";
+  section_title?: string;
   content: string;
   highlight?: string;
 }
 
 export interface SkillsSection {
   type: "skills";
+  section_title?: string;
+  hide_level?: boolean;
   items: { name: string; level: number; category: string }[];
 }
 
 export interface ProjectsSection {
   type: "projects";
+  section_title?: string;
   items: {
     name: string;
     description: string;
@@ -99,11 +104,13 @@ export interface ProjectsSection {
     github_url?: string;
     live_url?: string;
     stars?: number;
+    image_url?: string;
   }[];
 }
 
 export interface ExperienceSection {
   type: "experience";
+  section_title?: string;
   items: {
     company: string;
     role: string;
@@ -114,6 +121,7 @@ export interface ExperienceSection {
 
 export interface ContactSection {
   type: "contact";
+  section_title?: string;
   email: string;
   message: string;
   links: { label: string; url: string; icon: string }[];
