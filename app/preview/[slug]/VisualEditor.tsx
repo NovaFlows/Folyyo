@@ -437,19 +437,18 @@ function SectionRender({ section, meta, theme, bg, txt, pri, acc, hFont }: {
 }
 
 // Resize + compress image to max 400px, returns JPEG data URL (~15-40 KB)
-function resizeImage(file: File): Promise<string> {
+function resizeImage(file: File, maxPx = 400, quality = 0.85): Promise<string> {
   return new Promise((resolve) => {
     const reader = new FileReader();
     reader.onload = (e) => {
       const img = new Image();
       img.onload = () => {
-        const MAX = 400;
-        const scale = Math.min(MAX / img.width, MAX / img.height, 1);
+        const scale = Math.min(maxPx / img.width, maxPx / img.height, 1);
         const canvas = document.createElement("canvas");
         canvas.width  = Math.round(img.width  * scale);
         canvas.height = Math.round(img.height * scale);
         canvas.getContext("2d")!.drawImage(img, 0, 0, canvas.width, canvas.height);
-        resolve(canvas.toDataURL("image/jpeg", 0.85));
+        resolve(canvas.toDataURL("image/jpeg", quality));
       };
       img.src = e.target?.result as string;
     };
@@ -568,6 +567,14 @@ function ThemeEditor({ meta, theme, updateMeta, updateTheme, profileType, portfo
         <ColorRow label="Texte"              value={theme.text_color}       onChange={(v) => updateTheme({ text_color: v })} />
         <ColorRow label="Couleur principale" value={theme.primary_color}    onChange={(v) => updateTheme({ primary_color: v })} />
         <ColorRow label="Accent"             value={theme.accent_color}     onChange={(v) => updateTheme({ accent_color: v })} />
+      </PanelSection>
+
+      <PanelSection title="Photo de fond">
+        <BgImageUpload
+          heroImageUrl={theme.hero_image_url}
+          overlayOpacity={theme.overlay_opacity ?? 0.8}
+          onUpdate={(u) => updateTheme(u)}
+        />
       </PanelSection>
 
       <PanelSection title="Identité">
@@ -764,6 +771,66 @@ function AvatarUpload({ avatarUrl, onUpdate }: { avatarUrl?: string; onUpdate: (
         </div>
       </div>
       <p style={{ fontSize: "0.625rem", color: "#c8c4bf", marginTop: "0.375rem" }}>JPG · PNG · WebP — max 400×400px</p>
+    </div>
+  );
+}
+
+function BgImageUpload({ heroImageUrl, overlayOpacity, onUpdate }: {
+  heroImageUrl?: string;
+  overlayOpacity: number;
+  onUpdate: (u: { hero_image_url?: string; overlay_opacity?: number }) => void;
+}) {
+  const [uploading, setUploading] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  async function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const dataUrl = await resizeImage(file, 1920, 0.75);
+      onUpdate({ hero_image_url: dataUrl });
+    } finally {
+      setUploading(false);
+      e.target.value = "";
+    }
+  }
+
+  return (
+    <div style={{ marginBottom: "0.875rem" }}>
+      {/* Thumbnail + buttons */}
+      <div style={{ position: "relative", width: "100%", height: 80, borderRadius: "0.5rem", overflow: "hidden", background: "#f0ece6", border: "1px solid rgba(0,0,0,0.1)", marginBottom: "0.5rem", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        {heroImageUrl
+          ? <img src={heroImageUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+          : <span style={{ fontSize: "0.75rem", color: "#c8c4bf" }}>Aucune photo de fond</span>
+        }
+        {heroImageUrl && (
+          <button onClick={() => onUpdate({ hero_image_url: undefined })}
+            style={{ position: "absolute", top: 4, right: 4, width: 20, height: 20, borderRadius: "50%", background: "rgba(0,0,0,0.6)", color: "white", border: "none", cursor: "pointer", fontSize: 10, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            ✕
+          </button>
+        )}
+      </div>
+
+      <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp" style={{ display: "none" }} onChange={handleChange} />
+      <button onClick={() => inputRef.current?.click()} disabled={uploading}
+        style={{ width: "100%", padding: "0.4rem 0.625rem", fontSize: "0.7375rem", color: "#1c1917", background: "white", border: "1px solid rgba(0,0,0,0.1)", borderRadius: "0.4rem", cursor: uploading ? "wait" : "pointer", textAlign: "center", fontWeight: 500, marginBottom: "0.625rem" }}>
+        {uploading ? "Chargement…" : heroImageUrl ? "Changer la photo" : "Choisir depuis l'appareil"}
+      </button>
+
+      {/* Opacity slider — only shown when image is set */}
+      {heroImageUrl && (
+        <div>
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.2rem" }}>
+            <label style={{ fontSize: "0.7rem", color: "#78716c" }}>Opacité du fond coloré</label>
+            <span style={{ fontSize: "0.7rem", color: "#a09a94" }}>{Math.round(overlayOpacity * 100)}%</span>
+          </div>
+          <input type="range" min={0} max={1} step={0.05} value={overlayOpacity}
+            onChange={(e) => onUpdate({ overlay_opacity: Number(e.target.value) })}
+            style={{ width: "100%", accentColor: "#c9a96e" }} />
+          <p style={{ fontSize: "0.625rem", color: "#c8c4bf", marginTop: "0.2rem" }}>0% = photo seule · 100% = fond couleur seul</p>
+        </div>
+      )}
     </div>
   );
 }
