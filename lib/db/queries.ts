@@ -186,3 +186,19 @@ export async function getEditsByPortfolio(portfolioId: string): Promise<Portfoli
   `;
   return rows as unknown as PortfolioEdit[];
 }
+
+export async function getRecentAppliedEdits(portfolioId: string, limit = 4): Promise<{ instruction: string; summary: string }[]> {
+  const rows = await sql`
+    SELECT instruction, diff_applied
+    FROM portfolio_edits
+    WHERE portfolio_id = ${portfolioId} AND status = 'applied'
+    ORDER BY created_at DESC
+    LIMIT ${limit}
+  `;
+  return (rows as unknown as { instruction: string; diff_applied: { summary?: string; diffApplied?: string } | null }[])
+    .map((r) => ({
+      instruction: r.instruction,
+      summary: r.diff_applied?.summary ?? r.diff_applied?.diffApplied ?? r.instruction,
+    }))
+    .reverse();
+}

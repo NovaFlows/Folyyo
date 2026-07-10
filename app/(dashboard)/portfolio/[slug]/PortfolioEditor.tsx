@@ -10,9 +10,21 @@ interface Edit {
 }
 
 interface ImagePreview {
-  previewUrl: string;  // data URL pour l'aperçu
-  data: string;        // base64 sans préfixe
+  previewUrl: string;
+  data: string;
   mediaType: "image/jpeg" | "image/png" | "image/webp" | "image/gif";
+}
+
+interface DiffItem {
+  label: string;
+  oldValue: string;
+  newValue: string;
+  type: "color" | "text";
+}
+
+interface EditResult {
+  summary: string;
+  diff: DiffItem[];
 }
 
 interface Props {
@@ -52,7 +64,7 @@ export default function PortfolioEditor({ portfolioId, hasCode, edits: initialEd
   const [images, setImages]           = useState<ImagePreview[]>([]);
   const [loading, setLoading]         = useState(false);
   const [error, setError]             = useState<string | null>(null);
-  const [lastResult, setLastResult]   = useState<string | null>(null);
+  const [lastResult, setLastResult]   = useState<EditResult | null>(null);
   const textareaRef   = useRef<HTMLTextAreaElement>(null);
   const fileInputRef  = useRef<HTMLInputElement>(null);
   const chatBottomRef = useRef<HTMLDivElement>(null);
@@ -95,7 +107,7 @@ export default function PortfolioEditor({ portfolioId, hasCode, edits: initialEd
         return;
       }
       setEdits((prev) => prev.map((e) => e.id === tempEdit.id ? { ...e, status: "applied" } : e));
-      setLastResult(data.summary);
+      setLastResult({ summary: data.summary, diff: data.diff ?? [] });
     } catch {
       setError("Erreur réseau");
       setEdits((prev) => prev.map((e) => e.id === tempEdit.id ? { ...e, status: "failed" } : e));
@@ -151,11 +163,47 @@ export default function PortfolioEditor({ portfolioId, hasCode, edits: initialEd
         <div ref={chatBottomRef} />
       </div>
 
-      {/* Result / Error */}
+      {/* Result + Diff (#5) */}
       {lastResult && (
-        <div className="mx-6 mb-2 rounded-xl px-4 py-2.5 text-sm"
-          style={{ background: "rgba(201,169,110,0.1)", border: "1px solid rgba(201,169,110,0.2)", color: "#c9a96e" }}>
-          ✓ {lastResult}
+        <div className="mx-6 mb-2 rounded-xl overflow-hidden"
+          style={{ border: "1px solid rgba(201,169,110,0.25)" }}>
+          {/* Summary line */}
+          <div className="px-4 py-2.5 text-sm font-medium"
+            style={{ background: "rgba(201,169,110,0.12)", color: "#c9a96e" }}>
+            ✓ {lastResult.summary}
+          </div>
+          {/* Diff items */}
+          {lastResult.diff.length > 0 && (
+            <div className="px-4 py-3 space-y-2" style={{ background: "rgba(201,169,110,0.04)" }}>
+              {lastResult.diff.map((item, i) => (
+                <div key={i} className="flex items-center gap-3 text-xs">
+                  <span className="shrink-0 w-28 text-right" style={{ color: "#a09a94" }}>{item.label}</span>
+                  {item.type === "color" ? (
+                    <div className="flex items-center gap-2">
+                      <span title={item.oldValue} style={{
+                        display: "inline-block", width: 18, height: 18, borderRadius: 4,
+                        background: item.oldValue, border: "1px solid rgba(0,0,0,0.15)", flexShrink: 0
+                      }} />
+                      <span style={{ color: "#a09a94" }}>→</span>
+                      <span title={item.newValue} style={{
+                        display: "inline-block", width: 18, height: 18, borderRadius: 4,
+                        background: item.newValue, border: "1px solid rgba(0,0,0,0.15)", flexShrink: 0
+                      }} />
+                      <span style={{ color: "#78716c", fontFamily: "monospace" }}>{item.newValue}</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      {item.oldValue && (
+                        <span className="truncate max-w-[90px]" style={{ color: "#a09a94", textDecoration: "line-through" }}>{item.oldValue}</span>
+                      )}
+                      {item.oldValue && <span style={{ color: "#a09a94" }}>→</span>}
+                      <span className="truncate max-w-[120px]" style={{ color: "#1c1917", fontWeight: 500 }}>{item.newValue}</span>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
       {error && (
