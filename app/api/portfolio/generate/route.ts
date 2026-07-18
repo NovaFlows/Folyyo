@@ -7,8 +7,9 @@ import { buildGenerateSystemPrompt, buildGenerateUserPrompt } from "@/lib/anthro
 import { PortfolioJSONSchema } from "@/lib/anthropic/schema";
 import { generateDeveloperCode } from "@/lib/portfolio/code-generator";
 import { getFileBuffer, putJson, keys } from "@/lib/r2/client";
-import { createPortfolio, setPortfolioReady, setPortfolioError } from "@/lib/db/queries";
+import { createPortfolio, setPortfolioReady, setPortfolioError, getFeaturedPortfolioById } from "@/lib/db/queries";
 import type { DeveloperInputData } from "@/types/portfolio";
+import type { ValidatedPortfolioJSON } from "@/lib/anthropic/schema";
 import fs from "fs";
 import path from "path";
 import os from "os";
@@ -51,7 +52,7 @@ export async function POST(request: NextRequest) {
   if (!userId) return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
 
   const body = await request.json();
-  const { profileType, slug, name, title, email, githubUsername, instagramHandle, linkedinUrl, twitterUrl, cvStoragePath, githubData } = body;
+  const { profileType, slug, name, title, email, githubUsername, instagramHandle, youtubeHandle, linkedinUrl, twitterUrl, cvStoragePath, githubData, youtubeData, templateId } = body;
 
   const requiresCv = profileType === "developer";
   if (!profileType || !name || !email || (requiresCv && !cvStoragePath)) {
@@ -83,14 +84,25 @@ export async function POST(request: NextRequest) {
       name, title, email,
       github_username: githubUsername || undefined,
       instagram_url:   instagramHandle ? `https://instagram.com/${instagramHandle}` : undefined,
+      youtube_url:     youtubeHandle  ? `https://youtube.com/@${youtubeHandle}` : undefined,
       linkedin_url:    linkedinUrl || undefined,
       twitter_url:     twitterUrl  || undefined,
       cv_storage_path: cvStoragePath,
       cv_text:         cvText,
       github_data:     githubData  || undefined,
+      youtube_data:    youtubeData || undefined,
     };
 
-    const rawJson = await callClaude(buildGenerateSystemPrompt(), buildGenerateUserPrompt(inputData, profileType), 8192);
+    // Si un template communauté a été choisi, on réutilise son style visuel (jamais son contenu) —
+    // re-vérifié côté serveur (featured && live), on ne fait jamais confiance à l'id fourni par le client.
+    let themeOverride: ValidatedPortfolioJSON["theme"] | undefined;
+    if (templateId) {
+      const templatePortfolio = await getFeaturedPortfolioById(templateId);
+      const templateJson = templatePortfolio?.site_json as ValidatedPortfolioJSON | undefined;
+      themeOverride = templateJson?.theme;
+    }
+
+    const rawJson = await callClaude(buildGenerateSystemPrompt(), buildGenerateUserPrompt(inputData, profileType, themeOverride), 8192);
     const cleaned = rawJson.replace(/^```json\s*/i, "").replace(/\s*```$/, "").trim();
 
     let siteJson;
@@ -102,6 +114,12 @@ export async function POST(request: NextRequest) {
       await setPortfolioError(portfolio.id, "Réponse Claude invalide");
       return NextResponse.json({ error: "Erreur parsing réponse Claude" }, { status: 500 });
     }
+
+    // Photo de profil : priorité à une vraie source déjà vérifiée plutôt qu'à ce que Claude devine —
+    // YouTube (avatar de chaîne) d'abord, sinon GitHub (avatar réel) pour un profil développeur.
+    const realAvatarUrl = youtubeData?.channelAvatarUrl
+      ?? (profileType === "developer" ? githubData?.avatar_url : undefined);
+    if (realAvatarUrl) siteJson.meta.avatar_url = realAvatarUrl;
 
     const sourceCode = generateDeveloperCode(siteJson);
     const sourceCodeKey = await storeSourceCode(portfolio.id, sourceCode);

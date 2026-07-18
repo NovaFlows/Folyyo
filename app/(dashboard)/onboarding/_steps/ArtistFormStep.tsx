@@ -101,6 +101,22 @@ export default function ArtistFormStep({ data, onChange, onBack, onSubmit }: Pro
 
         <Field label="LinkedIn (optionnel)" value={data.linkedinUrl} onChange={(v) => onChange({ linkedinUrl: v })} placeholder="linkedin.com/in/sophie" />
 
+        {/* GitHub — profil "autre" (dev, maker, technique…) */}
+        {data.profileType === "other" && (
+          <div>
+            <label className="mb-1.5 block text-sm font-medium" style={{ color: "#78716c" }}>GitHub (optionnel)</label>
+            <div className="flex items-center rounded-xl transition"
+              style={{ background: "white", border: "1px solid rgba(0,0,0,0.1)" }}>
+              <span className="pl-4 text-sm shrink-0" style={{ color: "#a09a94" }}>github.com/</span>
+              <input type="text" value={data.githubUsername}
+                onChange={(e) => onChange({ githubUsername: e.target.value.replace(/^@/, "").replace(/\s/g, "") })}
+                placeholder="sophiemartin"
+                className="w-full bg-transparent px-3 py-3 text-sm outline-none"
+                style={{ color: "#1c1917" }} />
+            </div>
+          </div>
+        )}
+
         {/* Slug */}
         <div>
           <label className="mb-1.5 block text-sm font-medium" style={{ color: "#78716c" }}>URL de ton portfolio *</label>

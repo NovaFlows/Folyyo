@@ -1,16 +1,36 @@
 // ─── Input data collected during onboarding ───────────────────────────────────
 
+export interface YouTubeVideo {
+  title: string;
+  description?: string;
+  publishedAt: string;
+  viewCount?: string;
+  thumbnail?: string;
+}
+
+export interface YouTubeData {
+  channelName: string;
+  channelAvatarUrl?: string;
+  subscriberCount: number;
+  videoCount: number;
+  viewCount?: number;
+  description?: string;
+  videos: YouTubeVideo[];
+}
+
 export interface DeveloperInputData {
   name: string;
   title: string;
   email: string;
   github_username?: string;
   instagram_url?: string;
+  youtube_url?: string;
   linkedin_url?: string;
   twitter_url?: string;
   cv_storage_path: string;
   cv_text?: string;
   github_data?: GitHubData;
+  youtube_data?: YouTubeData;
 }
 
 export interface GitHubData {
@@ -48,6 +68,7 @@ export interface PortfolioMeta {
   email: string;
   github_url?: string;
   instagram_url?: string;
+  youtube_url?: string;
   linkedin_url?: string;
   twitter_url?: string;
   avatar_url?: string;

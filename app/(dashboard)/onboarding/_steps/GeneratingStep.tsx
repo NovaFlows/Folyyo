@@ -4,6 +4,14 @@ import { useEffect, useState } from "react";
 import type { OnboardingData } from "../page";
 
 function getSteps(profileType: string | null) {
+  if (profileType === "musicien") {
+    return [
+      "fetch youtube data",
+      "generate portfolio.json",
+      "build source code",
+      "deploy → production",
+    ];
+  }
   return [
     "upload cv.pdf",
     profileType === "developer" ? "fetch github data" : "analyse du profil…",
@@ -29,31 +37,53 @@ export default function GeneratingStep({ data, onDone }: Props) {
 
     async function run() {
       try {
-        setCurrentStep(0);
         let cvStoragePath = "";
-        if (data.cvFile) {
-          const formData = new FormData();
-          formData.append("cv", data.cvFile);
-          formData.append("profileType", data.profileType!);
-          const uploadRes = await fetch("/api/upload", { method: "POST", body: formData });
-          if (!uploadRes.ok) throw new Error("Échec upload CV");
-          ({ cvStoragePath } = await uploadRes.json());
-        }
-
-        if (cancelled) return;
-        setCurrentStep(1);
         let githubData = null;
-        if (data.profileType === "developer" && data.githubUsername) {
-          const ghRes = await fetch(`/api/github/fetch?username=${encodeURIComponent(data.githubUsername)}`);
-          if (!ghRes.ok) throw new Error("Impossible de récupérer le profil GitHub");
-          const parsed = await ghRes.json();
-          githubData = parsed.githubData;
+        let youtubeData = null;
+
+        if (data.profileType === "musicien") {
+          // Musicien flow: YouTube first, no CV
+          setCurrentStep(0);
+          if (data.youtubeHandle) {
+            const ytRes = await fetch(`/api/youtube/fetch?handle=${encodeURIComponent(data.youtubeHandle)}`);
+            if (!ytRes.ok) {
+              const e = await ytRes.json().catch(() => ({}));
+              throw new Error(e.error || "Impossible de récupérer la chaîne YouTube");
+            }
+            ({ youtubeData } = await ytRes.json());
+          } else {
+            await new Promise((r) => setTimeout(r, 800));
+          }
+
+          if (cancelled) return;
+          setCurrentStep(1);
         } else {
-          await new Promise((r) => setTimeout(r, 1200));
+          // Standard flow: upload CV then fetch GitHub
+          setCurrentStep(0);
+          if (data.cvFile) {
+            const formData = new FormData();
+            formData.append("cv", data.cvFile);
+            formData.append("profileType", data.profileType!);
+            const uploadRes = await fetch("/api/upload", { method: "POST", body: formData });
+            if (!uploadRes.ok) throw new Error("Échec upload CV");
+            ({ cvStoragePath } = await uploadRes.json());
+          }
+
+          if (cancelled) return;
+          setCurrentStep(1);
+          if (data.profileType === "developer" && data.githubUsername) {
+            const ghRes = await fetch(`/api/github/fetch?username=${encodeURIComponent(data.githubUsername)}`);
+            if (!ghRes.ok) throw new Error("Impossible de récupérer le profil GitHub");
+            const parsed = await ghRes.json();
+            githubData = parsed.githubData;
+          } else {
+            await new Promise((r) => setTimeout(r, 1200));
+          }
+
+          if (cancelled) return;
+          setCurrentStep(2);
         }
 
-        if (cancelled) return;
-        setCurrentStep(2);
         const generateRes = await fetch("/api/portfolio/generate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -62,8 +92,10 @@ export default function GeneratingStep({ data, onDone }: Props) {
             name: data.name, title: data.title,
             email: data.email, githubUsername: data.githubUsername || undefined,
             instagramHandle: data.instagramHandle || undefined,
+            youtubeHandle: data.youtubeHandle || undefined,
             linkedinUrl: data.linkedinUrl, twitterUrl: data.twitterUrl,
-            cvStoragePath, githubData,
+            cvStoragePath, githubData, youtubeData,
+            templateId: data.templateId || undefined,
           }),
         });
         if (!generateRes.ok) {
@@ -72,11 +104,12 @@ export default function GeneratingStep({ data, onDone }: Props) {
         }
         const { portfolioId } = await generateRes.json();
 
+        const isMusicien = data.profileType === "musicien";
         if (cancelled) return;
-        setCurrentStep(3);
+        setCurrentStep(isMusicien ? 2 : 3);
         await new Promise((r) => setTimeout(r, 500));
 
-        setCurrentStep(4);
+        setCurrentStep(isMusicien ? 3 : 4);
         const deployRes = await fetch("/api/portfolio/deploy", {
           method: "POST",
           headers: { "Content-Type": "application/json" },

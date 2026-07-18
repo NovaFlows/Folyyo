@@ -6,15 +6,16 @@ import PortfolioEditor from "./PortfolioEditor";
 import type { PortfolioStatus } from "@/types";
 
 const STATUS_CONFIG: Record<PortfolioStatus, { label: string; color: string; dot: string }> = {
-  draft:      { label: "Brouillon",    color: "#a09a94", dot: "#a09a94" },
-  generating: { label: "Génération…",  color: "#d97706", dot: "#d97706" },
-  deploying:  { label: "Déploiement…", color: "#0891b2", dot: "#0891b2" },
-  live:       { label: "En ligne",     color: "#c9a96e", dot: "#c9a96e" },
-  error:      { label: "Erreur",       color: "#dc2626", dot: "#dc2626" },
+  draft:      { label: "Brouillon",         color: "#a09a94", dot: "#a09a94" },
+  generating: { label: "Génération…",       color: "#d97706", dot: "#d97706" },
+  deploying:  { label: "Déploiement…",      color: "#0891b2", dot: "#0891b2" },
+  live:       { label: "En ligne",          color: "#c9a96e", dot: "#c9a96e" },
+  editing:    { label: "En cours d'édition…", color: "#d97706", dot: "#d97706" },
+  error:      { label: "Erreur",            color: "#dc2626", dot: "#dc2626" },
 };
 
 const PROFILE_LABEL: Record<string, string> = {
-  developer: "Développeur", artist: "Artiste", fashion: "Mode", other: "Autre",
+  developer: "Développeur", artist: "Artiste", fashion: "Mode", musicien: "Musicien", other: "Autre",
 };
 
 export default async function PortfolioPage({ params }: { params: { slug: string } }) {
@@ -31,6 +32,13 @@ export default async function PortfolioPage({ params }: { params: { slug: string
 
   const status = STATUS_CONFIG[portfolio.status] ?? STATUS_CONFIG.draft;
   const cardStyle = { background: "#f0ece6", border: "1px solid rgba(0,0,0,0.06)" };
+
+  // En dev, un ancien deployment_url peut pointer vers un mauvais port (ex :3002).
+  // On préfère alors un chemin relatif qui reste sur l'origine courante.
+  const previewPath = `/preview/${portfolio.slug ?? portfolio.id}`;
+  const isLocalUrl  = portfolio.deployment_url?.includes("localhost") ?? false;
+  const visitHref   = portfolio.deployment_url && !isLocalUrl ? portfolio.deployment_url : previewPath;
+  const visitExternal = Boolean(portfolio.deployment_url) && !isLocalUrl;
 
   return (
     <div>
@@ -49,7 +57,7 @@ export default async function PortfolioPage({ params }: { params: { slug: string
           </p>
         </div>
         <div className="flex gap-3 flex-wrap">
-          {portfolio.site_json && (
+          {Boolean(portfolio.site_json) && (
             <a href={`/preview/${portfolio.slug ?? portfolio.id}?mode=edit`}
               className="rounded-full px-5 py-2.5 text-sm font-medium transition hover:opacity-80"
               style={{ background: "#1c1917", color: "white" }}>
@@ -57,7 +65,7 @@ export default async function PortfolioPage({ params }: { params: { slug: string
             </a>
           )}
           {portfolio.deployment_url && (
-            <a href={portfolio.deployment_url} target="_blank" rel="noopener noreferrer"
+            <a href={visitHref} target={visitExternal ? "_blank" : undefined} rel="noopener noreferrer"
               className="rounded-full px-5 py-2.5 text-sm font-medium transition hover:opacity-80"
               style={{ background: "rgba(201,169,110,0.12)", color: "#c9a96e" }}>
               Voir le site ↗
@@ -71,7 +79,7 @@ export default async function PortfolioPage({ params }: { params: { slug: string
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">
-          <PortfolioEditor portfolioId={portfolio.id} hasCode={!!portfolio.source_code_key} edits={edits} />
+          <PortfolioEditor portfolioId={portfolio.id} hasCode={!!portfolio.source_code_key} edits={edits} initialStatus={portfolio.status} />
         </div>
 
         <div className="space-y-4">
@@ -90,10 +98,10 @@ export default async function PortfolioPage({ params }: { params: { slug: string
                 <div className="flex flex-col gap-1">
                   <dt className="text-xs" style={{ color: "#a09a94" }}>URL</dt>
                   <dd>
-                    <a href={portfolio.deployment_url} target="_blank" rel="noopener noreferrer"
+                    <a href={visitHref} target={visitExternal ? "_blank" : undefined} rel="noopener noreferrer"
                       className="block truncate text-xs transition hover:opacity-80"
                       style={{ color: "#c9a96e" }}>
-                      {portfolio.deployment_url.replace("https://", "")}
+                      {portfolio.deployment_url.replace(/^https?:\/\//, "")}
                     </a>
                   </dd>
                 </div>
@@ -101,26 +109,37 @@ export default async function PortfolioPage({ params }: { params: { slug: string
             </dl>
           </div>
 
-          {versions.length > 0 && (
-            <div className="rounded-2xl p-5" style={cardStyle}>
-              <h3 className="mb-4 text-xs tracking-widest uppercase" style={{ color: "#a09a94" }}>Historique</h3>
-              <div className="space-y-3">
-                {versions.map((v) => (
-                  <div key={v.id} className="flex items-center justify-between gap-2">
-                    <div className="min-w-0">
-                      <p className="truncate text-xs font-medium" style={{ color: "#1c1917" }}>
-                        {v.edit_summary ?? `Version ${v.version_num}`}
-                      </p>
-                      <p className="text-xs" style={{ color: "#a09a94" }}>
-                        {new Date(v.created_at).toLocaleDateString("fr-FR")}
-                      </p>
+          <div className="rounded-2xl p-5" style={cardStyle}>
+            <h3 className="mb-1 text-xs tracking-widest uppercase" style={{ color: "#a09a94" }}>Historique & restauration</h3>
+            {versions.some((v) => v.site_json) ? (
+              <>
+                <p className="mb-4 text-xs" style={{ color: "#a09a94" }}>
+                  Une sauvegarde est prise avant chaque modification IA. Clique « Restaurer » pour revenir à cet état.
+                </p>
+                <div className="space-y-3">
+                  {versions.filter((v) => v.site_json).map((v) => (
+                    <div key={v.id} className="flex items-center justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="truncate text-xs font-medium" style={{ color: "#1c1917" }}>
+                          {v.edit_summary ?? `Version ${v.version_num}`}
+                        </p>
+                        <p className="text-xs" style={{ color: "#a09a94" }}>
+                          {new Date(v.created_at).toLocaleString("fr-FR")}
+                        </p>
+                      </div>
+                      <RollbackButton portfolioId={portfolio.id} versionId={v.id} />
                     </div>
-                    <RollbackButton portfolioId={portfolio.id} versionId={v.id} />
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+                  ))}
+                </div>
+              </>
+            ) : (
+              <p className="mt-2 text-xs leading-relaxed" style={{ color: "#a09a94" }}>
+                Aucune sauvegarde pour l&apos;instant. Une sauvegarde de ton portfolio sera créée
+                automatiquement <strong style={{ color: "#78716c" }}>avant chaque modification demandée à l&apos;IA</strong> —
+                tu pourras alors revenir en arrière d&apos;un clic si le résultat ne te convient pas.
+              </p>
+            )}
+          </div>
         </div>
       </div>
     </div>

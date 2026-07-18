@@ -10,6 +10,8 @@ import {
   resolveEdit,
   updatePortfolioJsonAndCode,
   getRecentAppliedEdits,
+  setPortfolioStatus,
+  snapshotVersion,
 } from "@/lib/db/queries";
 import type { PortfolioJSON } from "@/types/portfolio";
 import fs from "fs";
@@ -147,6 +149,20 @@ export async function POST(request: NextRequest) {
 
   const editLog = await createEdit({ portfolio_id: portfolioId, instruction });
 
+  // Filet de sécurité : on capture l'état ACTUEL (avant l'édition IA) pour pouvoir
+  // revenir en arrière si l'IA casse le design.
+  await snapshotVersion({
+    portfolio_id: portfolioId,
+    site_json: siteJson,
+    source_code_key: portfolio.source_code_key,
+    edit_summary: `Avant : "${instruction.slice(0, 80)}"`,
+  }).catch((e) => console.error("[edit] snapshot failed:", e));
+
+  // Statut transitoire "editing" → affiché "En cours d'édition" sur le dashboard
+  // et la page détail ; restauré à la fin (succès ou échec).
+  const prevStatus = portfolio.status;
+  await setPortfolioStatus(portfolioId, "editing").catch(() => {});
+
   try {
     const systemPrompt = buildEditSystemPrompt(profileContext);
     const userPrompt   = buildEditUserPrompt(siteJson, instruction, recentEdits);
@@ -198,11 +214,13 @@ export async function POST(request: NextRequest) {
 
     await updatePortfolioJsonAndCode(portfolioId, locked, savedKey);
     await resolveEdit(editLog.id, "applied", { diffApplied: { summary, diff } });
+    await setPortfolioStatus(portfolioId, prevStatus === "editing" ? "live" : prevStatus).catch(() => {});
 
     return NextResponse.json({ summary, diff, newUrl: null });
   } catch (err) {
     console.error("[edit] error:", err);
     await resolveEdit(editLog.id, "failed", { errorMessage: (err as Error).message });
+    await setPortfolioStatus(portfolioId, prevStatus === "editing" ? "live" : prevStatus).catch(() => {});
     return NextResponse.json({ error: (err as Error).message }, { status: 500 });
   }
 }

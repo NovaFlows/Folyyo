@@ -6,6 +6,64 @@ const optionalUrl = z.string().optional().nullable().transform((v) => {
   return v;
 }).pipe(z.string().url().optional());
 
+// ── Content blocks (widgets added inside sections) ────────────────────────────
+// size : taille visuelle du widget, 1 (petit) à 5 (grand), 3 = normal — utilisé
+// pour les dimensions physiques (image/carousel) ou en repli si fontSize absent.
+const size = z.number().min(1).max(5).optional();
+// fontSize/fontFamily : réglages typographiques explicites (style Word) pour les
+// widgets à texte — remplacent le calcul par `size` quand ils sont définis.
+const fontSize   = z.number().min(10).max(72).optional();
+const fontFamily = z.string().optional();
+export const ContentBlockSchema = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("image"),   url: z.string().default(""), caption: z.string().optional(), size }),
+  z.object({ type: z.literal("text"),    content: z.string().default(""), style: z.enum(["normal", "lead"]).default("normal"), size, fontSize, fontFamily }),
+  z.object({ type: z.literal("quote"),   text: z.string().default(""), author: z.string().optional(), size, fontSize, fontFamily }),
+  z.object({ type: z.literal("stats"),   items: z.array(z.object({ label: z.string(), value: z.string() })).default([]), size, fontSize, fontFamily }),
+  z.object({ type: z.literal("button"),  label: z.string().default("En savoir plus"), url: z.string().default("#"), variant: z.enum(["primary", "outline"]).default("primary"), size, fontSize, fontFamily }),
+  z.object({ type: z.literal("divider"), size }),
+  z.object({ type: z.literal("carousel"), images: z.array(z.object({ url: z.string().default(""), caption: z.string().optional(), linkUrl: optionalUrl })).default([]), size }),
+  z.object({ type: z.literal("links"), items: z.array(z.object({ label: z.string().default(""), url: z.string().default("") })).default([]), size, fontSize, fontFamily }),
+  // Le contenu natif de la section (texte, compétences, projets…) placé dans la
+  // grille comme n'importe quel widget — un seul par section, non supprimable.
+  z.object({ type: z.literal("section_content"), size }),
+]);
+export type ContentBlock = z.infer<typeof ContentBlockSchema>;
+
+// Each row holds 1 or 2 blocks displayed side-by-side
+export const BlockRowSchema = z.object({
+  id:      z.string().default(() => Math.random().toString(36).slice(2, 10)),
+  columns: z.array(ContentBlockSchema).min(1).max(2),
+});
+export type BlockRow = z.infer<typeof BlockRowSchema>;
+
+// ── Grille libre (bento) : 12 colonnes, unités entières ───────────────────────
+export const GridItemSchema = z.object({
+  id:    z.string().default(() => Math.random().toString(36).slice(2, 10)),
+  block: ContentBlockSchema,
+  x: z.number().int().min(0).max(11),
+  y: z.number().int().min(0),
+  w: z.number().int().min(1).max(12),
+  h: z.number().int().min(1),
+});
+export type GridItem = z.infer<typeof GridItemSchema>;
+
+// Widgets docked beside the section's native content (2-column layout).
+// Legacy shape { block, side } is auto-migrated to { blocks: [block], side }.
+export const ContentAsideSchema = z.preprocess(
+  (v) => {
+    if (v && typeof v === "object" && "block" in v && !("blocks" in v)) {
+      const o = v as { block: unknown; side: unknown };
+      return { blocks: [o.block], side: o.side };
+    }
+    return v;
+  },
+  z.object({
+    blocks: z.array(ContentBlockSchema).min(1),
+    side:   z.enum(["left", "right"]),
+  })
+);
+export type ContentAside = z.infer<typeof ContentAsideSchema>;
+
 const MetaSchema = z.object({
   name: z.string(),
   title: z.string(),
@@ -13,6 +71,7 @@ const MetaSchema = z.object({
   email: z.string().email(),
   github_url:    optionalUrl,
   instagram_url: optionalUrl,
+  youtube_url:   optionalUrl,
   linkedin_url:  optionalUrl,
   twitter_url:   optionalUrl,
   avatar_url:    optionalUrl,
@@ -27,10 +86,22 @@ const ThemeSchema = z.object({
   font_body:    z.string(),
   style: z.enum(["dark-code", "minimal-gallery", "fullscreen-hero"]),
   hero_image_url:     optionalUrl,
+  hero_images:        z.array(z.string()).optional(),
+  hero_interval:      z.number().min(2).max(15).optional().default(5),
   overlay_opacity:    z.number().min(0).max(1).optional().default(0.8),
   theme_preset_id:    z.string().optional(),
   background_pattern: z.enum(["none", "lines", "dots", "grid", "crosshatch"]).optional().default("none"),
+  widget_style:       z.enum(["strict", "soft", "glass"]).optional().default("strict"),
+  // Effets visuels du portfolio public (n'affectent pas l'éditeur, où tout doit
+  // rester visible/statique pour pouvoir cliquer et éditer sans surprise).
+  smooth_scroll: z.boolean().optional().default(false), // nav/CTA : défilement fluide au lieu du saut instantané
+  scroll_reveal: z.boolean().optional().default(false), // sections qui apparaissent en fondu au défilement
+  hero_parallax: z.boolean().optional().default(false), // fond du hero qui défile plus lentement que le contenu
 });
+
+const blocks        = z.array(BlockRowSchema).optional(); // legacy (lecture seule, migré vers grid)
+const grid          = z.array(GridItemSchema).optional();
+const content_aside = ContentAsideSchema.optional();
 
 const HeroSectionSchema = z.object({
   type:          z.literal("hero"),
@@ -39,6 +110,9 @@ const HeroSectionSchema = z.object({
   subtitle:      z.string().default(""),
   cta_text:      z.string().default("Voir mes projets"),
   cta_url:       z.string().default("#projects"),
+  blocks,
+  grid,
+  content_aside,
 });
 
 const AboutSectionSchema = z.object({
@@ -46,6 +120,9 @@ const AboutSectionSchema = z.object({
   section_title: z.string().optional(),
   content:       z.string().default(""),
   highlight:     z.string().optional().nullable(),
+  blocks,
+  grid,
+  content_aside,
 });
 
 const SkillsSectionSchema = z.object({
@@ -57,6 +134,9 @@ const SkillsSectionSchema = z.object({
     level:    z.number().min(1).max(5),
     category: z.string(),
   })),
+  blocks,
+  grid,
+  content_aside,
 });
 
 const ProjectsSectionSchema = z.object({
@@ -71,6 +151,9 @@ const ProjectsSectionSchema = z.object({
     stars:       z.number().optional().nullable(),
     image_url:   z.string().optional(),
   })),
+  blocks,
+  grid,
+  content_aside,
 });
 
 const ExperienceSectionSchema = z.object({
@@ -82,6 +165,9 @@ const ExperienceSectionSchema = z.object({
     period:      z.string(),
     description: z.string(),
   })),
+  blocks,
+  grid,
+  content_aside,
 });
 
 const ContactSectionSchema = z.object({
@@ -94,6 +180,9 @@ const ContactSectionSchema = z.object({
     url:   z.string().default(""),
     icon:  z.string().default(""),
   })).default([]),
+  blocks,
+  grid,
+  content_aside,
 });
 
 const SectionSchema = z.discriminatedUnion("type", [

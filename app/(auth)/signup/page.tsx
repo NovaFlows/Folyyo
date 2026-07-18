@@ -4,33 +4,46 @@ import { useState, useEffect } from "react";
 import { useSignUp, useAuth } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { clerkErrorMessage } from "@/lib/clerk-errors";
 
 export default function SignupPage() {
   const { isSignedIn } = useAuth();
   const { signUp, setActive, isLoaded } = useSignUp();
-  const [email, setEmail]       = useState("");
-  const [password, setPassword] = useState("");
+  const [email, setEmail]             = useState("");
+  const [password, setPassword]       = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [code, setCode]         = useState("");
   const [error, setError]       = useState<string | null>(null);
   const [loading, setLoading]   = useState(false);
   const [verifying, setVerifying] = useState(false);
+  const [resending, setResending] = useState(false);
+  const [resendMsg, setResendMsg] = useState<string | null>(null);
+  const [cooldown, setCooldown]   = useState(0);
   const router = useRouter();
 
   useEffect(() => {
     if (isSignedIn) router.replace("/dashboard");
   }, [isSignedIn, router]);
 
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const t = setTimeout(() => setCooldown((c) => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [cooldown]);
+
   async function handleSignup(e: React.FormEvent) {
     e.preventDefault();
     if (!isLoaded) return;
+    if (!email.includes("@")) { setError("Merci de saisir une adresse email valide (ex : toi@exemple.com)."); return; }
+    if (password !== confirmPassword) { setError("Les deux mots de passe ne correspondent pas."); return; }
     setLoading(true); setError(null);
     try {
       await signUp.create({ emailAddress: email, password });
       await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
       setVerifying(true);
+      setCooldown(60);
     } catch (err: unknown) {
-      const e = err as { errors?: { message: string }[] };
-      setError(e.errors?.[0]?.message ?? "Erreur lors de la création");
+      setError(clerkErrorMessage(err, "Erreur lors de la création du compte."));
     } finally { setLoading(false); }
   }
 
@@ -45,10 +58,21 @@ export default function SignupPage() {
         router.push("/onboarding");
       }
     } catch (err: unknown) {
-      const e = err as { errors?: { message: string }[] };
-      setError(e.errors?.[0]?.message ?? "Code invalide");
+      setError(clerkErrorMessage(err, "Code invalide."));
       setLoading(false);
     }
+  }
+
+  async function handleResendCode() {
+    if (!isLoaded || resending || cooldown > 0) return;
+    setResending(true); setError(null); setResendMsg(null);
+    try {
+      await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
+      setResendMsg("Un nouveau code vient d'être envoyé !");
+      setCooldown(60);
+    } catch (err: unknown) {
+      setError(clerkErrorMessage(err, "Impossible de renvoyer le code — réessaie dans un instant."));
+    } finally { setResending(false); }
   }
 
   async function handleGitHub() {
@@ -65,6 +89,10 @@ export default function SignupPage() {
   if (verifying) {
     return (
       <div className="flex min-h-screen items-center justify-center px-4" style={{ background: "#f8f5f0" }}>
+        <button onClick={() => { setVerifying(false); setError(null); setResendMsg(null); }}
+          className="fixed left-6 top-6 inline-flex items-center gap-1.5 text-sm transition hover:opacity-70" style={{ color: "#a09a94", background: "none", border: "none", cursor: "pointer", padding: 0 }}>
+          ← Modifier mon email
+        </button>
         <div className="w-full max-w-sm">
           <div className="mb-8 text-center">
             <Link href="/" style={{ fontFamily: "'Playfair Display', Georgia, serif", color: "#1c1917", fontSize: "1.75rem", fontWeight: 500 }}>
@@ -84,12 +112,20 @@ export default function SignupPage() {
                   placeholder="000000" />
               </div>
               {error && <p className="rounded-xl px-4 py-2.5 text-sm" style={{ background: "rgba(220,38,38,0.06)", border: "1px solid rgba(220,38,38,0.15)", color: "#dc2626" }}>{error}</p>}
+              {resendMsg && <p className="rounded-xl px-4 py-2.5 text-sm" style={{ background: "rgba(34,160,107,0.08)", border: "1px solid rgba(34,160,107,0.2)", color: "#22a06b" }}>{resendMsg}</p>}
               <button type="submit" disabled={loading}
                 className="w-full rounded-xl py-3 text-sm font-semibold text-white transition hover:opacity-80 disabled:opacity-50"
                 style={{ background: "#1c1917" }}>
                 {loading ? "Vérification…" : "Confirmer →"}
               </button>
             </form>
+            <p className="mt-5 text-center text-sm" style={{ color: "#a09a94" }}>
+              Pas reçu de code ?{" "}
+              <button onClick={handleResendCode} disabled={resending||cooldown>0}
+                className="font-medium transition hover:opacity-80 disabled:opacity-50" style={{ color: "#c9a96e", background: "none", border: "none", cursor: (resending||cooldown>0) ? "default" : "pointer", padding: 0 }}>
+                {resending ? "Envoi…" : cooldown>0 ? `Renvoyer dans ${cooldown}s` : "Recevoir un nouveau code"}
+              </button>
+            </p>
           </div>
         </div>
       </div>
@@ -98,6 +134,9 @@ export default function SignupPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center px-4" style={{ background: "#f8f5f0" }}>
+      <Link href="/" className="fixed left-6 top-6 inline-flex items-center gap-1.5 text-sm transition hover:opacity-70" style={{ color: "#a09a94" }}>
+        ← Retour à l&apos;accueil
+      </Link>
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
           <Link href="/" style={{ fontFamily: "'Playfair Display', Georgia, serif", color: "#1c1917", fontSize: "1.75rem", fontWeight: 500 }}>
@@ -133,6 +172,11 @@ export default function SignupPage() {
               <label className="mb-1.5 block text-sm" style={{ color: "#78716c" }}>Mot de passe</label>
               <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8}
                 className="input-warm" placeholder="8 caractères minimum" />
+            </div>
+            <div>
+              <label className="mb-1.5 block text-sm" style={{ color: "#78716c" }}>Confirmer le mot de passe</label>
+              <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required minLength={8}
+                className="input-warm" placeholder="Retape ton mot de passe" />
             </div>
             {error && <p className="rounded-xl px-4 py-2.5 text-sm" style={{ background: "rgba(220,38,38,0.06)", border: "1px solid rgba(220,38,38,0.15)", color: "#dc2626" }}>{error}</p>}
             <button type="submit" disabled={loading}

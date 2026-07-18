@@ -2,9 +2,13 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Yellowtail&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Poppins:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=Merriweather:wght@400;700&family=Fira+Code:wght@400;500&family=Bebas+Neue&family=Caveat:wght@500;600;700&display=swap');
 
 @layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
   body {
     background-color: #f8f5f0;
     color: #1c1917;
@@ -63,6 +67,31 @@
   }
   .input-warm::placeholder { color: #a09a94; }
   .input-warm:focus { border-color: #c9a96e; box-shadow: 0 0 0 3px rgba(201,169,110,0.08); }
+
+  /* Landing nav links — thin underline that grows in on hover */
+  .nav-link {
+    position: relative;
+  }
+  .nav-link::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -4px;
+    height: 1px;
+    background: #1c1917;
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.2s ease;
+  }
+  .nav-link:hover::after {
+    transform: scaleX(1);
+  }
+}
+
+/* Offset anchor scroll targets so the fixed navbar doesn't cover the heading */
+section[id] {
+  scroll-margin-top: 88px;
 }
 
 /* Cursor blink — used in GeneratingStep terminal panel */
@@ -80,4 +109,172 @@
 /* prefers-reduced-motion */
 @media (prefers-reduced-motion: reduce) {
   .cursor-blink { animation: none; opacity: 1; }
+  html { scroll-behavior: auto; }
+}
+
+/* ══ Grille libre (react-grid-layout) — CSS minimal copié/adapté de
+   react-grid-layout/css/styles.css + react-resizable/css/styles.css
+   (l'import de CSS node_modules hors root layout est interdit en App Router) ══ */
+.react-grid-layout {
+  position: relative;
+  transition: height 200ms ease;
+}
+.react-grid-item {
+  transition: all 200ms ease;
+  transition-property: left, top, width, height;
+}
+.react-grid-item.cssTransforms {
+  transition-property: transform, width, height;
+}
+.react-grid-item.resizing,
+.react-grid-item.react-draggable-dragging {
+  transition: none;
+  z-index: 30; /* au-dessus des toolbars (20), sous la nav sticky (40) */
+  will-change: transform;
+}
+.react-grid-item.react-draggable-dragging {
+  opacity: 0.92;
+  cursor: grabbing;
+}
+.react-grid-item.react-grid-placeholder {
+  background: rgba(201, 169, 110, 0.28);
+  border: 2px dashed #c9a96e;
+  border-radius: 14px;
+  opacity: 1;
+  transition-duration: 100ms;
+  z-index: 2;
+  user-select: none;
+}
+/* Poignées de redimensionnement — visibles et bien saisissables au survol */
+.react-grid-item > .react-resizable-handle {
+  position: absolute;
+  width: 26px;
+  height: 26px;
+  opacity: 0;
+  transition: opacity 0.15s;
+  z-index: 22;
+}
+.react-grid-item:hover > .react-resizable-handle,
+.react-grid-item.resizing > .react-resizable-handle { opacity: 1; }
+
+/* Coin bas-droit : pastille bien visible (agrandir librement) */
+.react-grid-item > .react-resizable-handle.react-resizable-handle-se {
+  bottom: -2px; right: -2px; cursor: nwse-resize;
+}
+.react-grid-item > .react-resizable-handle.react-resizable-handle-se::after {
+  content: "";
+  position: absolute;
+  right: 3px; bottom: 3px;
+  width: 16px; height: 16px;
+  border-radius: 5px;
+  background: #ffffff;
+  border: 1.5px solid rgba(28, 25, 23, 0.55);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* Bord droit : barre verticale (largeur) */
+.react-grid-item > .react-resizable-handle.react-resizable-handle-e {
+  top: 50%; right: -2px; margin-top: -13px; cursor: ew-resize;
+}
+.react-grid-item > .react-resizable-handle.react-resizable-handle-e::after {
+  content: "";
+  position: absolute;
+  right: 4px; top: 6px;
+  width: 5px; height: 14px;
+  border-radius: 3px;
+  background: #ffffff;
+  border: 1px solid rgba(28, 25, 23, 0.45);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+}
+
+/* Bord bas : barre horizontale (hauteur) */
+.react-grid-item > .react-resizable-handle.react-resizable-handle-s {
+  bottom: -2px; left: 50%; margin-left: -13px; cursor: ns-resize;
+}
+.react-grid-item > .react-resizable-handle.react-resizable-handle-s::after {
+  content: "";
+  position: absolute;
+  bottom: 4px; left: 6px;
+  width: 14px; height: 5px;
+  border-radius: 3px;
+  background: #ffffff;
+  border: 1px solid rgba(28, 25, 23, 0.45);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+}
+
+/* ══ Widgets "soft" (carte arrondie, hover lift + tilt léger) ══ */
+.widget-soft {
+  transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.25s ease;
+  transform: perspective(900px) translateY(0) rotateX(0);
+}
+.widget-soft:hover {
+  transform: perspective(900px) translateY(-3px) rotateX(1.5deg);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06), 0 20px 44px rgba(0, 0, 0, 0.10) !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  .widget-soft, .widget-soft:hover { transition: none; transform: none; }
+}
+
+/* ══ Widgets "glass" (liquid glass : reflet incurvé en haut de la carte) ══ */
+.widget-glass {
+  position: relative;
+}
+.widget-glass::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 55% 0;
+  border-radius: 24px 24px 50% 50%;
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0));
+  pointer-events: none;
+}
+.widget-glass:hover {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 14px 40px rgba(0, 0, 0, 0.18) !important;
+}
+
+/* ══ Grille publique : pile mobile (l'ordre DOM est trié y,x) ══ */
+@media (max-width: 639px) {
+  .folyyo-grid {
+    display: flex !important;
+    flex-direction: column;
+    gap: 14px;
+  }
+}
+
+/* ══ Portfolio public — adaptations smartphone (styles inline pilotés par le
+   thème → on complète avec quelques classes responsive) ══ */
+.pf-nav-inner { padding: 1rem 1.5rem; }
+.pf-nav-links { display: flex; gap: 1.5rem; }
+.pf-section   { padding: 5rem 1.5rem; }
+.pf-hero      { padding: 6rem 1.5rem 3rem; }
+
+@media (max-width: 640px) {
+  .pf-nav-inner { padding: 0.75rem 1rem; }
+  /* Liens de sections : défilement horizontal plutôt que débordement */
+  .pf-nav-links {
+    gap: 1rem;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    margin-left: 0.75rem;
+    min-width: 0;
+  }
+  .pf-nav-links::-webkit-scrollbar { display: none; }
+  .pf-nav-links a { white-space: nowrap; }
+  .pf-section { padding: 3rem 1.25rem; }
+  .pf-hero    { padding: 5rem 1.25rem 2.5rem; }
+}
+
+/* ══ Effet "apparition au défilement" (scroll_reveal) — public uniquement ══ */
+.pf-reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 0.7s ease, transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.pf-reveal.pf-visible {
+  opacity: 1;
+  transform: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .pf-reveal { opacity: 1; transform: none; transition: none; }
 }

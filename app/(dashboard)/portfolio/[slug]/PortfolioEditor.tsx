@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 interface Edit {
   id: string;
@@ -31,6 +32,7 @@ interface Props {
   portfolioId: string;
   hasCode: boolean;
   edits: Edit[];
+  initialStatus: string;
 }
 
 const SUGGESTIONS = [
@@ -42,6 +44,16 @@ const SUGGESTIONS = [
 ];
 
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"] as const;
+
+// Étapes affichées pendant le traitement IA (la requête n'est pas streamée —
+// ces libellés reflètent les phases réelles côté serveur).
+const THINKING_STEPS = [
+  "Analyse de ta demande…",
+  "Réflexion sur le design…",
+  "Génération des modifications…",
+  "Application au thème…",
+  "Régénération du code…",
+];
 
 function readImageAsBase64(file: File): Promise<ImagePreview> {
   return new Promise((resolve, reject) => {
@@ -58,13 +70,18 @@ function readImageAsBase64(file: File): Promise<ImagePreview> {
   });
 }
 
-export default function PortfolioEditor({ portfolioId, hasCode, edits: initialEdits }: Props) {
+export default function PortfolioEditor({ portfolioId, hasCode, edits: initialEdits, initialStatus }: Props) {
+  const router = useRouter();
   const [edits, setEdits]             = useState<Edit[]>(initialEdits);
   const [instruction, setInstruction] = useState("");
   const [images, setImages]           = useState<ImagePreview[]>([]);
-  const [loading, setLoading]         = useState(false);
+  // Une édition IA déjà en cours côté serveur (statut "editing") → la barre
+  // reste affichée même après un refresh de la page.
+  const [loading, setLoading]         = useState(initialStatus === "editing");
   const [error, setError]             = useState<string | null>(null);
   const [lastResult, setLastResult]   = useState<EditResult | null>(null);
+  const [progress, setProgress]       = useState(0);
+  const [stepIdx, setStepIdx]         = useState(0);
   const textareaRef   = useRef<HTMLTextAreaElement>(null);
   const fileInputRef  = useRef<HTMLInputElement>(null);
   const chatBottomRef = useRef<HTMLDivElement>(null);
@@ -72,6 +89,41 @@ export default function PortfolioEditor({ portfolioId, hasCode, edits: initialEd
   useEffect(() => {
     chatBottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [edits]);
+
+  // Si une édition est en cours (statut serveur "editing"), on sonde le statut
+  // jusqu'à sa fin, puis on rafraîchit la page pour refléter le résultat.
+  useEffect(() => {
+    if (initialStatus !== "editing") return;
+    let stop = false;
+    const poll = async () => {
+      while (!stop) {
+        await new Promise((r) => setTimeout(r, 3000));
+        try {
+          const res = await fetch(`/api/portfolio/${portfolioId}`, { cache: "no-store" });
+          if (!res.ok) continue;
+          const { status } = await res.json();
+          if (status !== "editing") { setLoading(false); router.refresh(); return; }
+        } catch { /* réseau — on réessaie */ }
+      }
+    };
+    poll();
+    return () => { stop = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialStatus, portfolioId]);
+
+  // Barre de progression + rotation des étapes pendant l'appel IA.
+  // Approche asymptotique de ~93 % (on ne connaît pas la durée exacte), puis
+  // 100 % à la fin. Cadence : ~6 s par étape.
+  useEffect(() => {
+    if (!loading) { setProgress(0); setStepIdx(0); return; }
+    const start = Date.now();
+    const iv = setInterval(() => {
+      const elapsed = (Date.now() - start) / 1000;
+      setProgress(Math.min(93, 100 * (1 - Math.exp(-elapsed / 28))));
+      setStepIdx(Math.min(THINKING_STEPS.length - 1, Math.floor(elapsed / 6)));
+    }, 200);
+    return () => clearInterval(iv);
+  }, [loading]);
 
   async function handleImageFiles(files: FileList | null) {
     if (!files) return;
@@ -108,6 +160,8 @@ export default function PortfolioEditor({ portfolioId, hasCode, edits: initialEd
       }
       setEdits((prev) => prev.map((e) => e.id === tempEdit.id ? { ...e, status: "applied" } : e));
       setLastResult({ summary: data.summary, diff: data.diff ?? [] });
+      // Rafraîchit les server components (statut, URL, historique de versions)
+      router.refresh();
     } catch {
       setError("Erreur réseau");
       setEdits((prev) => prev.map((e) => e.id === tempEdit.id ? { ...e, status: "failed" } : e));
@@ -213,6 +267,23 @@ export default function PortfolioEditor({ portfolioId, hasCode, edits: initialEd
         </div>
       )}
 
+      {/* Loading — barre de progression + étape en cours */}
+      {loading && (
+        <div className="mx-6 mb-2 rounded-xl px-4 py-3"
+          style={{ background: "rgba(201,169,110,0.08)", border: "1px solid rgba(201,169,110,0.2)" }}>
+          <div className="flex items-center justify-between mb-2">
+            <span className="flex items-center gap-2 text-sm font-medium" style={{ color: "#c9a96e" }}>
+              <span className="inline-block h-2 w-2 rounded-full animate-pulse" style={{ background: "#c9a96e" }} />
+              {THINKING_STEPS[stepIdx]}
+            </span>
+            <span className="text-xs tabular-nums" style={{ color: "#a09a94" }}>{Math.round(progress)}%</span>
+          </div>
+          <div style={{ height: 4, borderRadius: 999, background: "rgba(0,0,0,0.06)", overflow: "hidden" }}>
+            <div style={{ height: "100%", width: `${progress}%`, background: "#c9a96e", borderRadius: 999, transition: "width 0.3s ease" }} />
+          </div>
+        </div>
+      )}
+
       {/* Suggestions */}
       <div className="px-6 pb-3 flex flex-wrap gap-2">
         {SUGGESTIONS.map((s) => (
@@ -242,15 +313,17 @@ export default function PortfolioEditor({ portfolioId, hasCode, edits: initialEd
       )}
 
       {/* Input */}
-      <form onSubmit={handleSubmit} className="flex gap-2 px-4 py-3 items-end" style={{ borderTop: "1px solid rgba(0,0,0,0.06)" }}>
-        {/* Image upload button */}
+      <form onSubmit={handleSubmit} className="flex gap-2 px-4 py-3 items-center" style={{ borderTop: "1px solid rgba(0,0,0,0.06)" }}>
+        {/* Image upload button (trombone / épingle) */}
         <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" multiple className="hidden"
           onChange={(e) => handleImageFiles(e.target.files)} />
         <button type="button" onClick={() => fileInputRef.current?.click()} disabled={loading || images.length >= 4}
           title="Joindre une image"
           className="shrink-0 rounded-xl flex items-center justify-center transition hover:opacity-70 disabled:opacity-30"
-          style={{ width: 42, height: 42, background: "white", border: "1px solid rgba(0,0,0,0.1)", color: "#78716c", fontSize: "1.1rem" }}>
-          🖼
+          style={{ width: 42, height: 42, background: "white", border: "1px solid rgba(0,0,0,0.1)", color: "#78716c" }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
+          </svg>
         </button>
 
         <textarea ref={textareaRef} value={instruction}

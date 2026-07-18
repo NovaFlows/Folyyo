@@ -6,10 +6,11 @@ const PROFILES: {
   description: string;
   mark: string;
 }[] = [
-  { value: "developer", label: "Développeur",      mark: "{ }",  description: "CV + GitHub → portfolio code-like avec projets et compétences" },
-  { value: "artist",    label: "Artiste / Créatif", mark: "◇",    description: "CV + galerie d'images → portfolio minimaliste avec tes œuvres" },
-  { value: "fashion",   label: "Mode / Mannequin",  mark: "—",    description: "CV + photos → portfolio grand visuel plein écran" },
-  { value: "other",     label: "Autre",             mark: "·",    description: "Portfolio généraliste adapté à ton profil" },
+  { value: "developer", label: "Développeur",           mark: "{ }",  description: "CV + GitHub → portfolio code-like avec projets et compétences" },
+  { value: "artist",    label: "Artiste / Créatif",     mark: "◇",    description: "CV + galerie d'images → portfolio minimaliste avec tes œuvres" },
+  { value: "fashion",   label: "Mode / Mannequin",      mark: "—",    description: "CV + photos → portfolio grand visuel plein écran" },
+  { value: "musicien",  label: "Musicien / Youtubeur",  mark: "♪",    description: "YouTube + Instagram → discographie, clips, scène — thème sombre & bold" },
+  { value: "other",     label: "Autre",                 mark: "·",    description: "Portfolio généraliste adapté à ton profil" },
 ];
 
 interface Props {

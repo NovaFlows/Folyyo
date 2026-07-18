@@ -1,5 +1,6 @@
 import type { DeveloperInputData } from "@/types/portfolio";
 import { getPresetsForProfile } from "@/lib/portfolio/themes";
+import type { ValidatedPortfolioJSON } from "@/lib/anthropic/schema";
 
 export function buildGenerateSystemPrompt(): string {
   return `Tu es un expert en création de portfolios professionnels. Tu analyses le profil d'une personne et tu génères un portfolio JSON parfaitement adapté à son métier, ses objectifs et son secteur d'activité.
@@ -13,9 +14,24 @@ RÈGLES ABSOLUES :
 - ADAPTE le portfolio au vrai métier de la personne — ne génère pas 6 sections génériques.`;
 }
 
-export function buildGenerateUserPrompt(input: DeveloperInputData, profileType = "developer"): string {
+export function buildGenerateUserPrompt(
+  input: DeveloperInputData,
+  profileType = "developer",
+  themeOverride?: ValidatedPortfolioJSON["theme"]
+): string {
   const presets = getPresetsForProfile(profileType);
-  const preset  = presets[Math.floor(Math.random() * presets.length)];
+  // hero_image_url d'un portfolio featuré est SA photo (contenu, pas style) — et peut être
+  // une image uploadée dans l'éditeur visuel, stockée en base64 inline (des dizaines de Ko
+  // de bruit qui, une fois collées telles quelles dans le prompt, explosent le coût/la durée
+  // et déstabilisent la génération). On ne réutilise donc jamais ce champ depuis un template.
+  const preset = themeOverride ? { ...themeOverride, hero_image_url: null } : presets[Math.floor(Math.random() * presets.length)];
+  // Le style d'un portfolio featuré n'a pas d'"id" de preset — on retombe sur son
+  // theme_preset_id existant (ou "custom"), plutôt que sur preset.id qui n'existe pas dessus.
+  const presetId = themeOverride
+    ? (themeOverride.theme_preset_id ?? "custom")
+    : (preset as { id: string }).id;
+  const backgroundPattern = themeOverride?.background_pattern
+    ?? ["none", "none", "none", "dots", "lines"][Math.floor(Math.random() * 5)];
 
   const githubBlock = input.github_data ? `
 DONNÉES GITHUB (${input.github_username}) :
@@ -27,11 +43,32 @@ ${input.github_data.repos.slice(0, 6).map((r) =>
   `  • ${r.name} (${r.stargazers_count}★, ${r.language ?? "?"}) : ${r.description ?? "Sans description"} — ${r.html_url}`
 ).join("\n")}` : "";
 
+  const youtubeBlock = input.youtube_data ? `
+DONNÉES YOUTUBE (@${input.youtube_url?.replace("https://youtube.com/@", "") ?? ""}):
+- Chaîne : ${input.youtube_data.channelName}
+- Abonnés : ${input.youtube_data.subscriberCount.toLocaleString("fr-FR")} | Vidéos : ${input.youtube_data.videoCount}
+${input.youtube_data.description ? `- Bio chaîne : ${input.youtube_data.description.slice(0, 300)}` : ""}
+- Dernières vidéos (utilise ces VRAIS titres dans la discographie) :
+${input.youtube_data.videos.map((v, i) =>
+  `  ${i + 1}. "${v.title}" — ${v.viewCount ? Number(v.viewCount).toLocaleString("fr-FR") + " vues" : "?"} (${v.publishedAt?.slice(0, 10) ?? "?"})`
+).join("\n")}` : "";
+
   const cvBlock   = input.cv_text ? `\nCONTENU DU CV :\n${input.cv_text.slice(0, 3500)}` : "";
   const igLine    = input.instagram_url ? `- Instagram : ${input.instagram_url}` : "";
   const ghLine    = input.github_username ? `- GitHub : https://github.com/${input.github_username}` : "";
+  const ytLine    = input.youtube_url ? `- YouTube : ${input.youtube_url}` : "";
   const liLine    = input.linkedin_url ? `- LinkedIn : ${input.linkedin_url}` : "";
   const twLine    = input.twitter_url  ? `- Twitter  : ${input.twitter_url}` : "";
+
+  const musicienRule = profileType === "musicien" ? `
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+RÈGLE CRITIQUE — MUSICIEN
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Ne génère JAMAIS de titres de sons/albums/clips fictifs.
+- Si des vidéos YouTube sont listées ci-dessous → utilise leurs VRAIS titres.
+- Si aucune donnée YouTube n'est disponible → mets "[Titre à ajouter]" comme placeholder.
+- Idem pour les dates de sortie : utilise publishedAt si disponible, sinon "[Date à compléter]".
+- Ne réutilise jamais les titres d'autres artistes.` : "";
 
   return `PROFIL À GÉNÉRER
 
@@ -39,8 +76,8 @@ Type : ${profileType}
 Nom : ${input.name}
 Titre / Poste : ${input.title}
 Email : ${input.email}
-${ghLine}${igLine ? "\n" + igLine : ""}${liLine ? "\n" + liLine : ""}${twLine ? "\n" + twLine : ""}
-${githubBlock}${cvBlock}
+${ghLine}${ytLine ? "\n" + ytLine : ""}${igLine ? "\n" + igLine : ""}${liLine ? "\n" + liLine : ""}${twLine ? "\n" + twLine : ""}
+${githubBlock}${youtubeBlock}${cvBlock}${musicienRule}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 INTELLIGENCE DE SÉLECTION DES SECTIONS
@@ -125,8 +162,8 @@ THÈME (utilise EXACTEMENT ces valeurs)
   "style":            "${preset.style}",
   "hero_image_url":   ${preset.hero_image_url ? `"${preset.hero_image_url}"` : "null"},
   "overlay_opacity":  ${preset.overlay_opacity},
-  "theme_preset_id":  "${preset.id}",
-  "background_pattern": "${["none","none","none","dots","lines"][Math.floor(Math.random() * 5)]}"
+  "theme_preset_id":  "${presetId}",
+  "background_pattern": "${backgroundPattern}"
 }
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -141,6 +178,7 @@ SCHÉMA JSON ATTENDU
     "email": "string (email valide)",
     "github_url":    "string (URL ou vide)",
     "instagram_url": "string (URL ou vide)",
+    "youtube_url":   "string (URL ou vide)",
     "linkedin_url":  "string (URL ou vide)",
     "twitter_url":   "string (URL ou vide)",
     "avatar_url":    "string (avatar GitHub si disponible, sinon vide)"

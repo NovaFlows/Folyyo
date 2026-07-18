@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useSignIn, useAuth } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { clerkErrorMessage } from "@/lib/clerk-errors";
 
 export default function LoginPage() {
   const { isSignedIn } = useAuth();
@@ -21,6 +22,7 @@ export default function LoginPage() {
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
     if (!isLoaded) return;
+    if (!email.includes("@")) { setError("Merci de saisir une adresse email valide (ex : toi@exemple.com)."); return; }
     setLoading(true); setError(null);
     try {
       const result = await signIn.create({ identifier: email, password });
@@ -29,8 +31,7 @@ export default function LoginPage() {
         router.push("/dashboard");
       }
     } catch (err: unknown) {
-      const e = err as { errors?: { message: string }[] };
-      setError(e.errors?.[0]?.message ?? "Erreur de connexion");
+      setError(clerkErrorMessage(err, "Email ou mot de passe incorrect."));
       setLoading(false);
     }
   }
@@ -46,6 +47,9 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center px-4" style={{ background: "#f8f5f0" }}>
+      <Link href="/" className="fixed left-6 top-6 inline-flex items-center gap-1.5 text-sm transition hover:opacity-70" style={{ color: "#a09a94" }}>
+        ← Retour à l&apos;accueil
+      </Link>
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
           <Link href="/" style={{ fontFamily: "'Playfair Display', Georgia, serif", color: "#1c1917", fontSize: "1.75rem", fontWeight: 500 }}>

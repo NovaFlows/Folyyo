@@ -1,28 +1,38 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 const TABS = [
-  { id: "developer", label: "Développeur" },
-  { id: "artist",    label: "Artiste"      },
-  { id: "fashion",   label: "Mode"          },
+  { id: "developer", label: "Développeur", url: "alex-martin.folyyo.app" },
+  { id: "artist",    label: "Artiste",     url: "sophie-noir.folyyo.app" },
+  { id: "fashion",   label: "Mode",        url: "nina-beaumont.folyyo.app" },
+  { id: "musicien",  label: "Musique",     url: "solka.folyyo.app" },
 ] as const;
 
-type TabId = (typeof TABS)[number]["id"];
+const AUTOPLAY_MS = 6000;
 
 export default function PortfolioPreviews() {
-  const [active, setActive] = useState<TabId>("developer");
+  const [index, setIndex]   = useState(0);
+  const [paused, setPaused] = useState(false);
+
+  useEffect(() => {
+    if (paused) return;
+    const t = setInterval(() => setIndex((i) => (i + 1) % TABS.length), AUTOPLAY_MS);
+    return () => clearInterval(t);
+  }, [paused]);
+
+  const go = (i: number) => setIndex((i + TABS.length) % TABS.length);
 
   return (
-    <div className="w-full">
+    <div className="w-full" onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
       {/* Tabs */}
-      <div className="mb-10 flex justify-center gap-1">
-        {TABS.map((tab) => (
+      <div className="mb-10 flex flex-wrap justify-center gap-1">
+        {TABS.map((tab, i) => (
           <button
             key={tab.id}
-            onClick={() => setActive(tab.id)}
+            onClick={() => setIndex(i)}
             className={`rounded-full px-6 py-2 text-sm transition-all duration-200 ${
-              active === tab.id
+              i === index
                 ? "bg-[#1c1917] text-white"
                 : "text-[#78716c] hover:text-[#1c1917]"
             }`}
@@ -32,8 +42,17 @@ export default function PortfolioPreviews() {
         ))}
       </div>
 
-      {/* Browser frame */}
+      {/* Browser frame + carousel arrows */}
       <div className="relative mx-auto max-w-4xl">
+        <button onClick={() => go(index - 1)} aria-label="Exemple précédent"
+          className="absolute left-0 top-1/2 z-10 hidden h-10 w-10 -translate-x-14 -translate-y-1/2 items-center justify-center rounded-full border border-black/8 bg-white text-[#78716c] transition hover:border-black/15 hover:text-[#1c1917] lg:flex">
+          ‹
+        </button>
+        <button onClick={() => go(index + 1)} aria-label="Exemple suivant"
+          className="absolute right-0 top-1/2 z-10 hidden h-10 w-10 translate-x-14 -translate-y-1/2 items-center justify-center rounded-full border border-black/8 bg-white text-[#78716c] transition hover:border-black/15 hover:text-[#1c1917] lg:flex">
+          ›
+        </button>
+
         <div className="overflow-hidden rounded-2xl border border-black/8 shadow-2xl shadow-black/10">
           {/* Browser bar */}
           <div className="flex items-center gap-3 border-b border-black/6 bg-[#f0ece6] px-4 py-3">
@@ -43,18 +62,32 @@ export default function PortfolioPreviews() {
               <div className="h-3 w-3 rounded-full bg-black/10" />
             </div>
             <div className="flex-1 rounded-md bg-white/70 px-3 py-1 text-center text-xs text-[#78716c]" style={{ fontFamily: "monospace" }}>
-              {active === "developer" && "alex-martin.folyyo.app"}
-              {active === "artist"    && "sophie-noir.folyyo.app"}
-              {active === "fashion"   && "nina-beaumont.folyyo.app"}
+              {TABS[index].url}
             </div>
           </div>
 
-          {/* Content */}
-          <div className="h-[480px] overflow-hidden">
-            {active === "developer" && <DeveloperPreview />}
-            {active === "artist"    && <ArtistPreview />}
-            {active === "fashion"   && <FashionPreview />}
+          {/* Content — crossfade carousel */}
+          <div className="relative h-[480px] overflow-hidden">
+            {TABS.map((tab, i) => (
+              <div key={tab.id}
+                className="absolute inset-0 transition-opacity duration-500 ease-in-out"
+                style={{ opacity: i === index ? 1 : 0, pointerEvents: i === index ? "auto" : "none" }}>
+                {tab.id === "developer" && <DeveloperPreview />}
+                {tab.id === "artist"    && <ArtistPreview />}
+                {tab.id === "fashion"   && <FashionPreview />}
+                {tab.id === "musicien"  && <MusicianPreview />}
+              </div>
+            ))}
           </div>
+        </div>
+
+        {/* Dots (mobile-friendly nav, mirrors tabs) */}
+        <div className="mt-5 flex justify-center gap-2 lg:hidden">
+          {TABS.map((tab, i) => (
+            <button key={tab.id} onClick={() => setIndex(i)} aria-label={`Aller à ${tab.label}`}
+              className="h-1.5 rounded-full transition-all"
+              style={{ width: i === index ? 18 : 7, background: i === index ? "#1c1917" : "rgba(0,0,0,0.15)" }} />
+          ))}
         </div>
       </div>
 
@@ -170,6 +203,52 @@ function FashionPreview() {
           <button className="rounded-full border border-[#c9a96e]/20 bg-[#c9a96e]/8 px-5 py-2 text-xs tracking-widest uppercase text-[#c9a96e]/50" style={{ fontFamily: "Inter, sans-serif" }}>
             Contact
           </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MusicianPreview() {
+  return (
+    <div className="h-full overflow-y-auto bg-[#0a0a0f] text-white" style={{ fontFamily: "Inter, sans-serif" }}>
+      <nav className="flex items-center justify-between px-8 py-5 border-b border-white/5">
+        <span className="text-sm font-semibold tracking-wide" style={{ fontFamily: "'Playfair Display', Georgia, serif", color: "#e879f9" }}>SOLKA</span>
+        <div className="flex gap-6 text-xs text-white/25">
+          <span>Discographie</span><span>Scène</span><span>Contact</span>
+        </div>
+      </nav>
+      <div className="px-8 py-10">
+        <p className="text-xs mb-2" style={{ color: "rgba(232,121,249,0.6)" }}>Rappeur</p>
+        <h1 className="text-4xl font-bold mb-3 text-white">SOLKA</h1>
+        <p className="text-white/40 text-sm leading-relaxed max-w-md mb-8">
+          Rap authentique, textes qui touchent. Un univers en construction — et ça monte vite.
+        </p>
+        <div className="grid grid-cols-3 gap-3 mb-8">
+          {[
+            { v: "1,3k", l: "Abonnés" },
+            { v: "14",   l: "Titres" },
+            { v: "8,4k", l: "Vues" },
+          ].map((s) => (
+            <div key={s.l} className="rounded-xl border border-white/6 bg-white/2 p-4 text-center">
+              <p className="text-xl font-bold" style={{ color: "#e879f9" }}>{s.v}</p>
+              <p className="text-white/30 text-xs mt-1">{s.l}</p>
+            </div>
+          ))}
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          {[
+            { name: "Marty Bird",   tag: "Clip officiel" },
+            { name: "Hermès",       tag: "Single" },
+            { name: "Tunnel",       tag: "Freestyle" },
+            { name: "Nuit blanche", tag: "Feat." },
+          ].map((t) => (
+            <div key={t.name} className="rounded-xl border border-white/6 bg-white/2 p-4">
+              <div className="mb-2 h-16 rounded-md" style={{ background: "linear-gradient(135deg, rgba(232,121,249,0.2), rgba(28,25,23,0))" }} />
+              <p className="text-sm font-semibold text-white/80">{t.name}</p>
+              <p className="text-white/25 text-xs">{t.tag}</p>
+            </div>
+          ))}
         </div>
       </div>
     </div>

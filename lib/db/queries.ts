@@ -103,12 +103,37 @@ export async function deletePortfolio(id: string, userId: string): Promise<void>
   await sql`DELETE FROM portfolios WHERE id = ${id} AND user_id = ${userId}`;
 }
 
+// ── Featured / Communauté ────────────────────────────────────────────────────
+
+export async function getAllLivePortfoliosForAdmin(): Promise<Portfolio[]> {
+  const rows = await sql`SELECT * FROM portfolios WHERE status = 'live' ORDER BY featured DESC, created_at DESC`;
+  return rows as unknown as Portfolio[];
+}
+
+export async function setPortfolioFeatured(id: string, featured: boolean): Promise<void> {
+  if (featured) {
+    await sql`UPDATE portfolios SET featured = true, featured_at = now(), updated_at = now() WHERE id = ${id}`;
+  } else {
+    await sql`UPDATE portfolios SET featured = false, featured_at = null, updated_at = now() WHERE id = ${id}`;
+  }
+}
+
+export async function getFeaturedPortfolios(): Promise<Portfolio[]> {
+  const rows = await sql`SELECT * FROM portfolios WHERE featured = true AND status = 'live' ORDER BY featured_at DESC`;
+  return rows as unknown as Portfolio[];
+}
+
+export async function getFeaturedPortfolioById(id: string): Promise<Portfolio | null> {
+  const rows = await sql`SELECT * FROM portfolios WHERE id = ${id} AND featured = true AND status = 'live' LIMIT 1`;
+  return (rows as unknown as Portfolio[])[0] ?? null;
+}
+
 // ── Versions ────────────────────────────────────────────────────────────────
 
 export async function getVersionsByPortfolio(portfolioId: string): Promise<PortfolioVersion[]> {
   const rows = await sql`
     SELECT * FROM portfolio_versions WHERE portfolio_id = ${portfolioId}
-    ORDER BY version_num DESC LIMIT 5
+    ORDER BY version_num DESC LIMIT 8
   `;
   return rows as unknown as PortfolioVersion[];
 }
@@ -134,6 +159,32 @@ export async function createVersion(data: {
     RETURNING *
   `;
   return (rows as unknown as PortfolioVersion[])[0];
+}
+
+// Sauvegarde complète (site_json + code) avant une modification — filet de
+// sécurité pour revenir en arrière si une édition IA casse le design.
+// Numérote automatiquement et ne garde que les 8 versions les plus récentes.
+export async function snapshotVersion(data: {
+  portfolio_id: string;
+  site_json: unknown;
+  source_code_key: string | null;
+  edit_summary: string;
+}): Promise<void> {
+  const nextNum = (await getLatestVersionNum(data.portfolio_id)) + 1;
+  await sql`
+    INSERT INTO portfolio_versions (portfolio_id, version_num, source_code_key, site_json, edit_summary)
+    VALUES (${data.portfolio_id}, ${nextNum}, ${data.source_code_key ?? ""}, ${JSON.stringify(data.site_json)}::jsonb, ${data.edit_summary})
+  `;
+  // Purge au-delà de 8 versions
+  await sql`
+    DELETE FROM portfolio_versions
+    WHERE portfolio_id = ${data.portfolio_id}
+    AND version_num NOT IN (
+      SELECT version_num FROM portfolio_versions
+      WHERE portfolio_id = ${data.portfolio_id}
+      ORDER BY version_num DESC LIMIT 8
+    )
+  `;
 }
 
 export async function pruneOldVersions(portfolioId: string): Promise<void> {

@@ -6,17 +6,19 @@ import Link from "next/link";
 import type { Portfolio, PortfolioStatus } from "@/types";
 
 const STATUS_CONFIG: Record<PortfolioStatus, { label: string; color: string }> = {
-  draft:      { label: "Brouillon",    color: "#a09a94" },
-  generating: { label: "Génération…",  color: "#d97706" },
-  deploying:  { label: "Déploiement…", color: "#0891b2" },
-  live:       { label: "En ligne",     color: "#22a06b" },
-  error:      { label: "Erreur",       color: "#dc2626" },
+  draft:      { label: "Brouillon",          color: "#a09a94" },
+  generating: { label: "Génération…",        color: "#d97706" },
+  deploying:  { label: "Déploiement…",       color: "#0891b2" },
+  live:       { label: "En ligne",           color: "#22a06b" },
+  editing:    { label: "En cours d'édition…", color: "#d97706" },
+  error:      { label: "Erreur",             color: "#dc2626" },
 };
 
-const PROFILE_LABEL: Record<string, string> = {
+export const PROFILE_LABEL: Record<string, string> = {
   developer: "dev",
   artist:    "artiste",
   fashion:   "mode",
+  musicien:  "musicien",
   other:     "autre",
 };
 

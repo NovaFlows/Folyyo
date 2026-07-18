@@ -41,11 +41,14 @@ export async function POST(request: NextRequest) {
   if (!portfolio) return NextResponse.json({ error: "Portfolio introuvable" }, { status: 404 });
   if (!portfolio.source_code_key) return NextResponse.json({ error: "Code source non généré" }, { status: 400 });
 
-  // DEV mode: skip Vercel deploy, mark as live with a local URL
+  // DEV mode: skip Vercel deploy, mark as live with a local URL sur le MÊME
+  // hôte/port que celui utilisé par le navigateur (pas de port codé en dur).
   if (IS_DEV) {
     console.log("[deploy] DEV: skipping Vercel deploy, marking portfolio as live");
     const slug = portfolio.slug ?? portfolioId;
-    const devUrl = `http://localhost:3002/preview/${slug}`;
+    const proto = request.headers.get("x-forwarded-proto") ?? "http";
+    const host  = request.headers.get("host") ?? "localhost:3000";
+    const devUrl = `${proto}://${host}/preview/${slug}`;
     await setPortfolioLive(portfolioId, devUrl, `dev-${portfolioId}`);
     return NextResponse.json({ deploymentId: "dev", url: devUrl });
   }

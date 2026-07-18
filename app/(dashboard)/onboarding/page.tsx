@@ -1,43 +1,67 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import ProfileTypeStep from "./_steps/ProfileTypeStep";
+import TemplatePickerStep from "./_steps/TemplatePickerStep";
 import DeveloperFormStep from "./_steps/DeveloperFormStep";
 import ArtistFormStep from "./_steps/ArtistFormStep";
 import FashionFormStep from "./_steps/FashionFormStep";
+import MusicianFormStep from "./_steps/MusicianFormStep";
 import GeneratingStep from "./_steps/GeneratingStep";
 
 export type OnboardingData = {
-  profileType: "developer" | "artist" | "fashion" | "other" | null;
+  profileType: "developer" | "artist" | "fashion" | "other" | "musicien" | null;
+  templateId: string | null;
   slug: string;
   name: string;
   title: string;
   email: string;
   githubUsername: string;
   instagramHandle: string;
+  youtubeHandle: string;
   linkedinUrl: string;
   twitterUrl: string;
   cvFile: File | null;
 };
 
 const INITIAL_DATA: OnboardingData = {
-  profileType: null, slug: "", name: "", title: "", email: "",
-  githubUsername: "", instagramHandle: "", linkedinUrl: "", twitterUrl: "", cvFile: null,
+  profileType: null, templateId: null, slug: "", name: "", title: "", email: "",
+  githubUsername: "", instagramHandle: "", youtubeHandle: "", linkedinUrl: "", twitterUrl: "", cvFile: null,
 };
 
-const STEP_LABELS = ["Profil", "Infos", "Génération"];
+const STEP_LABELS = ["Profil", "Style", "Infos", "Génération"];
 
 export default function OnboardingPage() {
   const router = useRouter();
-  const [step, setStep] = useState<"type" | "form" | "generating">("type");
+  const searchParams = useSearchParams();
+  const [step, setStep] = useState<"type" | "template" | "form" | "generating">("type");
   const [data, setData] = useState<OnboardingData>(INITIAL_DATA);
+
+  // Lien profond depuis /community : ?templateId=<id> = on ne reprend QUE le style
+  // visuel du template. L'utilisateur choisit ensuite son propre métier (le
+  // template d'un musicien ne fait pas de lui un musicien).
+  useEffect(() => {
+    const deepLinkId = searchParams.get("templateId");
+    if (!deepLinkId) return;
+    let cancelled = false;
+    fetch(`/api/community/template/${deepLinkId}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (cancelled || !d) return;
+        setData((prev) => ({ ...prev, templateId: deepLinkId }));
+        setStep("type");
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function updateData(partial: Partial<OnboardingData>) {
     setData((prev) => ({ ...prev, ...partial }));
   }
 
-  const stepIndex = { type: 0, form: 1, generating: 2 }[step];
+  const stepIndex = { type: 0, template: 1, form: 2, generating: 3 }[step];
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center px-4 py-12" style={{ background: "#f8f5f0" }}>
@@ -58,7 +82,7 @@ export default function OnboardingPage() {
                 {label}
               </span>
             </div>
-            {i < 2 && <div className="h-px w-8" style={{ background: i < stepIndex ? "#c9a96e" : "rgba(0,0,0,0.1)" }} />}
+            {i < STEP_LABELS.length - 1 && <div className="h-px w-8" style={{ background: i < stepIndex ? "#c9a96e" : "rgba(0,0,0,0.1)" }} />}
           </div>
         ))}
       </div>
@@ -66,27 +90,42 @@ export default function OnboardingPage() {
       <div className="w-full max-w-xl">
         {step === "type" && (
           <ProfileTypeStep selected={data.profileType}
-            onSelect={(type) => { updateData({ profileType: type }); setStep("form"); }} />
+            onSelect={(type) => {
+              updateData({ profileType: type });
+              // Un style déjà choisi (lien /community) → on saute le sélecteur de template
+              setStep(data.templateId ? "form" : "template");
+            }} />
+        )}
+
+        {step === "template" && data.profileType && (
+          <TemplatePickerStep profileType={data.profileType} templateId={data.templateId}
+            onSelect={(id) => updateData({ templateId: id })}
+            onBack={() => setStep("type")} onContinue={() => setStep("form")} />
         )}
 
         {step === "form" && data.profileType === "developer" && (
           <DeveloperFormStep data={data} onChange={updateData}
-            onBack={() => setStep("type")} onSubmit={() => setStep("generating")} />
+            onBack={() => setStep("template")} onSubmit={() => setStep("generating")} />
         )}
 
         {step === "form" && data.profileType === "artist" && (
           <ArtistFormStep data={data} onChange={updateData}
-            onBack={() => setStep("type")} onSubmit={() => setStep("generating")} />
+            onBack={() => setStep("template")} onSubmit={() => setStep("generating")} />
         )}
 
         {step === "form" && data.profileType === "fashion" && (
           <FashionFormStep data={data} onChange={updateData}
-            onBack={() => setStep("type")} onSubmit={() => setStep("generating")} />
+            onBack={() => setStep("template")} onSubmit={() => setStep("generating")} />
+        )}
+
+        {step === "form" && data.profileType === "musicien" && (
+          <MusicianFormStep data={data} onChange={updateData}
+            onBack={() => setStep("template")} onSubmit={() => setStep("generating")} />
         )}
 
         {step === "form" && data.profileType === "other" && (
           <ArtistFormStep data={data} onChange={updateData}
-            onBack={() => setStep("type")} onSubmit={() => setStep("generating")} />
+            onBack={() => setStep("template")} onSubmit={() => setStep("generating")} />
         )}
 
         {step === "generating" && (

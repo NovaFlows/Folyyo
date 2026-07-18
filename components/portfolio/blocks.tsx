@@ -1,0 +1,230 @@
+import type { ContentBlock, BlockRow, GridItem } from "@/lib/anthropic/schema";
+import { GRID_COLS, GRID_ROW_HEIGHT, GRID_MARGIN, sortGridItems } from "@/lib/portfolio/grid";
+import Carousel from "./Carousel";
+
+export type WidgetStyle = "strict" | "soft" | "glass";
+
+// Facteur d'échelle par taille (1 = petit … 5 = grand, 3 = normal)
+const SIZE_SCALE = [0.75, 0.88, 1, 1.2, 1.45];
+// Échelle typographique d'un bloc selon son `size` (partagé éditeur / public)
+export function sizeScale(size?: number): number {
+  return SIZE_SCALE[Math.min(5, Math.max(1, size ?? 3)) - 1];
+}
+// Pour les images hors grille (aside/legacy) : largeur % et hauteur max par taille
+const IMG_WIDTH  = [50, 70, 100, 100, 100];
+const IMG_HEIGHT = [200, 270, 360, 470, 600];
+
+// Polices proposées dans le menu déroulant des widgets texte — chaque valeur
+// est la pile CSS complète, prête à poser en `fontFamily`. Toutes chargées via
+// le @import Google Fonts de globals.css.
+export const WIDGET_FONT_OPTIONS: { label: string; value: string }[] = [
+  { label: "Police du thème", value: "" },
+  { label: "Inter", value: "'Inter', system-ui, sans-serif" },
+  { label: "Playfair Display", value: "'Playfair Display', Georgia, serif" },
+  { label: "Poppins", value: "'Poppins', system-ui, sans-serif" },
+  { label: "Space Grotesk", value: "'Space Grotesk', system-ui, sans-serif" },
+  { label: "Merriweather", value: "'Merriweather', Georgia, serif" },
+  { label: "JetBrains Mono", value: "'JetBrains Mono', monospace" },
+  { label: "Fira Code", value: "'Fira Code', monospace" },
+  { label: "Bebas Neue", value: "'Bebas Neue', sans-serif" },
+  { label: "Caveat", value: "'Caveat', cursive" },
+  { label: "Yellowtail", value: "'Yellowtail', cursive" },
+];
+// Tailles proposées dans le menu déroulant (px) — façon Word.
+export const WIDGET_FONT_SIZES = [10, 12, 14, 16, 18, 20, 24, 28, 32, 36, 40, 48, 60, 72];
+
+// Pure block renderer — shared between the visual editor and the public page.
+// No hooks, server-component safe. `fill` : le média remplit son conteneur
+// (mode grille / carte soft) au lieu de dicter sa propre hauteur.
+export function BlockContent({ block, pri, txt, hFont, editMode = false, fill = false }: {
+  block: ContentBlock; pri: string; txt: string; hFont: string; editMode?: boolean; fill?: boolean;
+}) {
+  const s  = Math.min(5, Math.max(1, block.size ?? 3));
+  const sc = SIZE_SCALE[s - 1];
+  switch (block.type) {
+    case "image": return (
+      <div style={fill ? { height: "100%", display: "flex", flexDirection: "column" } : undefined}>
+        {block.url
+          ? <img src={block.url} alt={block.caption ?? ""}
+              style={fill
+                ? { width: "100%", flex: 1, minHeight: 0, objectFit: "cover", display: "block", borderRadius: block.caption ? "0.625rem" : 0 }
+                : { width: `${IMG_WIDTH[s-1]}%`, margin: "0 auto", borderRadius: "0.625rem", display: "block", maxHeight: IMG_HEIGHT[s-1], objectFit: "cover" }} />
+          : editMode
+            ? <div style={{ width: "100%", height: fill ? "100%" : 100, minHeight: 80, background: `${txt}06`, borderRadius: "0.625rem", display: "flex", alignItems: "center", justifyContent: "center", border: `1px dashed ${txt}20` }}><span style={{ color: `${txt}25`, fontSize: "0.7rem" }}>Image · clic pour ajouter</span></div>
+            : null
+        }
+        {block.caption && <p style={{ fontSize: "0.8rem", color: `${txt}45`, textAlign: "center", marginTop: "0.4rem", marginBottom: fill ? "0.4rem" : 0, fontStyle: "italic" }}>{block.caption}</p>}
+      </div>
+    );
+    case "text": {
+      const fs = block.fontSize ? `${block.fontSize}px` : `${(block.style === "lead" ? 1.0625 : 0.9375) * sc}rem`;
+      return <p style={{ fontSize: fs, fontFamily: block.fontFamily || undefined, color: `${txt}cc`, lineHeight: 1.75, margin: 0 }}>{block.content}</p>;
+    }
+    case "quote": {
+      const fs = block.fontSize ? `${block.fontSize}px` : `${1.0625 * sc}rem`;
+      const authorFs = block.fontSize ? `${Math.max(10, Math.round(block.fontSize * 0.72))}px` : `${0.8125 * sc}rem`;
+      return (
+        <blockquote style={{ borderLeft: `3px solid ${pri}`, paddingLeft: "1.25rem", margin: 0 }}>
+          <p style={{ fontSize: fs, color: txt, fontStyle: "italic", fontFamily: block.fontFamily || hFont, lineHeight: 1.6, margin: 0 }}>{block.text || "Citation…"}</p>
+          {block.author && <cite style={{ fontSize: authorFs, color: `${txt}50`, fontFamily: block.fontFamily || undefined, display: "block", marginTop: "0.5rem", fontStyle: "normal" }}>— {block.author}</cite>}
+        </blockquote>
+      );
+    }
+    case "stats": {
+      const valueFs = block.fontSize ? `${block.fontSize}px` : `${1.75 * sc}rem`;
+      const labelFs = block.fontSize ? `${Math.max(10, Math.round(block.fontSize * 0.4))}px` : `${0.7 * sc}rem`;
+      return (
+        <div style={{ display: "grid", gridTemplateColumns: `repeat(${block.items.length || 3},1fr)`, gap: `${0.75 * sc}rem`, ...(fill ? { height: "100%", alignContent: "center" } : {}) }}>
+          {block.items.map((st, i) => (
+            <div key={i} style={{ padding: `${0.875 * sc}rem ${0.5 * sc}rem`, background: `${pri}0a`, borderRadius: "0.75rem", textAlign: "center" }}>
+              <p style={{ fontSize: valueFs, fontWeight: 700, color: pri, fontFamily: block.fontFamily || hFont, margin: 0, lineHeight: 1 }}>{st.value || "0"}</p>
+              <p style={{ fontSize: labelFs, color: `${txt}55`, fontFamily: block.fontFamily || undefined, margin: 0, marginTop: "0.3rem" }}>{st.label}</p>
+            </div>
+          ))}
+        </div>
+      );
+    }
+    case "button": {
+      const fs = block.fontSize ? `${block.fontSize}px` : `${0.875 * sc}rem`;
+      return (
+        <span style={fill
+          ? { height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }
+          : undefined}>
+          <span style={{ display: "inline-block", padding: `${0.75 * sc}rem ${1.75 * sc}rem`, borderRadius: "0.75rem", fontWeight: 600, fontSize: fs, fontFamily: block.fontFamily || undefined, cursor: "pointer", background: block.variant === "outline" ? "transparent" : pri, color: block.variant === "outline" ? pri : "#fff", border: block.variant === "outline" ? `1.5px solid ${pri}` : "none" }}>{block.label || "Bouton"}</span>
+        </span>
+      );
+    }
+    case "links": {
+      if (block.items.length === 0) {
+        return editMode
+          ? <div style={{ padding: "0.75rem", borderRadius: "0.625rem", border: `1px dashed ${txt}20`, textAlign: "center" }}><span style={{ color: `${txt}25`, fontSize: "0.7rem" }}>Liens · ajoute des sites</span></div>
+          : null;
+      }
+      const fs = block.fontSize ? `${block.fontSize}px` : `${0.875 * sc}rem`;
+      return (
+        <div style={{ display: "flex", flexDirection: "column", gap: `${0.5 * sc}rem`, ...(fill ? { height: "100%", justifyContent: "center" } : {}) }}>
+          {block.items.map((lk, i) => (
+            <a key={i} href={lk.url || "#"} target="_blank" rel="noopener noreferrer"
+              style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.75rem", padding: `${0.625 * sc}rem ${0.875 * sc}rem`, borderRadius: "0.625rem", background: `${pri}0d`, border: `1px solid ${pri}22`, color: txt, textDecoration: "none", fontSize: fs, fontFamily: block.fontFamily || undefined, fontWeight: 500 }}>
+              <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{lk.label || lk.url || "Lien"}</span>
+              <span style={{ color: pri, flexShrink: 0 }}>↗</span>
+            </a>
+          ))}
+        </div>
+      );
+    }
+    case "divider": return <div style={fill ? { height: "100%", display: "flex", alignItems: "center" } : undefined}><div style={{ height: 1, width: "100%", background: `${txt}10`, borderRadius: 1, margin: fill ? 0 : "0.5rem 0" }} /></div>;
+    case "carousel":
+      return block.images.length > 0
+        ? <Carousel images={block.images} pri={pri} txt={txt} fill={fill} />
+        : editMode
+          ? <div style={{ width: "100%", height: fill ? "100%" : 140, minHeight: 100, background: `${txt}06`, borderRadius: "0.625rem", display: "flex", alignItems: "center", justifyContent: "center", border: `1px dashed ${txt}20` }}><span style={{ color: `${txt}25`, fontSize: "0.7rem" }}>Carrousel · ajoute des photos</span></div>
+          : null;
+    // Le contenu natif est rendu par le parent (GridStatic renderNative / éditeur)
+    case "section_content": return null;
+    default: return null;
+  }
+}
+
+// ── Cadre de widget : "strict" (plat), "soft" (carte arrondie) ou "glass"
+// (verre dépoli translucide). Les effets hover vivent dans globals.css
+// (.widget-soft / .widget-glass), donc fonctionnent sans JS sur la page publique.
+export function WidgetFrame({ widgetStyle, block, bg, txt, children }: {
+  widgetStyle: WidgetStyle; block: ContentBlock; bg: string; txt: string; children: React.ReactNode;
+}) {
+  if (widgetStyle === "strict" || block.type === "divider") return <>{children}</>;
+  const isMedia = (block.type === "image" || block.type === "carousel");
+  const isNative = block.type === "section_content";
+  const base: React.CSSProperties = {
+    height: "100%",
+    borderRadius: 24,
+    padding: isMedia ? 0 : "1.25rem",
+    overflow: "hidden",
+    display: "flex",
+    flexDirection: "column",
+    justifyContent: isMedia ? "stretch" : isNative ? "flex-start" : "center",
+  };
+  if (widgetStyle === "glass") {
+    return (
+      <div className="widget-soft widget-glass" style={{
+        ...base,
+        background: `${txt}0a`,
+        backdropFilter: "blur(18px) saturate(1.5)",
+        WebkitBackdropFilter: "blur(18px) saturate(1.5)",
+        border: `1px solid ${txt}22`,
+        boxShadow: `inset 0 1px 0 ${txt}1e, 0 8px 28px rgba(0,0,0,0.12)`,
+      }}>
+        {children}
+      </div>
+    );
+  }
+  return (
+    <div className="widget-soft" style={{
+      ...base,
+      background: bg,
+      border: `1px solid ${txt}12`,
+      boxShadow: "0 2px 8px rgba(0,0,0,0.04), 0 12px 32px rgba(0,0,0,0.06)",
+    }}>
+      {children}
+    </div>
+  );
+}
+
+// ── Grille libre — rendu statique public (CSS grid pur, même géométrie que
+// l'éditeur react-grid-layout : 12 colonnes, rowHeight 32, gap 14) ─────────────
+export function GridStatic({ items, widgetStyle, pri, txt, bg, hFont, renderNative }: {
+  items: GridItem[] | undefined; widgetStyle: WidgetStyle;
+  pri: string; txt: string; bg: string; hFont: string;
+  renderNative?: () => React.ReactNode;
+}) {
+  if (!items || items.length === 0) return null;
+  const sorted = sortGridItems(items);
+  const framed = widgetStyle !== "strict";
+  return (
+    <div className="folyyo-grid" style={{
+      marginTop: "1.5rem",
+      display: "grid",
+      gridTemplateColumns: `repeat(${GRID_COLS}, 1fr)`,
+      gridAutoRows: GRID_ROW_HEIGHT,
+      gap: GRID_MARGIN,
+    }}>
+      {sorted.map((it) => (
+        <div key={it.id} className="folyyo-grid-item" style={{
+          gridColumn: `${it.x + 1} / span ${it.w}`,
+          gridRow: `${it.y + 1} / span ${it.h}`,
+          minWidth: 0,
+          overflow: "hidden",
+        }}>
+          <WidgetFrame widgetStyle={widgetStyle} block={it.block} bg={bg} txt={txt}>
+            {it.block.type === "section_content"
+              ? <div style={{ height: "100%", overflow: "hidden", zoom: sizeScale(it.block.size) }}>{renderNative?.()}</div>
+              : <BlockContent block={it.block} pri={pri} txt={txt} hFont={hFont} fill={framed} />}
+          </WidgetFrame>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// Static stack of block rows (legacy — portfolios jamais re-sauvés depuis la grille)
+export function BlockRowsStatic({ rows, pri, txt, hFont, widgetStyle = "strict", bg = "#ffffff" }: {
+  rows: BlockRow[] | undefined; pri: string; txt: string; hFont: string;
+  widgetStyle?: WidgetStyle; bg?: string;
+}) {
+  if (!rows || rows.length === 0) return null;
+  return (
+    <div style={{ marginTop: "1.5rem", display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+      {rows.map((r) => (
+        <div key={r.id} style={{ display: "flex", gap: "1.5rem", alignItems: "stretch" }}>
+          {r.columns.map((c, i) => (
+            <div key={i} style={{ flex: 1, minWidth: 0 }}>
+              <WidgetFrame widgetStyle={widgetStyle} block={c} bg={bg} txt={txt}>
+                <BlockContent block={c} pri={pri} txt={txt} hFont={hFont} />
+              </WidgetFrame>
+            </div>
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}

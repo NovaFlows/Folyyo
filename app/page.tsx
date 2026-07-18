@@ -30,9 +30,9 @@ function PostIt({ children }: { children: ReactNode }) {
         pointerEvents: "none",
       }} />
       <p style={{
-        fontFamily: "'Dancing Script', cursive",
-        fontSize: "1.35rem",
-        fontWeight: 700,
+        fontFamily: "'Yellowtail', cursive",
+        fontSize: "1.3rem",
+        fontWeight: 400,
         color: "#1a3a8f",
         lineHeight: 1.35,
         position: "relative",
@@ -54,14 +54,15 @@ export default function LandingPage() {
         style={{ background: "rgba(248,245,240,0.85)", backdropFilter: "blur(20px)", borderBottom: "1px solid rgba(0,0,0,0.06)" }}
       >
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <span className="text-xl font-semibold tracking-tight" style={{ color: "#1c1917" }}>
+          <Link href="/" className="text-xl font-semibold tracking-tight" style={{ color: "#1c1917" }}>
             folyyo
-          </span>
+          </Link>
 
           <div className="hidden items-center gap-8 text-sm md:flex" style={{ color: "#78716c" }}>
-            <a href="#how"      className="hover:text-[#1c1917] transition-colors">Comment</a>
-            <a href="#examples" className="hover:text-[#1c1917] transition-colors">Exemples</a>
-            <a href="#features" className="hover:text-[#1c1917] transition-colors">Fonctionnalités</a>
+            <a href="#how"      className="nav-link hover:text-[#1c1917] transition-colors">Comment</a>
+            <a href="#examples" className="nav-link hover:text-[#1c1917] transition-colors">Exemples</a>
+            <a href="#features" className="nav-link hover:text-[#1c1917] transition-colors">Fonctionnalités</a>
+            <Link href="/contact" className="nav-link hover:text-[#1c1917] transition-colors">Contact</Link>
           </div>
 
           <div className="flex items-center gap-4">
@@ -73,7 +74,7 @@ export default function LandingPage() {
               className="rounded-xl px-5 py-2.5 text-sm font-medium text-white transition hover:opacity-90"
               style={{ background: "#1c1917" }}
             >
-              Commencer
+              Inscription
             </Link>
           </div>
         </div>
@@ -422,11 +423,11 @@ export default function LandingPage() {
       {/* ── FOOTER ─────────────────────────────────── */}
       <footer className="px-6 py-10" style={{ background: "#1c1917", borderTop: "1px solid rgba(255,255,255,0.05)" }}>
         <div className="mx-auto flex max-w-6xl items-center justify-between flex-wrap gap-4">
-          <span className="text-base font-semibold" style={{ color: "rgba(248,245,240,0.4)" }}>folyyo</span>
+          <Link href="/" className="text-base font-semibold" style={{ color: "rgba(248,245,240,0.4)" }}>folyyo</Link>
           <div className="flex gap-8 text-sm" style={{ color: "rgba(248,245,240,0.25)" }}>
             <Link href="/login"  className="hover:text-white/50 transition-colors">Connexion</Link>
             <Link href="/signup" className="hover:text-white/50 transition-colors">Inscription</Link>
-            <a href="mailto:hello@folyyo.com" className="hover:text-white/50 transition-colors">Contact</a>
+            <Link href="/contact" className="hover:text-white/50 transition-colors">Contact</Link>
           </div>
           <span className="text-sm" style={{ color: "rgba(248,245,240,0.15)" }}>© 2026</span>
         </div>

@@ -1,9 +1,11 @@
 import { notFound, redirect } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
 import { getPortfolioBySlugPublic, getPortfolioBySlugOrId } from "@/lib/db/queries";
-import type { ValidatedPortfolioJSON } from "@/lib/anthropic/schema";
+import type { ValidatedPortfolioJSON, ContentAside, BlockRow, GridItem } from "@/lib/anthropic/schema";
 import Image from "next/image";
 import VisualEditor from "./VisualEditor";
+import { BlockContent, BlockRowsStatic, GridStatic, WidgetFrame, type WidgetStyle } from "@/components/portfolio/blocks";
+import HeroBackgroundCarousel from "@/components/portfolio/HeroBackgroundCarousel";
 
 function BackgroundPatternStatic({ pattern, color }: { pattern: string; color: string }) {
   if (!pattern || pattern === "none") return null;
@@ -81,15 +83,68 @@ export default async function PreviewPage({
   const bFont = `'${theme.font_body}', system-ui, sans-serif`;
 
   const pattern = (theme as { background_pattern?: string }).background_pattern ?? "none";
+  const widgetStyle: WidgetStyle = (theme as { widget_style?: WidgetStyle }).widget_style ?? "strict";
+
+  // Effets visuels — public uniquement (l'éditeur garde tout visible/statique
+  // pour pouvoir sélectionner/éditer sans que le contenu apparaisse/disparaisse).
+  const fx = theme as { smooth_scroll?: boolean; scroll_reveal?: boolean; hero_parallax?: boolean };
+  const smoothScroll = fx.smooth_scroll ?? false;
+  const scrollReveal = fx.scroll_reveal ?? false;
+  const heroParallax = fx.hero_parallax ?? false;
+
+  // Widgets ajoutés dans l'éditeur visuel — grille libre (nouveau) ou lignes (legacy)
+  const gridOf = (s: object) => (s as { grid?: GridItem[] }).grid;
+  const rowsOf = (s: object) => (s as { blocks?: BlockRow[] }).blocks;
+  const widgetsOf = (s: object) => {
+    const grid = gridOf(s);
+    if (grid && grid.length > 0) return <GridStatic items={grid} widgetStyle={widgetStyle} pri={pri} txt={txt} bg={bg} hFont={hFont} />;
+    return <BlockRowsStatic rows={rowsOf(s)} pri={pri} txt={txt} hFont={hFont} widgetStyle={widgetStyle} bg={bg} />;
+  };
+  // Corps de section : si la grille contient le contenu natif (item
+  // "section_content", portfolios re-sauvés depuis la grille libre), tout est
+  // rendu dans la grille ; sinon rendu legacy (natif + aside + widgets dessous).
+  const sectionBody = (s: object, native: React.ReactNode) => {
+    const grid = gridOf(s);
+    if (grid && grid.some((it) => it.block.type === "section_content")) {
+      return <GridStatic items={grid} widgetStyle={widgetStyle} pri={pri} txt={txt} bg={bg} hFont={hFont} renderNative={() => native} />;
+    }
+    return <>{withAside(s, native)}{widgetsOf(s)}</>;
+  };
+  // Pile de widgets accolée au contenu natif (disposition 2 colonnes)
+  // Gère aussi l'ancien format { block, side }
+  const withAside = (s: object, children: React.ReactNode) => {
+    const raw = (s as { content_aside?: ContentAside & { block?: ContentAside["blocks"][number] } }).content_aside;
+    if (!raw) return children;
+    const blocks = raw.blocks ?? (raw.block ? [raw.block] : []);
+    if (blocks.length === 0) return children;
+    const w = (
+      <div style={{ flex: "2 1 220px", minWidth: 0, display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+        {blocks.map((b, i) => (
+          <WidgetFrame key={i} widgetStyle={widgetStyle} block={b} bg={bg} txt={txt}>
+            <BlockContent block={b} pri={pri} txt={txt} hFont={hFont} />
+          </WidgetFrame>
+        ))}
+      </div>
+    );
+    const c = <div style={{ flex: "3 1 300px", minWidth: 0 }}>{children}</div>;
+    return (
+      <div style={{ display: "flex", gap: "2rem", alignItems: "flex-start", flexWrap: "wrap" }}>
+        {raw.side === "left" ? <>{w}{c}</> : <>{c}{w}</>}
+      </div>
+    );
+  };
 
   return (
     <main style={{ fontFamily: bFont, background: bg, color: txt, minHeight: "100vh", position: "relative" }}>
+      {/* scroll-behavior s'applique au document entier — sans effet sur l'éditeur,
+          qui rend ce composant dans un <div> scrollable distinct, pas <html>. */}
+      {smoothScroll && <style>{`html{scroll-behavior:smooth}`}</style>}
       <BackgroundPatternStatic pattern={pattern} color={txt} />
       {/* Nav */}
       <nav style={{ position: "fixed", top: 0, zIndex: 50, width: "100%", borderBottom: `1px solid ${txt}10`, background: `${bg}e8`, backdropFilter: "blur(12px)" }}>
-        <div style={{ maxWidth: 960, margin: "0 auto", padding: "1rem 1.5rem", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <span style={{ fontWeight: 700, color: pri, fontFamily: hFont }}>{meta.name}</span>
-          <div style={{ display: "flex", gap: "1.5rem", fontSize: "0.875rem", color: `${txt}80` }}>
+        <div className="pf-nav-inner" style={{ maxWidth: 960, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <span style={{ fontWeight: 700, color: pri, fontFamily: hFont, flexShrink: 0 }}>{meta.name}</span>
+          <div className="pf-nav-links" style={{ fontSize: "0.875rem", color: `${txt}80` }}>
             {sections.filter((s) => s.type !== "hero").map((s) => (
               <a key={s.type} href={`#${s.type}`} style={{ color: "inherit", textDecoration: "none" }}>
                 {(s as { section_title?: string }).section_title ?? sectionDefaultTitle(s.type)}
@@ -102,9 +157,13 @@ export default async function PreviewPage({
       {/* Sections in order */}
       {sections.map((section, i) => {
         switch (section.type) {
-          case "hero": return (
-            <section key={i} style={{ position: "relative", minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "6rem 1.5rem 3rem", textAlign: "center", backgroundImage: theme.hero_image_url ? `url(${theme.hero_image_url})` : undefined, backgroundSize: "cover", backgroundPosition: "center" }}>
-              {theme.hero_image_url && <div style={{ position: "absolute", inset: 0, background: bg, opacity: theme.overlay_opacity ?? 0.8 }} />}
+          case "hero": {
+          const heroImages = theme.hero_images ?? [];
+          const hasCarousel = heroImages.length > 0;
+          return (
+            <section key={i} className="pf-hero" style={{ position: "relative", minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", backgroundImage: !hasCarousel && theme.hero_image_url ? `url(${theme.hero_image_url})` : undefined, backgroundSize: "cover", backgroundPosition: "center", backgroundAttachment: heroParallax && !hasCarousel && theme.hero_image_url ? "fixed" : undefined }}>
+              {hasCarousel && <HeroBackgroundCarousel images={heroImages} intervalSeconds={theme.hero_interval ?? 5} />}
+              {(hasCarousel || theme.hero_image_url) && <div style={{ position: "absolute", inset: 0, background: bg, opacity: theme.overlay_opacity ?? 0.8 }} />}
               <div style={{ position: "relative", zIndex: 1, display: "flex", flexDirection: "column", alignItems: "center" }}>
               {meta.avatar_url && (
                 <Image src={meta.avatar_url} alt={meta.name} width={96} height={96}
@@ -128,20 +187,26 @@ export default async function PreviewPage({
                   </a>
                 )}
               </div>
+              <div style={{ maxWidth: 640, width: "100%", textAlign: "left" }}>
+                {widgetsOf(section)}
+              </div>
               </div>
             </section>
           );
+          }
 
           case "about": return (
-            <section key={i} id="about" style={{ padding: "5rem 1.5rem", background: `${bg}f0` }}>
+            <section key={i} id="about" className={`pf-section${scrollReveal?" pf-reveal":""}`} style={{ background: `${bg}f0` }}>
               <div style={{ maxWidth: 720, margin: "0 auto" }}>
                 <h2 style={{ fontFamily: hFont, fontSize: "1.875rem", fontWeight: 700, color: txt, marginBottom: "1.5rem" }}>
                   {section.section_title ?? "À propos"}
                 </h2>
-                <p style={{ fontSize: "1.0625rem", lineHeight: 1.75, color: `${txt}cc` }}>{section.content}</p>
-                {section.highlight && (
-                  <p style={{ marginTop: "1rem", borderLeft: `3px solid ${pri}`, paddingLeft: "1rem", color: pri, fontStyle: "italic" }}>{section.highlight}</p>
-                )}
+                {sectionBody(section, <>
+                  <p style={{ fontSize: "1.0625rem", lineHeight: 1.75, color: `${txt}cc` }}>{section.content}</p>
+                  {section.highlight && (
+                    <p style={{ marginTop: "1rem", borderLeft: `3px solid ${pri}`, paddingLeft: "1rem", color: pri, fontStyle: "italic" }}>{section.highlight}</p>
+                  )}
+                </>)}
               </div>
             </section>
           );
@@ -149,12 +214,12 @@ export default async function PreviewPage({
           case "skills": {
             const hideLevel = (section as { hide_level?: boolean }).hide_level === true;
             return (
-              <section key={i} id="skills" style={{ padding: "5rem 1.5rem", background: bg }}>
+              <section key={i} id="skills" className={`pf-section${scrollReveal?" pf-reveal":""}`} style={{ background: bg }}>
                 <div style={{ maxWidth: 960, margin: "0 auto" }}>
                   <h2 style={{ fontFamily: hFont, fontSize: "1.875rem", fontWeight: 700, color: txt, marginBottom: "2.5rem" }}>
                     {section.section_title ?? "Compétences"}
                   </h2>
-                  {hideLevel ? (
+                  {sectionBody(section, hideLevel ? (
                     <div style={{ display: "flex", flexWrap: "wrap", gap: "0.625rem" }}>
                       {section.items.map((skill) => (
                         <div key={skill.name} style={{ border: `1px solid ${pri}30`, borderRadius: "2rem", padding: "0.5rem 1.125rem", background: `${pri}0a` }}>
@@ -178,18 +243,19 @@ export default async function PreviewPage({
                         </div>
                       ))}
                     </div>
-                  )}
+                  ))}
                 </div>
               </section>
             );
           }
 
           case "projects": return (
-            <section key={i} id="projects" style={{ padding: "5rem 1.5rem", background: `${bg}f0` }}>
+            <section key={i} id="projects" className={`pf-section${scrollReveal?" pf-reveal":""}`} style={{ background: `${bg}f0` }}>
               <div style={{ maxWidth: 960, margin: "0 auto" }}>
                 <h2 style={{ fontFamily: hFont, fontSize: "1.875rem", fontWeight: 700, color: txt, marginBottom: "2.5rem" }}>
                   {section.section_title ?? "Projets"}
                 </h2>
+                {sectionBody(section,
                 <div style={{ display: "grid", gap: "1.5rem", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))" }}>
                   {section.items.map((p) => {
                     const imgUrl = (p as { image_url?: string }).image_url;
@@ -221,16 +287,18 @@ export default async function PreviewPage({
                     );
                   })}
                 </div>
+                )}
               </div>
             </section>
           );
 
           case "experience": return (
-            <section key={i} id="experience" style={{ padding: "5rem 1.5rem", background: bg }}>
+            <section key={i} id="experience" className={`pf-section${scrollReveal?" pf-reveal":""}`} style={{ background: bg }}>
               <div style={{ maxWidth: 720, margin: "0 auto" }}>
                 <h2 style={{ fontFamily: hFont, fontSize: "1.875rem", fontWeight: 700, color: txt, marginBottom: "2.5rem" }}>
                   {section.section_title ?? "Expérience"}
                 </h2>
+                {sectionBody(section,
                 <div style={{ display: "flex", flexDirection: "column", gap: "2rem" }}>
                   {section.items.map((exp) => (
                     <div key={exp.company} style={{ borderLeft: `2px solid ${pri}30`, paddingLeft: "1.5rem", position: "relative" }}>
@@ -244,27 +312,30 @@ export default async function PreviewPage({
                     </div>
                   ))}
                 </div>
+                )}
               </div>
             </section>
           );
 
           case "contact": return (
-            <section key={i} id="contact" style={{ padding: "5rem 1.5rem", textAlign: "center", background: `${bg}f0` }}>
+            <section key={i} id="contact" className={`pf-section${scrollReveal?" pf-reveal":""}`} style={{ textAlign: "center", background: `${bg}f0` }}>
               <div style={{ maxWidth: 480, margin: "0 auto" }}>
                 <h2 style={{ fontFamily: hFont, fontSize: "1.875rem", fontWeight: 700, color: txt, marginBottom: "1rem" }}>
                   {section.section_title ?? "Contact"}
                 </h2>
-                <p style={{ color: `${txt}80`, marginBottom: "2rem" }}>{section.message}</p>
-                <a href={`mailto:${section.email}`}
-                  style={{ display: "inline-block", background: pri, color: "#fff", padding: "0.875rem 2rem", borderRadius: "0.75rem", textDecoration: "none", fontWeight: 600, marginBottom: "2rem" }}>
-                  {section.email}
-                </a>
-                <div style={{ display: "flex", justifyContent: "center", gap: "1.5rem" }}>
-                  {section.links.map((l) => (
-                    <a key={l.label} href={l.url} target="_blank" rel="noopener noreferrer"
-                      style={{ fontSize: "0.875rem", color: `${txt}60`, textDecoration: "none" }}>{l.label}</a>
-                  ))}
-                </div>
+                {sectionBody(section, <>
+                  <p style={{ color: `${txt}80`, marginBottom: "2rem" }}>{section.message}</p>
+                  <a href={`mailto:${section.email}`}
+                    style={{ display: "inline-block", background: pri, color: "#fff", padding: "0.875rem 2rem", borderRadius: "0.75rem", textDecoration: "none", fontWeight: 600, marginBottom: "2rem" }}>
+                    {section.email}
+                  </a>
+                  <div style={{ display: "flex", justifyContent: "center", gap: "1.5rem" }}>
+                    {section.links.map((l) => (
+                      <a key={l.label} href={l.url} target="_blank" rel="noopener noreferrer"
+                        style={{ fontSize: "0.875rem", color: `${txt}60`, textDecoration: "none" }}>{l.label}</a>
+                    ))}
+                  </div>
+                </>)}
               </div>
             </section>
           );
@@ -276,6 +347,22 @@ export default async function PreviewPage({
       <footer style={{ padding: "2rem", textAlign: "center", fontSize: "0.75rem", color: `${txt}30`, background: bg }}>
         Créé avec <a href="https://folyyo.com" style={{ color: pri, textDecoration: "none" }}>Folyyo</a>
       </footer>
+
+      {/* Apparition au défilement : JS pur (pas de composant client requis ici),
+          révèle chaque section .pf-reveal une seule fois quand elle entre à l'écran. */}
+      {scrollReveal && (
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){
+              if (!('IntersectionObserver' in window)) { document.querySelectorAll('.pf-reveal').forEach(function(el){el.classList.add('pf-visible')}); return; }
+              var io = new IntersectionObserver(function(entries){
+                entries.forEach(function(e){ if (e.isIntersecting) { e.target.classList.add('pf-visible'); io.unobserve(e.target); } });
+              }, { threshold: 0.15 });
+              document.querySelectorAll('.pf-reveal').forEach(function(el){ io.observe(el); });
+            })();`,
+          }}
+        />
+      )}
     </main>
   );
 }
