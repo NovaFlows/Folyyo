@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
 import Link from "next/link";
-import { getPortfolioBySlugOrId, getVersionsByPortfolio, getEditsByPortfolio } from "@/lib/db/queries";
+import { getPortfolioBySlugOrId, getVersionsByPortfolio, getEditsByPortfolio, getViewCountsForUser } from "@/lib/db/queries";
 import PortfolioEditor from "./PortfolioEditor";
 import { PROFILE_LABEL_FULL } from "@/lib/profile-labels";
 import type { PortfolioStatus } from "@/types";
@@ -22,10 +22,12 @@ export default async function PortfolioPage({ params }: { params: { slug: string
   const portfolio = await getPortfolioBySlugOrId(params.slug, userId);
   if (!portfolio) notFound();
 
-  const [versions, edits] = await Promise.all([
+  const [versions, edits, viewCounts] = await Promise.all([
     getVersionsByPortfolio(portfolio.id),
     getEditsByPortfolio(portfolio.id),
+    getViewCountsForUser(userId),
   ]);
+  const views = viewCounts[portfolio.id];
 
   const status = STATUS_CONFIG[portfolio.status] ?? STATUS_CONFIG.draft;
   const cardStyle = { background: "#f0ece6", border: "1px solid rgba(0,0,0,0.06)" };
@@ -91,6 +93,21 @@ export default async function PortfolioPage({ params }: { params: { slug: string
                 <dt style={{ color: "#a09a94" }}>Statut</dt>
                 <dd style={{ color: status.color }}>{status.label}</dd>
               </div>
+              {portfolio.deployment_url && (
+                <div className="flex justify-between">
+                  <dt style={{ color: "#a09a94" }}>Vues</dt>
+                  <dd style={{ color: "#1c1917" }}>
+                    {views && views.total > 0 ? (
+                      <>
+                        {views.total}
+                        {views.last7d > 0 && <span style={{ color: "#22a06b" }}> · +{views.last7d} / 7j</span>}
+                      </>
+                    ) : (
+                      <span style={{ color: "#a09a94" }}>Pas encore de vue</span>
+                    )}
+                  </dd>
+                </div>
+              )}
               {portfolio.deployment_url && (
                 <div className="flex flex-col gap-1">
                   <dt className="text-xs" style={{ color: "#a09a94" }}>URL</dt>
