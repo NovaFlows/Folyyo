@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 interface Edit {
   id: string;
@@ -72,6 +72,7 @@ function readImageAsBase64(file: File): Promise<ImagePreview> {
 
 export default function PortfolioEditor({ portfolioId, hasCode, edits: initialEdits, initialStatus }: Props) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [edits, setEdits]             = useState<Edit[]>(initialEdits);
   const [instruction, setInstruction] = useState("");
   const [images, setImages]           = useState<ImagePreview[]>([]);
@@ -89,6 +90,15 @@ export default function PortfolioEditor({ portfolioId, hasCode, edits: initialEd
   useEffect(() => {
     chatBottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [edits]);
+
+  // Pré-remplit (sans envoyer) le champ d'instruction depuis le lien de la
+  // bannière de fraîcheur du dashboard (?suggest=...) — l'utilisateur relit
+  // et envoie lui-même, aucune édition IA déclenchée automatiquement.
+  useEffect(() => {
+    const suggest = searchParams.get("suggest");
+    if (suggest) { setInstruction(suggest); textareaRef.current?.focus(); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Si une édition est en cours (statut serveur "editing"), on sonde le statut
   // jusqu'à sa fin, puis on rafraîchit la page pour refléter le résultat.

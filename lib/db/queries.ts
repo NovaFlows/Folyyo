@@ -51,6 +51,32 @@ export async function getViewCountsForUser(userId: string): Promise<Record<strin
   return result;
 }
 
+// ── État de fraîcheur GitHub/YouTube ────────────────────────────────────────
+
+export interface SyncState {
+  portfolio_id: string;
+  known_repo_ids: number[] | null;
+  known_video_ids: string[] | null;
+  last_checked_at: string;
+}
+
+export async function getSyncState(portfolioId: string): Promise<SyncState | null> {
+  const rows = await sql`SELECT * FROM content_sync_state WHERE portfolio_id = ${portfolioId}`;
+  return one<SyncState>(rows);
+}
+
+export async function upsertSyncState(
+  portfolioId: string,
+  data: { knownRepoIds: number[]; knownVideoIds: string[] },
+): Promise<void> {
+  await sql`
+    INSERT INTO content_sync_state (portfolio_id, known_repo_ids, known_video_ids, last_checked_at)
+    VALUES (${portfolioId}, ${JSON.stringify(data.knownRepoIds)}, ${JSON.stringify(data.knownVideoIds)}, now())
+    ON CONFLICT (portfolio_id) DO UPDATE
+    SET known_repo_ids = EXCLUDED.known_repo_ids, known_video_ids = EXCLUDED.known_video_ids, last_checked_at = now()
+  `;
+}
+
 // ── Portfolios ─────────────────────────────────────────────────────────────
 
 export async function getPortfoliosByUser(userId: string): Promise<Portfolio[]> {

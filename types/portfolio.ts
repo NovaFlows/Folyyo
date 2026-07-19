@@ -1,6 +1,7 @@
 // ─── Input data collected during onboarding ───────────────────────────────────
 
 export interface YouTubeVideo {
+  videoId: string;
   title: string;
   description?: string;
   publishedAt: string;
@@ -43,6 +44,7 @@ export interface GitHubData {
 }
 
 export interface GitHubRepo {
+  id: number;
   name: string;
   description: string | null;
   html_url: string;
@@ -51,6 +53,7 @@ export interface GitHubRepo {
   language: string | null;
   topics: string[];
   fork: boolean;
+  pushed_at: string;
 }
 
 // ─── Structured JSON produced by Claude ───────────────────────────────────────

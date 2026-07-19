@@ -33,6 +33,7 @@ export async function fetchGitHubData(username: string): Promise<GitHubData> {
     .sort((a, b) => b.stargazers_count - a.stargazers_count)
     .slice(0, 6)
     .map((r) => ({
+      id: r.id,
       name: r.name,
       description: r.description,
       html_url: r.html_url,
@@ -41,6 +42,7 @@ export async function fetchGitHubData(username: string): Promise<GitHubData> {
       language: r.language,
       topics: r.topics ?? [],
       fork: r.fork,
+      pushed_at: r.pushed_at,
     }));
 
   // Count languages across all repos

@@ -2,8 +2,10 @@ import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getPortfoliosByUser, getViewCountsForUser } from "@/lib/db/queries";
+import { checkFreshness } from "@/lib/freshness/check";
 import type { Portfolio } from "@/types";
 import PortfolioCard from "./PortfolioCard";
+import FreshnessBanner from "./FreshnessBanner";
 
 export default async function DashboardPage() {
   const { userId } = await auth();
@@ -13,6 +15,12 @@ export default async function DashboardPage() {
     getPortfoliosByUser(userId),
     getViewCountsForUser(userId),
   ]);
+
+  // Nudge de fraîcheur GitHub/YouTube — best-effort, ne doit jamais faire
+  // planter le dashboard si une API externe est indisponible.
+  const freshness = await Promise.all(
+    portfolios.map(async (p) => ({ portfolio: p, result: await checkFreshness(p).catch(() => null) })),
+  );
 
   return (
     <div>
@@ -29,6 +37,13 @@ export default async function DashboardPage() {
           + Nouveau
         </Link>
       </div>
+
+      {freshness.map(({ portfolio, result }) => (
+        result && (result.newRepos.length > 0 || result.newVideos.length > 0) ? (
+          <FreshnessBanner key={portfolio.id} portfolioId={portfolio.id} portfolioName={portfolio.name}
+            newRepos={result.newRepos} newVideos={result.newVideos} />
+        ) : null
+      ))}
 
       {!portfolios.length ? <EmptyState /> : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

@@ -78,3 +78,13 @@ CREATE TABLE IF NOT EXISTS portfolio_views (
 );
 
 CREATE INDEX IF NOT EXISTS idx_portfolio_views_portfolio_created ON portfolio_views(portfolio_id, created_at DESC);
+
+-- État de la dernière vérification de fraîcheur GitHub/YouTube d'un portfolio
+-- (nudge dashboard "N nouveaux repos/vidéos depuis ta dernière visite") — un
+-- seul état par portfolio, mis à jour à chaque check (throttlé côté code).
+CREATE TABLE IF NOT EXISTS content_sync_state (
+  portfolio_id     UUID        PRIMARY KEY REFERENCES portfolios(id) ON DELETE CASCADE,
+  known_repo_ids   JSONB,
+  known_video_ids  JSONB,
+  last_checked_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
