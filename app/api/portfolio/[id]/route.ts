@@ -36,7 +36,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
   }
 
   const siteJson = parsed.data;
-  const newCode  = generateDeveloperCode(siteJson);
+  const newCode  = generateDeveloperCode(siteJson, params.id);
   const codeKey  = keys.sourceCode(params.id);
   const savedKey = await writeSourceCode(codeKey, newCode);
 

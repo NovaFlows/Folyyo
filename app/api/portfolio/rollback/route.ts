@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Régénère le code depuis le site_json restauré et écrase l'état courant
-  const newCode  = generateDeveloperCode(restoredJson);
+  const newCode  = generateDeveloperCode(restoredJson, portfolioId);
   const codeKey  = keys.sourceCode(portfolioId);
   const savedKey = await writeSourceCode(codeKey, newCode);
   await updatePortfolioJsonAndCode(portfolioId, restoredJson, savedKey);

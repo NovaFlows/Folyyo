@@ -1,7 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { getPortfoliosByUser } from "@/lib/db/queries";
+import { getPortfoliosByUser, getViewCountsForUser } from "@/lib/db/queries";
 import type { Portfolio } from "@/types";
 import PortfolioCard from "./PortfolioCard";
 
@@ -9,7 +9,10 @@ export default async function DashboardPage() {
   const { userId } = await auth();
   if (!userId) redirect("/login");
 
-  const portfolios = await getPortfoliosByUser(userId);
+  const [portfolios, viewCounts] = await Promise.all([
+    getPortfoliosByUser(userId),
+    getViewCountsForUser(userId),
+  ]);
 
   return (
     <div>
@@ -30,7 +33,7 @@ export default async function DashboardPage() {
       {!portfolios.length ? <EmptyState /> : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {portfolios.map((p: Portfolio) => (
-            <PortfolioCard key={p.id} portfolio={p} />
+            <PortfolioCard key={p.id} portfolio={p} views={viewCounts[p.id]} />
           ))}
         </div>
       )}

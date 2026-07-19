@@ -3,6 +3,9 @@ import Anthropic from "@anthropic-ai/sdk";
 // Modèle partagé par tous les appels Claude de l'app (génération, édition —
 // boucle d'outils comprise) : une seule source de vérité pour l'upgrade.
 export const CLAUDE_MODEL = "claude-sonnet-5";
+// Modèle léger pour les tâches d'extraction bon marché (ex: teaser CV public,
+// pas de jugement design requis) — coût et latence bien plus bas que Sonnet.
+export const CLAUDE_MODEL_FAST = "claude-haiku-4-5-20251001";
 
 let _client: Anthropic | null = null;
 
@@ -16,19 +19,20 @@ export function getAnthropicClient(): Anthropic {
 export async function callClaude(
   systemPrompt: string,
   userPrompt: string,
-  maxTokens = 4096
+  maxTokens = 4096,
+  model: string = CLAUDE_MODEL
 ): Promise<string> {
   const client = getAnthropicClient();
 
   const message = await client.messages.create({
-    model: CLAUDE_MODEL,
+    model,
     max_tokens: maxTokens,
     system: systemPrompt,
     messages: [{ role: "user", content: userPrompt }],
   });
 
-  const block = message.content[0];
-  if (block.type !== "text") throw new Error("Réponse Claude inattendue");
+  const block = message.content.find((b): b is Anthropic.TextBlock => b.type === "text");
+  if (!block) throw new Error("Réponse Claude inattendue");
   return block.text;
 }
 
@@ -60,7 +64,7 @@ export async function callClaudeWithImages(
     messages: [{ role: "user", content }],
   });
 
-  const block = message.content[0];
-  if (block.type !== "text") throw new Error("Réponse Claude inattendue");
+  const block = message.content.find((b): b is Anthropic.TextBlock => b.type === "text");
+  if (!block) throw new Error("Réponse Claude inattendue");
   return block.text;
 }

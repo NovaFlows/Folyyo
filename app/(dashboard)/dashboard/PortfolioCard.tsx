@@ -15,7 +15,7 @@ const STATUS_CONFIG: Record<PortfolioStatus, { label: string; color: string }> =
   error:      { label: "Erreur",             color: "#dc2626" },
 };
 
-export default function PortfolioCard({ portfolio: p }: { portfolio: Portfolio }) {
+export default function PortfolioCard({ portfolio: p, views }: { portfolio: Portfolio; views?: { total: number; last7d: number } }) {
   const router = useRouter();
   const [deleting, setDeleting] = useState(false);
   const [confirm, setConfirm] = useState(false);
@@ -64,9 +64,26 @@ export default function PortfolioCard({ portfolio: p }: { portfolio: Portfolio }
       <h3 className="font-semibold mb-1" style={{ color: "#1c1917" }}>{p.name}</h3>
 
       {/* Slug URL in mono */}
-      <p className="mono text-xs mb-5" style={{ color: "#c8c4bf" }}>
+      <p className={`mono text-xs ${p.deployment_url ? "mb-1" : "mb-5"}`} style={{ color: "#c8c4bf" }}>
         folyyo.com/<span style={{ color: "#a09a94" }}>{shortSlug}</span>
       </p>
+
+      {/* Compteur de vues — toujours visible dès que le site est déployé (même
+          à 0), sinon la fonctionnalité est invisible tant qu'il n'y a pas eu
+          de première vue et personne ne sait où la chercher. */}
+      {p.deployment_url && (
+        <p className="mono text-xs mb-5 flex items-center gap-1.5" style={{ color: "#a09a94" }}>
+          <span aria-hidden="true">👁</span>
+          {views && views.total > 0 ? (
+            <>
+              {views.total} vue{views.total > 1 ? "s" : ""}
+              {views.last7d > 0 && <span style={{ color: "#22a06b" }}>· +{views.last7d} cette semaine</span>}
+            </>
+          ) : (
+            "Pas encore de vue"
+          )}
+        </p>
+      )}
 
       <div className="flex gap-2">
         <Link href={`/portfolio/${p.id}`}

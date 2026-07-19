@@ -5,6 +5,7 @@ import HeroVisual from "@/components/landing/HeroVisual";
 import AnimatedCounter from "@/components/landing/AnimatedCounter";
 import TestimonialMarquee from "@/components/landing/TestimonialMarquee";
 import EditChatMock from "@/components/landing/EditChatMock";
+import CvTeaser from "@/components/landing/CvTeaser";
 import type { ReactNode } from "react";
 
 function PostIt({ children }: { children: ReactNode }) {
@@ -33,9 +34,9 @@ function PostIt({ children }: { children: ReactNode }) {
         pointerEvents: "none",
       }} />
       <p style={{
-        fontFamily: "'Yellowtail', cursive",
-        fontSize: "1.3rem",
-        fontWeight: 400,
+        fontFamily: "'Kalam', cursive",
+        fontSize: "1.15rem",
+        fontWeight: 700,
         color: "#1a3a8f",
         lineHeight: 1.35,
         position: "relative",
@@ -154,6 +155,17 @@ export default function LandingPage() {
           </div>
 
         </div>
+      </section>
+
+      {/* ── TEASER CV (sans compte) ───────────────────*/}
+      <section className="ld-reveal px-6 pb-24">
+        <div className="mx-auto max-w-xl text-center mb-8">
+          <p className="text-sm tracking-widest uppercase mb-3" style={{ color: "#a09a94" }}>Essaie tout de suite</p>
+          <h2 className="text-3xl" style={{ fontFamily: "'Playfair Display', Georgia, serif", fontWeight: 500, color: "#1c1917" }}>
+            Vois ce que l&apos;IA <em className="font-normal" style={{ color: "#c9a96e" }}>comprend de toi</em> — sans compte.
+          </h2>
+        </div>
+        <CvTeaser />
       </section>
 
       {/* ── EXAMPLES ───────────────────────────────── */}

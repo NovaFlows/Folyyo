@@ -10,11 +10,9 @@ import { generateDeveloperCode } from "@/lib/portfolio/code-generator";
 import { keys } from "@/lib/r2/client";
 import { readCvBuffer, writeSourceCode } from "@/lib/dev-storage";
 import { createPortfolio, setPortfolioReady, setPortfolioError, getFeaturedPortfolioById } from "@/lib/db/queries";
+import { parsePdfText } from "@/lib/pdf-parse";
 import type { DeveloperInputData } from "@/types/portfolio";
 import type { ValidatedPortfolioJSON } from "@/lib/anthropic/schema";
-// pdf-parse has no ESM export
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const pdfParse = require("pdf-parse");
 
 async function storeSourceCode(portfolioId: string, sourceCode: unknown): Promise<string> {
   return writeSourceCode(keys.sourceCode(portfolioId), sourceCode);
@@ -47,10 +45,7 @@ export async function POST(request: NextRequest) {
     let cvText = "";
     try {
       const cvBuffer = await readCvBuffer(cvStoragePath);
-      if (cvBuffer) {
-        const parsed = await pdfParse(cvBuffer);
-        cvText = parsed.text.slice(0, 4000);
-      }
+      if (cvBuffer) cvText = await parsePdfText(cvBuffer, 4000);
     } catch { /* CV parsing optional */ }
 
     const inputData: DeveloperInputData = {
@@ -111,7 +106,7 @@ export async function POST(request: NextRequest) {
       ?? (profileType === "developer" ? githubData?.avatar_url : undefined);
     if (realAvatarUrl) siteJson.meta.avatar_url = realAvatarUrl;
 
-    const sourceCode = generateDeveloperCode(siteJson);
+    const sourceCode = generateDeveloperCode(siteJson, portfolio.id);
     const sourceCodeKey = await storeSourceCode(portfolio.id, sourceCode);
 
     await setPortfolioReady(portfolio.id, { siteJson, inputData, sourceCodeKey });

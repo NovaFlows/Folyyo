@@ -11,6 +11,46 @@ function one<T>(rows: unknown[]): T | null {
   return many<T>(rows)[0] ?? null;
 }
 
+// ── Teaser CV public (landing page, sans compte) ────────────────────────────
+
+export async function countRecentTeaserRequests(ip: string, sinceHours: number): Promise<number> {
+  const rows = await sql`
+    SELECT COUNT(*)::int AS count FROM teaser_requests
+    WHERE ip = ${ip} AND created_at > now() - (${sinceHours} || ' hours')::interval
+  `;
+  return one<{ count: number }>(rows)?.count ?? 0;
+}
+
+export async function logTeaserRequest(ip: string): Promise<void> {
+  await sql`INSERT INTO teaser_requests (ip) VALUES (${ip})`;
+}
+
+// ── Vues des portfolios déployés ─────────────────────────────────────────────
+
+export async function logPortfolioView(portfolioId: string, referrer: string | null): Promise<void> {
+  await sql`INSERT INTO portfolio_views (portfolio_id, referrer) VALUES (${portfolioId}, ${referrer})`;
+}
+
+export interface ViewCounts { total: number; last7d: number }
+
+export async function getViewCountsForUser(userId: string): Promise<Record<string, ViewCounts>> {
+  const rows = await sql`
+    SELECT
+      pv.portfolio_id::text AS portfolio_id,
+      COUNT(*)::int AS total,
+      COUNT(*) FILTER (WHERE pv.created_at > now() - interval '7 days')::int AS last7d
+    FROM portfolio_views pv
+    JOIN portfolios p ON p.id = pv.portfolio_id
+    WHERE p.user_id = ${userId}
+    GROUP BY pv.portfolio_id
+  `;
+  const result: Record<string, ViewCounts> = {};
+  for (const row of many<{ portfolio_id: string; total: number; last7d: number }>(rows)) {
+    result[row.portfolio_id] = { total: row.total, last7d: row.last7d };
+  }
+  return result;
+}
+
 // ── Portfolios ─────────────────────────────────────────────────────────────
 
 export async function getPortfoliosByUser(userId: string): Promise<Portfolio[]> {

@@ -1,7 +1,7 @@
 import type { ValidatedPortfolioJSON } from "@/lib/anthropic/schema";
 import type { SourceCode } from "@/types/portfolio";
 
-export function generateDeveloperCode(json: ValidatedPortfolioJSON): SourceCode {
+export function generateDeveloperCode(json: ValidatedPortfolioJSON, portfolioId: string): SourceCode {
   const { meta, theme, sections } = json;
 
   const heroSection = sections.find((s) => s.type === "hero");
@@ -16,7 +16,7 @@ export function generateDeveloperCode(json: ValidatedPortfolioJSON): SourceCode 
     "next.config.js": generateNextConfig(),
     "tailwind.config.js": generateTailwindConfig(theme),
     "postcss.config.js": generatePostcssConfig(),
-    "app/layout.tsx": generateLayout(meta, theme),
+    "app/layout.tsx": generateLayout(meta, theme, portfolioId),
     "app/page.tsx": generateMainPage(
       meta,
       theme,
@@ -141,8 +141,15 @@ html { scroll-behavior: smooth; }
 
 function generateLayout(
   meta: ValidatedPortfolioJSON["meta"],
-  theme: ValidatedPortfolioJSON["theme"]
+  theme: ValidatedPortfolioJSON["theme"],
+  portfolioId: string
 ): string {
+  // Beacon de vue anonyme (pas d'IP, pas de cookie) — voir app/api/track/route.ts.
+  // navigator.sendBeacon évite le preflight CORS ; résolu au moment de la
+  // génération (pas d'exécution serveur côté site déployé, domaine séparé).
+  const trackBase = process.env.NEXT_PUBLIC_APP_URL ?? "https://folyyo.com";
+  const trackScript = `(function(){try{var u='${trackBase}/api/track?p=${portfolioId}&r='+encodeURIComponent(document.referrer||'');if(navigator.sendBeacon){navigator.sendBeacon(u)}else{fetch(u,{method:'POST',keepalive:true}).catch(function(){})}}catch(e){}})();`;
+
   return `import type { Metadata } from 'next';
 import './globals.css';
 
@@ -154,7 +161,10 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="fr">
-      <body>{children}</body>
+      <body>
+        {children}
+        <script dangerouslySetInnerHTML={{ __html: ${JSON.stringify(trackScript)} }} />
+      </body>
     </html>
   );
 }

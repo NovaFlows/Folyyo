@@ -54,3 +54,27 @@ CREATE TABLE IF NOT EXISTS portfolio_edits (
 );
 
 CREATE INDEX IF NOT EXISTS idx_portfolio_edits_portfolio_id ON portfolio_edits(portfolio_id);
+
+-- Log des tentatives du teaser CV public (landing page, sans compte) — une
+-- ligne par requête, pas de compteur stateful, pour un rate limiting simple
+-- par IP sans risque de race condition d'UPSERT.
+CREATE TABLE IF NOT EXISTS teaser_requests (
+  id         UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  ip         TEXT        NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_teaser_requests_ip_created ON teaser_requests(ip, created_at DESC);
+
+-- Log des vues d'un portfolio déployé (beacon envoyé par le site généré,
+-- voir lib/portfolio/code-generator.ts) — une ligne par vue, pas de compteur
+-- stateful. Volontairement sans IP ni cookie (vie privée par défaut, pas de
+-- bandeau de consentement nécessaire).
+CREATE TABLE IF NOT EXISTS portfolio_views (
+  id           UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  portfolio_id UUID        NOT NULL REFERENCES portfolios(id) ON DELETE CASCADE,
+  referrer     TEXT,
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_portfolio_views_portfolio_created ON portfolio_views(portfolio_id, created_at DESC);

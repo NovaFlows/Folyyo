@@ -168,7 +168,7 @@ export async function POST(request: NextRequest) {
       // Garde-fou final : les outils valident déjà chaque mutation individuellement,
       // mais on revalide l'état complet avant de le persister.
       const validated = PortfolioJSONSchema.parse(state);
-      const newCode  = generateDeveloperCode(validated);
+      const newCode  = generateDeveloperCode(validated, portfolioId);
       const codeKey  = keys.sourceCode(portfolioId);
       const savedKey = await writeSourceCode(codeKey, newCode);
 
