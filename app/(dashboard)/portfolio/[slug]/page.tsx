@@ -1,8 +1,9 @@
 import { notFound } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
 import Link from "next/link";
-import { getPortfolioBySlugOrId, getVersionsByPortfolio, getEditsByPortfolio, getViewCountsForUser } from "@/lib/db/queries";
+import { getPortfolioBySlugOrId, getVersionsByPortfolio, getEditsByPortfolio, getViewCountsForUser, getViewSourcesForPortfolio } from "@/lib/db/queries";
 import PortfolioEditor from "./PortfolioEditor";
+import ViewsBreakdown from "./ViewsBreakdown";
 import { PROFILE_LABEL_FULL } from "@/lib/profile-labels";
 import type { PortfolioStatus } from "@/types";
 
@@ -22,10 +23,11 @@ export default async function PortfolioPage({ params }: { params: { slug: string
   const portfolio = await getPortfolioBySlugOrId(params.slug, userId);
   if (!portfolio) notFound();
 
-  const [versions, edits, viewCounts] = await Promise.all([
+  const [versions, edits, viewCounts, viewSources] = await Promise.all([
     getVersionsByPortfolio(portfolio.id),
     getEditsByPortfolio(portfolio.id),
     getViewCountsForUser(userId),
+    getViewSourcesForPortfolio(portfolio.id),
   ]);
   const views = viewCounts[portfolio.id];
 
@@ -87,18 +89,21 @@ export default async function PortfolioPage({ params }: { params: { slug: string
                 <dd style={{ color: status.color }}>{status.label}</dd>
               </div>
               {isLive && (
-                <div className="flex justify-between">
-                  <dt style={{ color: "#a09a94" }}>Vues</dt>
-                  <dd style={{ color: "#1c1917" }}>
-                    {views && views.total > 0 ? (
-                      <>
-                        {views.total}
-                        {views.last7d > 0 && <span style={{ color: "#22a06b" }}> · +{views.last7d} / 7j</span>}
-                      </>
-                    ) : (
-                      <span style={{ color: "#a09a94" }}>Pas encore de vue</span>
-                    )}
-                  </dd>
+                <div className="flex flex-col gap-1.5">
+                  <div className="flex justify-between">
+                    <dt style={{ color: "#a09a94" }}>Vues</dt>
+                    <dd style={{ color: "#1c1917" }}>
+                      {views && views.total > 0 ? (
+                        <>
+                          {views.total}
+                          {views.last7d > 0 && <span style={{ color: "#22a06b" }}> · +{views.last7d} / 7j</span>}
+                        </>
+                      ) : (
+                        <span style={{ color: "#a09a94" }}>Pas encore de vue</span>
+                      )}
+                    </dd>
+                  </div>
+                  <ViewsBreakdown sources={viewSources} />
                 </div>
               )}
               {isLive && (

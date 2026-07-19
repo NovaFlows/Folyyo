@@ -1,5 +1,6 @@
 import { sql } from "./client";
 import type { Portfolio, PortfolioVersion, PortfolioEdit } from "@/types";
+import { classifyReferrer, SOURCE_LABELS, type ViewSource } from "@/lib/tracking/referrer-source";
 
 // `sql` (Neon) renvoie des lignes génériques — ces deux helpers centralisent
 // le cast vers les types de domaine pour ne plus le répéter à chaque requête
@@ -56,6 +57,28 @@ export async function getViewCountsForUser(userId: string): Promise<Record<strin
     result[row.portfolio_id] = { total: row.total, last7d: row.last7d };
   }
   return result;
+}
+
+export interface ViewSourceCount { source: ViewSource; label: string; count: number }
+
+// Répartition des vues par provenance (Instagram, Facebook, LinkedIn,
+// Twitter/X, communauté Folyyo, autre) — classifiée en JS à partir du
+// referrer brut déjà stocké, pas de tracking supplémentaire.
+export async function getViewSourcesForPortfolio(portfolioId: string): Promise<ViewSourceCount[]> {
+  const rows = await sql`
+    SELECT referrer, COUNT(*)::int AS count
+    FROM portfolio_views
+    WHERE portfolio_id = ${portfolioId}
+    GROUP BY referrer
+  `;
+  const totals: Partial<Record<ViewSource, number>> = {};
+  for (const row of many<{ referrer: string | null; count: number }>(rows)) {
+    const source = classifyReferrer(row.referrer);
+    totals[source] = (totals[source] ?? 0) + row.count;
+  }
+  return (Object.entries(totals) as [ViewSource, number][])
+    .map(([source, count]) => ({ source, label: SOURCE_LABELS[source], count }))
+    .sort((a, b) => b.count - a.count);
 }
 
 // ── État de fraîcheur GitHub/YouTube ────────────────────────────────────────
