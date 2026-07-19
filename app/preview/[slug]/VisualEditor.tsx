@@ -390,7 +390,7 @@ export default function VisualEditor({ initialData, portfolioId, slug, profileTy
           Reviens depuis un ordinateur pour modifier ton portfolio.
         </p>
         <div style={{ display:"flex", flexDirection:"column", gap:"0.75rem", width:"100%", maxWidth:280 }}>
-          <a href={`/preview/${slug}`}
+          <a href={`/${slug}`}
             style={{ background:"#c9a96e", color:"#1c1917", padding:"0.75rem 1.5rem", borderRadius:"0.75rem", fontWeight:700, fontSize:"0.875rem", textDecoration:"none" }}>
             Voir le portfolio →
           </a>
@@ -416,7 +416,7 @@ export default function VisualEditor({ initialData, portfolioId, slug, profileTy
             style={{ background:canUndo?"rgba(255,255,255,0.08)":"transparent", color:canUndo?"#c8c4bf":"#3f3f3f", border:"1px solid rgba(255,255,255,0.1)", padding:"0.35rem 0.75rem", borderRadius:"0.5rem", cursor:canUndo?"pointer":"default", fontSize:"0.75rem", whiteSpace:"nowrap" }}>
             ↩ Annuler
           </button>
-          <a href={`/preview/${slug}`} target="_blank" rel="noopener noreferrer"
+          <a href={`/${slug}`} target="_blank" rel="noopener noreferrer"
             style={{ fontSize:"0.75rem", color:"#9ca3af", border:"1px solid rgba(255,255,255,0.12)", padding:"0.35rem 0.75rem", borderRadius:"0.5rem", textDecoration:"none", whiteSpace:"nowrap" }}>Aperçu ↗</a>
           <button onClick={save} disabled={saveStatus==="saving"}
             style={{ background:btnBg, color:"#1c1917", border:"none", padding:"0.45rem 1.1rem", borderRadius:"0.6rem", fontSize:"0.8125rem", fontWeight:700, cursor:"pointer", whiteSpace:"nowrap" }}>
@@ -1477,7 +1477,7 @@ function ThemeEditor({ meta, theme, updateMeta, updateTheme, profileType, portfo
                 </div>
                 <div style={{display:"flex",gap:"0.375rem"}}>
                   {item.slug&&(
-                    <a href={`/preview/${item.slug}`} target="_blank" rel="noopener noreferrer"
+                    <a href={`/${item.slug}`} target="_blank" rel="noopener noreferrer"
                       style={{flex:1,padding:"0.35rem",fontSize:"0.7rem",textAlign:"center",borderRadius:"0.4rem",border:"1px solid rgba(0,0,0,0.1)",color:"#78716c",textDecoration:"none",fontWeight:500}}>
                       Voir ↗
                     </a>

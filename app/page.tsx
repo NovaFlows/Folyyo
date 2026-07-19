@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Globe, PenLine, Download, RotateCcw, Layers, Lock } from "lucide-react";
+import { Globe, PenLine, Link2, RotateCcw, Layers, Lock } from "lucide-react";
 import PortfolioPreviews from "@/components/landing/PortfolioPreviews";
 import HeroVisual from "@/components/landing/HeroVisual";
 import AnimatedCounter from "@/components/landing/AnimatedCounter";
@@ -286,7 +286,7 @@ export default function LandingPage() {
               [
                 { icon: Globe,      title: "Mise en ligne automatique",  desc: "Ton portfolio est publié automatiquement dès qu'il est généré. Aucune configuration requise." },
                 { icon: PenLine,    title: "Édition en langage naturel", desc: "Décris ce que tu veux changer. Notre système comprend et applique tes modifications instantanément." },
-                { icon: Download,   title: "Code source exportable",     desc: "Ton portfolio t'appartient. Télécharge-le en .zip et héberge-le où tu veux." },
+                { icon: Link2,      title: "Une adresse simple à partager", desc: "folyyo.com/ton-nom. Pas de configuration technique, pas de nom de domaine à acheter." },
                 { icon: RotateCcw,  title: "Historique des versions",    desc: "Tes 5 dernières versions sont sauvegardées. Reviens en arrière en un clic si besoin." },
                 { icon: Layers,     title: "Design adapté à ton profil", desc: "Design sombre et technique pour les devs, galerie épurée pour les artistes, plein-écran pour la mode." },
                 { icon: Lock,       title: "Sécurisé et privé",         desc: "Connexion via email ou GitHub. Tes données restent les tiennes, isolées et protégées." },

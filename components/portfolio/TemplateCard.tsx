@@ -68,7 +68,7 @@ export default function TemplateCard({ data, selected, onSelect, showPreviewLink
           </button>
         )}
         {showPreviewLink && slug && (
-          <a href={`/preview/${slug}`} target="_blank" rel="noopener noreferrer"
+          <a href={`/${slug}`} target="_blank" rel="noopener noreferrer"
             onClick={(e) => e.stopPropagation()}
             className="flex-1 rounded-xl py-2 text-center text-xs font-medium transition hover:opacity-70"
             style={{ border: "1px solid rgba(0,0,0,0.08)", color: "#78716c" }}>

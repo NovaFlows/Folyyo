@@ -11,8 +11,11 @@ import { keys } from "@/lib/r2/client";
 import { readCvBuffer, writeSourceCode } from "@/lib/dev-storage";
 import { createPortfolio, setPortfolioReady, setPortfolioError, getFeaturedPortfolioById } from "@/lib/db/queries";
 import { parsePdfText } from "@/lib/pdf-parse";
+import { isReservedSlug } from "@/lib/portfolio/reserved-slugs";
 import type { DeveloperInputData } from "@/types/portfolio";
 import type { ValidatedPortfolioJSON } from "@/lib/anthropic/schema";
+
+const SLUG_RE = /^[a-z0-9-]{1,30}$/;
 
 async function storeSourceCode(portfolioId: string, sourceCode: unknown): Promise<string> {
   return writeSourceCode(keys.sourceCode(portfolioId), sourceCode);
@@ -28,6 +31,9 @@ export async function POST(request: NextRequest) {
   const requiresCv = profileType === "developer";
   if (!profileType || !name || !email || (requiresCv && !cvStoragePath)) {
     return NextResponse.json({ error: "Champs requis manquants" }, { status: 400 });
+  }
+  if (slug && (!SLUG_RE.test(slug) || isReservedSlug(slug))) {
+    return NextResponse.json({ error: "Ce slug est invalide, choisis-en un autre." }, { status: 400 });
   }
 
   let portfolio;

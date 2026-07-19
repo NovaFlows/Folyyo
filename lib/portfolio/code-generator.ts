@@ -144,14 +144,6 @@ function generateLayout(
   theme: ValidatedPortfolioJSON["theme"],
   portfolioId: string
 ): string {
-  // Beacon de vue anonyme (pas d'IP, pas de cookie) — voir app/api/track/route.ts.
-  // navigator.sendBeacon évite le preflight CORS ; résolu au moment de la
-  // génération (pas d'exécution serveur côté site déployé, domaine séparé).
-  // Repli sur l'alias Vercel stable (folyyo.vercel.app, toujours la prod
-  // courante) tant qu'aucun nom de domaine personnalisé n'est configuré.
-  const trackBase = process.env.NEXT_PUBLIC_APP_URL ?? "https://folyyo.vercel.app";
-  const trackScript = `(function(){try{var u='${trackBase}/api/track?p=${portfolioId}&r='+encodeURIComponent(document.referrer||'');if(navigator.sendBeacon){navigator.sendBeacon(u)}else{fetch(u,{method:'POST',keepalive:true}).catch(function(){})}}catch(e){}})();`;
-
   return `import type { Metadata } from 'next';
 import './globals.css';
 
@@ -165,7 +157,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="fr">
       <body>
         {children}
-        <script dangerouslySetInnerHTML={{ __html: ${JSON.stringify(trackScript)} }} />
       </body>
     </html>
   );

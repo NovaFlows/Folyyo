@@ -32,12 +32,8 @@ export default async function PortfolioPage({ params }: { params: { slug: string
   const status = STATUS_CONFIG[portfolio.status] ?? STATUS_CONFIG.draft;
   const cardStyle = { background: "#f0ece6", border: "1px solid rgba(0,0,0,0.06)" };
 
-  // En dev, un ancien deployment_url peut pointer vers un mauvais port (ex :3002).
-  // On préfère alors un chemin relatif qui reste sur l'origine courante.
-  const previewPath = `/preview/${portfolio.slug ?? portfolio.id}`;
-  const isLocalUrl  = portfolio.deployment_url?.includes("localhost") ?? false;
-  const visitHref   = portfolio.deployment_url && !isLocalUrl ? portfolio.deployment_url : previewPath;
-  const visitExternal = Boolean(portfolio.deployment_url) && !isLocalUrl;
+  const shortSlug = portfolio.slug ?? portfolio.id;
+  const isLive = portfolio.status === "live";
 
   return (
     <div>
@@ -63,15 +59,12 @@ export default async function PortfolioPage({ params }: { params: { slug: string
               Éditer visuellement
             </a>
           )}
-          {portfolio.deployment_url && (
-            <a href={visitHref} target={visitExternal ? "_blank" : undefined} rel="noopener noreferrer"
+          {isLive && (
+            <a href={`/${shortSlug}`} target="_blank" rel="noopener noreferrer"
               className="rounded-full px-5 py-2.5 text-sm font-medium transition hover:opacity-80"
               style={{ background: "rgba(201,169,110,0.12)", color: "#c9a96e" }}>
               Voir le site ↗
             </a>
-          )}
-          {!portfolio.deployment_url && portfolio.source_code_key && (
-            <DeployButton portfolioId={portfolio.id} />
           )}
         </div>
       </div>
@@ -93,7 +86,7 @@ export default async function PortfolioPage({ params }: { params: { slug: string
                 <dt style={{ color: "#a09a94" }}>Statut</dt>
                 <dd style={{ color: status.color }}>{status.label}</dd>
               </div>
-              {portfolio.deployment_url && (
+              {isLive && (
                 <div className="flex justify-between">
                   <dt style={{ color: "#a09a94" }}>Vues</dt>
                   <dd style={{ color: "#1c1917" }}>
@@ -108,14 +101,14 @@ export default async function PortfolioPage({ params }: { params: { slug: string
                   </dd>
                 </div>
               )}
-              {portfolio.deployment_url && (
+              {isLive && (
                 <div className="flex flex-col gap-1">
                   <dt className="text-xs" style={{ color: "#a09a94" }}>URL</dt>
                   <dd>
-                    <a href={visitHref} target={visitExternal ? "_blank" : undefined} rel="noopener noreferrer"
+                    <a href={`/${shortSlug}`} target="_blank" rel="noopener noreferrer"
                       className="block truncate text-xs transition hover:opacity-80"
                       style={{ color: "#c9a96e" }}>
-                      {portfolio.deployment_url.replace(/^https?:\/\//, "")}
+                      folyyo.com/{shortSlug}
                     </a>
                   </dd>
                 </div>
@@ -157,19 +150,6 @@ export default async function PortfolioPage({ params }: { params: { slug: string
         </div>
       </div>
     </div>
-  );
-}
-
-function DeployButton({ portfolioId }: { portfolioId: string }) {
-  return (
-    <form action="/api/portfolio/deploy" method="POST">
-      <input type="hidden" name="portfolioId" value={portfolioId} />
-      <button type="submit"
-        className="rounded-full px-5 py-2.5 text-sm font-semibold text-white transition hover:opacity-80"
-        style={{ background: "#1c1917" }}>
-        Déployer →
-      </button>
-    </form>
   );
 }
 

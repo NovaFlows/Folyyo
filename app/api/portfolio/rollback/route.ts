@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { getPortfolioById, getVersionById, updatePortfolioJsonAndCode } from "@/lib/db/queries";
 import { generateDeveloperCode } from "@/lib/portfolio/code-generator";
-import { writeSourceCode, IS_DEV } from "@/lib/dev-storage";
+import { writeSourceCode } from "@/lib/dev-storage";
 import { keys } from "@/lib/r2/client";
 import type { ValidatedPortfolioJSON } from "@/lib/anthropic/schema";
 
@@ -39,20 +39,11 @@ export async function POST(request: NextRequest) {
   }
 
   // Régénère le code depuis le site_json restauré et écrase l'état courant
+  // — /[slug] lit site_json directement, aucun redéploiement à déclencher.
   const newCode  = generateDeveloperCode(restoredJson, portfolioId);
   const codeKey  = keys.sourceCode(portfolioId);
   const savedKey = await writeSourceCode(codeKey, newCode);
   await updatePortfolioJsonAndCode(portfolioId, restoredJson, savedKey);
-
-  // Redéploiement en prod (best-effort) ; en dev l'aperçu lit directement le site_json
-  if (!IS_DEV && portfolio.vercel_project_id) {
-    try {
-      const { deployToVercel } = await import("@/lib/vercel/deploy");
-      await deployToVercel(portfolio.vercel_project_id, newCode);
-    } catch (err) {
-      console.error("[rollback] redeploy failed:", err);
-    }
-  }
 
   // Form POST → on renvoie l'utilisateur sur la page détail (rafraîchie)
   if (!ct.includes("application/json")) {

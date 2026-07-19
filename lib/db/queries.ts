@@ -130,6 +130,8 @@ export async function setPortfolioError(id: string, message: string): Promise<vo
   await sql`UPDATE portfolios SET status = 'error', slug = null, error_message = ${message}, updated_at = now() WHERE id = ${id}`;
 }
 
+// Portfolio "en ligne" dès que site_json/le code existent — /[slug] le rend
+// immédiatement, aucune étape de déploiement séparée n'est requise.
 export async function setPortfolioReady(id: string, data: {
   siteJson: unknown;
   inputData: unknown;
@@ -137,26 +139,11 @@ export async function setPortfolioReady(id: string, data: {
 }): Promise<void> {
   await sql`
     UPDATE portfolios SET
-      status          = 'draft',
+      status          = 'live',
       site_json       = ${JSON.stringify(data.siteJson)}::jsonb,
       input_data      = ${JSON.stringify(data.inputData)}::jsonb,
       source_code_key = ${data.sourceCodeKey},
       updated_at      = now()
-    WHERE id = ${id}
-  `;
-}
-
-export async function setPortfolioDeploying(id: string): Promise<void> {
-  await sql`UPDATE portfolios SET status = 'deploying', updated_at = now() WHERE id = ${id}`;
-}
-
-export async function setPortfolioLive(id: string, deploymentUrl: string, vercelProjectId?: string | null): Promise<void> {
-  await sql`
-    UPDATE portfolios SET
-      status         = 'live',
-      deployment_url = ${deploymentUrl},
-      vercel_project_id = COALESCE(${vercelProjectId ?? null}, vercel_project_id),
-      updated_at     = now()
     WHERE id = ${id}
   `;
 }

@@ -19,8 +19,9 @@ export default function PortfolioCard({ portfolio: p, views }: { portfolio: Port
   const router = useRouter();
   const [deleting, setDeleting] = useState(false);
   const [confirm, setConfirm] = useState(false);
-  const status = STATUS_CONFIG[p.status] ?? STATUS_CONFIG.draft;
+  const status = STATUS_CONFIG[p.status] ?? STATUS_CONFIG.generating;
   const shortSlug = p.slug ?? p.id.slice(0, 8);
+  const isLive = p.status === "live";
 
   async function handleDelete() {
     if (!confirm) { setConfirm(true); return; }
@@ -64,14 +65,14 @@ export default function PortfolioCard({ portfolio: p, views }: { portfolio: Port
       <h3 className="font-semibold mb-1" style={{ color: "#1c1917" }}>{p.name}</h3>
 
       {/* Slug URL in mono */}
-      <p className={`mono text-xs ${p.deployment_url ? "mb-1" : "mb-5"}`} style={{ color: "#c8c4bf" }}>
+      <p className={`mono text-xs ${isLive ? "mb-1" : "mb-5"}`} style={{ color: "#c8c4bf" }}>
         folyyo.com/<span style={{ color: "#a09a94" }}>{shortSlug}</span>
       </p>
 
-      {/* Compteur de vues — toujours visible dès que le site est déployé (même
+      {/* Compteur de vues — toujours visible dès que le site est en ligne (même
           à 0), sinon la fonctionnalité est invisible tant qu'il n'y a pas eu
           de première vue et personne ne sait où la chercher. */}
-      {p.deployment_url && (
+      {isLive && (
         <p className="mono text-xs mb-5 flex items-center gap-1.5" style={{ color: "#a09a94" }}>
           <span aria-hidden="true">👁</span>
           {views && views.total > 0 ? (
@@ -91,8 +92,8 @@ export default function PortfolioCard({ portfolio: p, views }: { portfolio: Port
           style={{ border: "1px solid rgba(0,0,0,0.08)", color: "#78716c" }}>
           Gérer
         </Link>
-        {p.deployment_url && (
-          <a href={p.deployment_url} target="_blank" rel="noopener noreferrer"
+        {isLive && (
+          <a href={`/${shortSlug}`} target="_blank" rel="noopener noreferrer"
             className="flex-1 rounded-xl py-2 text-center text-xs font-medium transition hover:opacity-70"
             style={{ background: "rgba(201,169,110,0.1)", color: "#c9a96e" }}>
             Voir le site ↗

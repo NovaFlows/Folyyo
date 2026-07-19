@@ -56,12 +56,10 @@ export default function AdminPortfolioList({ portfolios }: { portfolios: Portfol
               </div>
             </div>
             <div className="flex items-center gap-3 shrink-0">
-              {p.deployment_url && (
-                <a href={p.deployment_url} target="_blank" rel="noopener noreferrer"
-                  className="text-xs font-medium transition hover:opacity-70" style={{ color: "#c9a96e" }}>
-                  Voir ↗
-                </a>
-              )}
+              <a href={`/${shortSlug}`} target="_blank" rel="noopener noreferrer"
+                className="text-xs font-medium transition hover:opacity-70" style={{ color: "#c9a96e" }}>
+                Voir ↗
+              </a>
               <button onClick={() => toggle(p.id, !p.featured)} disabled={pending === p.id}
                 className="rounded-full px-4 py-1.5 text-xs font-medium transition hover:opacity-80 disabled:opacity-50"
                 style={{
