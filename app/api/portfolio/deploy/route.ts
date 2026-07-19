@@ -17,8 +17,17 @@ export async function POST(request: NextRequest) {
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
 
-  const body = await request.json().catch(() => null);
-  const portfolioId = body?.portfolioId ?? new URL(request.url).searchParams.get("portfolioId");
+  // Accepte du JSON (fetch) comme du form-urlencoded (le <form> natif de
+  // DeployButton) — même pattern que rollback/route.ts.
+  let portfolioId: string | null | undefined;
+  const ct = request.headers.get("content-type") ?? "";
+  if (ct.includes("application/json")) {
+    portfolioId = (await request.json().catch(() => null))?.portfolioId;
+  } else if (ct.includes("form")) {
+    const form = await request.formData();
+    portfolioId = form.get("portfolioId")?.toString();
+  }
+  portfolioId ??= new URL(request.url).searchParams.get("portfolioId");
   if (!portfolioId) return NextResponse.json({ error: "portfolioId manquant" }, { status: 400 });
 
   const portfolio = await getPortfolioById(portfolioId, userId);
