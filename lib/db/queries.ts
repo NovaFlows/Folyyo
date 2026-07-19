@@ -27,8 +27,15 @@ export async function logTeaserRequest(ip: string): Promise<void> {
 
 // ── Vues des portfolios déployés ─────────────────────────────────────────────
 
-export async function logPortfolioView(portfolioId: string, referrer: string | null): Promise<void> {
-  await sql`INSERT INTO portfolio_views (portfolio_id, referrer) VALUES (${portfolioId}, ${referrer})`;
+// Un visitor_id (cookie posé par le middleware) ne compte qu'une vue par
+// portfolio et par jour — sinon un simple rafraîchissement de page gonfle le
+// compteur. Sans visitor_id (cookies bloqués), la vue est comptée sans dédup.
+export async function logPortfolioView(portfolioId: string, referrer: string | null, visitorId: string | null): Promise<void> {
+  await sql`
+    INSERT INTO portfolio_views (portfolio_id, referrer, visitor_id)
+    VALUES (${portfolioId}, ${referrer}, ${visitorId})
+    ON CONFLICT (portfolio_id, visitor_id, view_date) WHERE visitor_id IS NOT NULL DO NOTHING
+  `;
 }
 
 export interface ViewCounts { total: number; last7d: number }

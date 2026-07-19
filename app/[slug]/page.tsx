@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { headers } from "next/headers";
+import { headers, cookies } from "next/headers";
 import { getPortfolioBySlugPublic, logPortfolioView } from "@/lib/db/queries";
 import { isBotUserAgent } from "@/lib/tracking/is-bot";
 import type { ValidatedPortfolioJSON, ContentAside, BlockRow, GridItem } from "@/lib/anthropic/schema";
@@ -53,11 +53,14 @@ export default async function PublicPortfolioPage({ params }: { params: { slug: 
   if (!portfolio || !portfolio.site_json) notFound();
 
   // Suivi de vue best-effort — ne doit jamais faire échouer le rendu de la page.
+  // Dédoublonné par appareil (cookie pf_vid posé par middleware.ts) : une
+  // vue par portfolio et par jour, un rafraîchissement ne recompte pas.
   try {
     const h = headers();
     const ua = h.get("user-agent") ?? "";
     if (!isBotUserAgent(ua)) {
-      await logPortfolioView(portfolio.id, h.get("referer"));
+      const visitorId = cookies().get("pf_vid")?.value ?? null;
+      await logPortfolioView(portfolio.id, h.get("referer"), visitorId);
     }
   } catch (err) {
     console.error("[portfolio view] tracking error:", err);

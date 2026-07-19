@@ -66,18 +66,23 @@ CREATE TABLE IF NOT EXISTS teaser_requests (
 
 CREATE INDEX IF NOT EXISTS idx_teaser_requests_ip_created ON teaser_requests(ip, created_at DESC);
 
--- Log des vues d'un portfolio déployé (beacon envoyé par le site généré,
--- voir lib/portfolio/code-generator.ts) — une ligne par vue, pas de compteur
--- stateful. Volontairement sans IP ni cookie (vie privée par défaut, pas de
--- bandeau de consentement nécessaire).
+-- Log des vues d'un portfolio (loggé côté serveur au rendu de app/[slug]/page.tsx)
+-- — une ligne par vue. visitor_id vient d'un cookie anonyme (pf_vid, posé par
+-- middleware.ts, aucune donnée personnelle) qui dédoublonne à une vue par
+-- portfolio et par jour, pour qu'un simple rafraîchissement de page ne gonfle
+-- pas le compteur.
 CREATE TABLE IF NOT EXISTS portfolio_views (
   id           UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   portfolio_id UUID        NOT NULL REFERENCES portfolios(id) ON DELETE CASCADE,
   referrer     TEXT,
+  visitor_id   TEXT,
+  view_date    DATE        NOT NULL DEFAULT CURRENT_DATE,
   created_at   TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE INDEX IF NOT EXISTS idx_portfolio_views_portfolio_created ON portfolio_views(portfolio_id, created_at DESC);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_portfolio_views_dedup
+  ON portfolio_views(portfolio_id, visitor_id, view_date) WHERE visitor_id IS NOT NULL;
 
 -- État de la dernière vérification de fraîcheur GitHub/YouTube d'un portfolio
 -- (nudge dashboard "N nouveaux repos/vidéos depuis ta dernière visite") — un
