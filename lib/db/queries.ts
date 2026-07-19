@@ -1,16 +1,26 @@
 import { sql } from "./client";
 import type { Portfolio, PortfolioVersion, PortfolioEdit } from "@/types";
 
+// `sql` (Neon) renvoie des lignes génériques — ces deux helpers centralisent
+// le cast vers les types de domaine pour ne plus le répéter à chaque requête
+// (c'était `as unknown as X[]` dupliqué ~16 fois dans ce fichier).
+function many<T>(rows: unknown[]): T[] {
+  return rows as T[];
+}
+function one<T>(rows: unknown[]): T | null {
+  return many<T>(rows)[0] ?? null;
+}
+
 // ── Portfolios ─────────────────────────────────────────────────────────────
 
 export async function getPortfoliosByUser(userId: string): Promise<Portfolio[]> {
   const rows = await sql`SELECT * FROM portfolios WHERE user_id = ${userId} ORDER BY created_at DESC`;
-  return rows as unknown as Portfolio[];
+  return many<Portfolio>(rows);
 }
 
 export async function getPortfolioById(id: string, userId: string): Promise<Portfolio | null> {
   const rows = await sql`SELECT * FROM portfolios WHERE id = ${id} AND user_id = ${userId} LIMIT 1`;
-  return (rows as unknown as Portfolio[])[0] ?? null;
+  return one<Portfolio>(rows);
 }
 
 export async function createPortfolio(data: {
@@ -24,7 +34,7 @@ export async function createPortfolio(data: {
     VALUES (${data.user_id}, ${data.name}, ${data.profile_type}, 'generating', ${data.slug ?? null})
     RETURNING *
   `;
-  return (rows as unknown as Portfolio[])[0];
+  return many<Portfolio>(rows)[0];
 }
 
 export async function getPortfolioBySlugOrId(slugOrId: string, userId: string): Promise<Portfolio | null> {
@@ -33,7 +43,7 @@ export async function getPortfolioBySlugOrId(slugOrId: string, userId: string): 
     WHERE (slug = ${slugOrId} OR id::text = ${slugOrId}) AND user_id = ${userId}
     LIMIT 1
   `;
-  return (rows as unknown as Portfolio[])[0] ?? null;
+  return one<Portfolio>(rows);
 }
 
 export async function getPortfolioBySlugPublic(slugOrId: string): Promise<Portfolio | null> {
@@ -42,7 +52,7 @@ export async function getPortfolioBySlugPublic(slugOrId: string): Promise<Portfo
     WHERE slug = ${slugOrId} OR id::text = ${slugOrId}
     LIMIT 1
   `;
-  return (rows as unknown as Portfolio[])[0] ?? null;
+  return one<Portfolio>(rows);
 }
 
 export async function setPortfolioStatus(id: string, status: string): Promise<void> {
@@ -107,7 +117,7 @@ export async function deletePortfolio(id: string, userId: string): Promise<void>
 
 export async function getAllLivePortfoliosForAdmin(): Promise<Portfolio[]> {
   const rows = await sql`SELECT * FROM portfolios WHERE status = 'live' ORDER BY featured DESC, created_at DESC`;
-  return rows as unknown as Portfolio[];
+  return many<Portfolio>(rows);
 }
 
 export async function setPortfolioFeatured(id: string, featured: boolean): Promise<void> {
@@ -120,12 +130,12 @@ export async function setPortfolioFeatured(id: string, featured: boolean): Promi
 
 export async function getFeaturedPortfolios(): Promise<Portfolio[]> {
   const rows = await sql`SELECT * FROM portfolios WHERE featured = true AND status = 'live' ORDER BY featured_at DESC`;
-  return rows as unknown as Portfolio[];
+  return many<Portfolio>(rows);
 }
 
 export async function getFeaturedPortfolioById(id: string): Promise<Portfolio | null> {
   const rows = await sql`SELECT * FROM portfolios WHERE id = ${id} AND featured = true AND status = 'live' LIMIT 1`;
-  return (rows as unknown as Portfolio[])[0] ?? null;
+  return one<Portfolio>(rows);
 }
 
 // ── Versions ────────────────────────────────────────────────────────────────
@@ -135,7 +145,7 @@ export async function getVersionsByPortfolio(portfolioId: string): Promise<Portf
     SELECT * FROM portfolio_versions WHERE portfolio_id = ${portfolioId}
     ORDER BY version_num DESC LIMIT 8
   `;
-  return rows as unknown as PortfolioVersion[];
+  return many<PortfolioVersion>(rows);
 }
 
 export async function getLatestVersionNum(portfolioId: string): Promise<number> {
@@ -144,7 +154,7 @@ export async function getLatestVersionNum(portfolioId: string): Promise<number> 
     WHERE portfolio_id = ${portfolioId}
     ORDER BY version_num DESC LIMIT 1
   `;
-  return ((rows as unknown as { version_num: number }[])[0]?.version_num ?? 0);
+  return one<{ version_num: number }>(rows)?.version_num ?? 0;
 }
 
 export async function createVersion(data: {
@@ -158,7 +168,7 @@ export async function createVersion(data: {
     VALUES (${data.portfolio_id}, ${data.version_num}, ${data.source_code_key}, ${data.edit_summary ?? null})
     RETURNING *
   `;
-  return (rows as unknown as PortfolioVersion[])[0];
+  return many<PortfolioVersion>(rows)[0];
 }
 
 // Sauvegarde complète (site_json + code) avant une modification — filet de
@@ -203,7 +213,7 @@ export async function getVersionById(id: string, portfolioId: string): Promise<P
   const rows = await sql`
     SELECT * FROM portfolio_versions WHERE id = ${id} AND portfolio_id = ${portfolioId} LIMIT 1
   `;
-  return (rows as unknown as PortfolioVersion[])[0] ?? null;
+  return one<PortfolioVersion>(rows);
 }
 
 // ── Edits ────────────────────────────────────────────────────────────────────
@@ -214,7 +224,7 @@ export async function createEdit(data: { portfolio_id: string; instruction: stri
     VALUES (${data.portfolio_id}, ${data.instruction}, 'pending')
     RETURNING *
   `;
-  return (rows as unknown as PortfolioEdit[])[0];
+  return many<PortfolioEdit>(rows)[0];
 }
 
 export async function resolveEdit(id: string, status: "applied" | "failed", data: {
@@ -235,7 +245,7 @@ export async function getEditsByPortfolio(portfolioId: string): Promise<Portfoli
     SELECT * FROM portfolio_edits WHERE portfolio_id = ${portfolioId}
     ORDER BY created_at DESC LIMIT 50
   `;
-  return rows as unknown as PortfolioEdit[];
+  return many<PortfolioEdit>(rows);
 }
 
 export async function getRecentAppliedEdits(portfolioId: string, limit = 4): Promise<{ instruction: string; summary: string }[]> {
@@ -246,7 +256,7 @@ export async function getRecentAppliedEdits(portfolioId: string, limit = 4): Pro
     ORDER BY created_at DESC
     LIMIT ${limit}
   `;
-  return (rows as unknown as { instruction: string; diff_applied: { summary?: string; diffApplied?: string } | null }[])
+  return many<{ instruction: string; diff_applied: { summary?: string; diffApplied?: string } | null }>(rows)
     .map((r) => ({
       instruction: r.instruction,
       summary: r.diff_applied?.summary ?? r.diff_applied?.diffApplied ?? r.instruction,

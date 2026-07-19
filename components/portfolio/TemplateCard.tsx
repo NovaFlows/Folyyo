@@ -1,6 +1,6 @@
 "use client";
 
-import { PROFILE_LABEL } from "@/app/(dashboard)/dashboard/PortfolioCard";
+import { PROFILE_LABEL } from "@/lib/profile-labels";
 
 export interface TemplateCardData {
   id: string;

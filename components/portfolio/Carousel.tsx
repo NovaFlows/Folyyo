@@ -13,16 +13,18 @@ export default function Carousel({ images, pri, txt, fill = false }: {
   const current = images[index];
   const hasLink = Boolean(current.linkUrl);
 
+  // Toujours en hauteur pleine (peu importe `fill`, qui ne change plus que le
+  // radius/la position des points) : avec un maxHeight fixe, une case de
+  // grille redimensionnée plus petite que ce plafond rognait le bas de l'image
+  // — et la légende en overlay avec, la rendant invisible.
   const imgEl = (
     <img src={current.url} alt={current.caption ?? ""}
-      style={fill
-        ? { width: "100%", height: "100%", objectFit: "cover", display: "block" }
-        : { width: "100%", maxHeight: 480, objectFit: "cover", display: "block" }} />
+      style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
   );
 
   return (
-    <div style={fill ? { height: "100%", display: "flex", flexDirection: "column" } : undefined}>
-      <div style={{ position: "relative", borderRadius: fill ? 0 : "0.625rem", overflow: "hidden", cursor: hasLink ? "pointer" : undefined, ...(fill ? { flex: 1, minHeight: 0 } : {}) }}>
+    <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
+      <div style={{ position: "relative", borderRadius: fill ? 0 : "0.625rem", overflow: "hidden", cursor: hasLink ? "pointer" : undefined, flex: 1, minHeight: 0 }}>
         {hasLink
           ? <a href={current.linkUrl} target="_blank" rel="noopener noreferrer" style={{ display: "block" }}>{imgEl}</a>
           : imgEl}
@@ -38,14 +40,6 @@ export default function Carousel({ images, pri, txt, fill = false }: {
             </button>
           </>
         )}
-        {/* Légende en overlay (fonctionne en mode fill comme en mode normal) */}
-        {current.caption && (
-          <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, padding: `0.75rem 0.875rem ${images.length > 1 ? "1.75rem" : "0.75rem"}`, background: "linear-gradient(to top, rgba(0,0,0,0.7), rgba(0,0,0,0))", pointerEvents: "none" }}>
-            <p style={{ fontSize: "0.75rem", color: "#fff", margin: 0, lineHeight: 1.4 }}>
-              {current.caption}{hasLink && <span style={{ opacity: 0.75 }}> ↗</span>}
-            </p>
-          </div>
-        )}
         {/* Points de navigation en overlay — mode fill uniquement (économise la hauteur) */}
         {fill && images.length > 1 && (
           <div style={{ position: "absolute", bottom: 8, left: 0, right: 0, display: "flex", justifyContent: "center", gap: "0.375rem" }}>
@@ -56,6 +50,14 @@ export default function Carousel({ images, pri, txt, fill = false }: {
           </div>
         )}
       </div>
+      {/* Légende sous l'image — pas en superposition, pour rester lisible quelle
+          que soit la photo */}
+      {current.caption && (
+        <p style={{ flexShrink: 0, fontSize: "0.8rem", color: `${txt}80`, textAlign: "center", margin: "0.5rem 0 0", lineHeight: 1.4, fontStyle: "italic" }}>
+          {current.caption}
+          {hasLink && <a href={current.linkUrl} target="_blank" rel="noopener noreferrer" style={{ color: pri, marginLeft: "0.25rem", fontStyle: "normal" }}>↗</a>}
+        </p>
+      )}
       {!fill && images.length > 1 && (
         <div style={{ display: "flex", justifyContent: "center", gap: "0.375rem", marginTop: "0.625rem" }}>
           {images.map((_, i) => (

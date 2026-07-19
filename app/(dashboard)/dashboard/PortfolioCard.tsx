@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import type { Portfolio, PortfolioStatus } from "@/types";
+import { PROFILE_LABEL } from "@/lib/profile-labels";
 
 const STATUS_CONFIG: Record<PortfolioStatus, { label: string; color: string }> = {
   draft:      { label: "Brouillon",          color: "#a09a94" },
@@ -12,14 +13,6 @@ const STATUS_CONFIG: Record<PortfolioStatus, { label: string; color: string }> =
   live:       { label: "En ligne",           color: "#22a06b" },
   editing:    { label: "En cours d'édition…", color: "#d97706" },
   error:      { label: "Erreur",             color: "#dc2626" },
-};
-
-export const PROFILE_LABEL: Record<string, string> = {
-  developer: "dev",
-  artist:    "artiste",
-  fashion:   "mode",
-  musicien:  "musicien",
-  other:     "autre",
 };
 
 export default function PortfolioCard({ portfolio: p }: { portfolio: Portfolio }) {

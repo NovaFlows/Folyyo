@@ -10,6 +10,11 @@ const SIZE_SCALE = [0.75, 0.88, 1, 1.2, 1.45];
 export function sizeScale(size?: number): number {
   return SIZE_SCALE[Math.min(5, Math.max(1, size ?? 3)) - 1];
 }
+// Zoom du contenu natif d'une section : priorité à fontSize (px, réglage
+// explicite façon Word) sinon repli sur l'ancienne échelle 1-5. 16px = zoom 1.
+export function nativeZoom(block: { size?: number; fontSize?: number }): number {
+  return block.fontSize ? block.fontSize / 16 : sizeScale(block.size);
+}
 // Pour les images hors grille (aside/legacy) : largeur % et hauteur max par taille
 const IMG_WIDTH  = [50, 70, 100, 100, 100];
 const IMG_HEIGHT = [200, 270, 360, 470, 600];
@@ -58,13 +63,16 @@ export function BlockContent({ block, pri, txt, hFont, editMode = false, fill = 
     );
     case "text": {
       const fs = block.fontSize ? `${block.fontSize}px` : `${(block.style === "lead" ? 1.0625 : 0.9375) * sc}rem`;
-      return <p style={{ fontSize: fs, fontFamily: block.fontFamily || undefined, color: `${txt}cc`, lineHeight: 1.75, margin: 0 }}>{block.content}</p>;
+      return <p style={{ fontSize: fs, fontFamily: block.fontFamily || undefined, textAlign: block.align || undefined, color: `${txt}cc`, lineHeight: 1.75, margin: 0 }}>{block.content}</p>;
     }
     case "quote": {
       const fs = block.fontSize ? `${block.fontSize}px` : `${1.0625 * sc}rem`;
       const authorFs = block.fontSize ? `${Math.max(10, Math.round(block.fontSize * 0.72))}px` : `${0.8125 * sc}rem`;
+      // Centrer/aligner à droite retire le filet gauche (il n'a de sens qu'en
+      // alignement naturel à gauche, façon citation classique).
+      const centered = block.align === "center" || block.align === "right";
       return (
-        <blockquote style={{ borderLeft: `3px solid ${pri}`, paddingLeft: "1.25rem", margin: 0 }}>
+        <blockquote style={{ borderLeft: centered ? "none" : `3px solid ${pri}`, paddingLeft: centered ? 0 : "1.25rem", textAlign: block.align || undefined, margin: 0 }}>
           <p style={{ fontSize: fs, color: txt, fontStyle: "italic", fontFamily: block.fontFamily || hFont, lineHeight: 1.6, margin: 0 }}>{block.text || "Citation…"}</p>
           {block.author && <cite style={{ fontSize: authorFs, color: `${txt}50`, fontFamily: block.fontFamily || undefined, display: "block", marginTop: "0.5rem", fontStyle: "normal" }}>— {block.author}</cite>}
         </blockquote>
@@ -197,7 +205,7 @@ export function GridStatic({ items, widgetStyle, pri, txt, bg, hFont, renderNati
         }}>
           <WidgetFrame widgetStyle={widgetStyle} block={it.block} bg={bg} txt={txt}>
             {it.block.type === "section_content"
-              ? <div style={{ height: "100%", overflow: "hidden", zoom: sizeScale(it.block.size) }}>{renderNative?.()}</div>
+              ? <div style={{ height: "100%", overflow: "hidden", zoom: nativeZoom(it.block), fontFamily: it.block.fontFamily || undefined }}>{renderNative?.()}</div>
               : <BlockContent block={it.block} pri={pri} txt={txt} hFont={hFont} fill={framed} />}
           </WidgetFrame>
         </div>

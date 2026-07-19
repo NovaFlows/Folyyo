@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { getPortfolioById } from "@/lib/db/queries";
 import { callClaude } from "@/lib/anthropic/client";
+import { generateThemeFromUrl } from "@/lib/anthropic/style-from-url";
 import type { ValidatedPortfolioJSON } from "@/lib/anthropic/schema";
 
 export const maxDuration = 60;
@@ -41,6 +42,31 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
 
   const siteJson = portfolio.site_json as ValidatedPortfolioJSON;
   const profileType = portfolio.profile_type;
+
+  // "Copier le style d'un site" — chemin dédié, ne touche pas au reste du thème
+  // (aucune hero_image_url renvoyée : le client merge en partiel et garde la photo actuelle).
+  const body = await request.json().catch(() => ({}));
+  const styleUrl = typeof body?.styleUrl === "string" ? body.styleUrl.trim() : "";
+  if (styleUrl) {
+    const urlTheme = await generateThemeFromUrl(styleUrl);
+    if (!urlTheme) {
+      return NextResponse.json({ error: "Impossible d'analyser le style de ce site. Vérifie l'URL et réessaie." }, { status: 422 });
+    }
+    return NextResponse.json({
+      theme: {
+        primary_color: urlTheme.primary_color,
+        background_color: urlTheme.background_color,
+        text_color: urlTheme.text_color,
+        accent_color: urlTheme.accent_color,
+        font_heading: urlTheme.font_heading,
+        font_body: urlTheme.font_body,
+        style: urlTheme.style,
+        overlay_opacity: urlTheme.overlay_opacity,
+        theme_preset_id: "style-url",
+      },
+      reasoning: urlTheme.reasoning,
+    });
+  }
 
   const imageLibraryBlock = IMAGE_LIBRARY
     .map((img) => `  { "id": "${img.id}", "tags": [${img.tags.map(t => `"${t}"`).join(", ")}] }`)

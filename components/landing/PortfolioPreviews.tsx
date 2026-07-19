@@ -53,7 +53,7 @@ export default function PortfolioPreviews() {
           ›
         </button>
 
-        <div className="overflow-hidden rounded-2xl border border-black/8 shadow-2xl shadow-black/10">
+        <div className="ld-tilt overflow-hidden rounded-2xl border border-black/8 shadow-2xl shadow-black/10">
           {/* Browser bar */}
           <div className="flex items-center gap-3 border-b border-black/6 bg-[#f0ece6] px-4 py-3">
             <div className="flex gap-1.5">

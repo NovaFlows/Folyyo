@@ -3,6 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 import Link from "next/link";
 import { getPortfolioBySlugOrId, getVersionsByPortfolio, getEditsByPortfolio } from "@/lib/db/queries";
 import PortfolioEditor from "./PortfolioEditor";
+import { PROFILE_LABEL_FULL } from "@/lib/profile-labels";
 import type { PortfolioStatus } from "@/types";
 
 const STATUS_CONFIG: Record<PortfolioStatus, { label: string; color: string; dot: string }> = {
@@ -12,10 +13,6 @@ const STATUS_CONFIG: Record<PortfolioStatus, { label: string; color: string; dot
   live:       { label: "En ligne",          color: "#c9a96e", dot: "#c9a96e" },
   editing:    { label: "En cours d'édition…", color: "#d97706", dot: "#d97706" },
   error:      { label: "Erreur",            color: "#dc2626", dot: "#dc2626" },
-};
-
-const PROFILE_LABEL: Record<string, string> = {
-  developer: "Développeur", artist: "Artiste", fashion: "Mode", musicien: "Musicien", other: "Autre",
 };
 
 export default async function PortfolioPage({ params }: { params: { slug: string } }) {
@@ -88,7 +85,7 @@ export default async function PortfolioPage({ params }: { params: { slug: string
             <dl className="space-y-3 text-sm">
               <div className="flex justify-between">
                 <dt style={{ color: "#a09a94" }}>Profil</dt>
-                <dd style={{ color: "#1c1917" }}>{PROFILE_LABEL[portfolio.profile_type] ?? portfolio.profile_type}</dd>
+                <dd style={{ color: "#1c1917" }}>{PROFILE_LABEL_FULL[portfolio.profile_type] ?? portfolio.profile_type}</dd>
               </div>
               <div className="flex justify-between">
                 <dt style={{ color: "#a09a94" }}>Statut</dt>

@@ -5,7 +5,7 @@ const VERCEL_API = "https://api.vercel.com";
 function vercelHeaders() {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
-    Authorization: `Bearer ${process.env.VERCEL_TOKEN}`,
+    Authorization: `Bearer ${process.env.FOLYYO_VERCEL_TOKEN}`,
   };
   return headers;
 }

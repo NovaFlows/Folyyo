@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { Portfolio } from "@/types";
-import { PROFILE_LABEL } from "../PortfolioCard";
+import { PROFILE_LABEL } from "@/lib/profile-labels";
 
 function siteMeta(p: Portfolio): { name?: string; title?: string } {
   const json = p.site_json as { meta?: { name?: string; title?: string } } | null;

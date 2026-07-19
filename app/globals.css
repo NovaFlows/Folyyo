@@ -266,9 +266,12 @@ section[id] {
 }
 
 /* ══ Effet "apparition au défilement" (scroll_reveal) — public uniquement ══ */
+/* --pf-reveal-distance : amplitude du glissement, pilotée par le curseur
+   d'intensité de l'éditeur (scroll_reveal_intensity) — posée en inline sur
+   <main> ; 28px si absente (comportement historique). */
 .pf-reveal {
   opacity: 0;
-  transform: translateY(28px);
+  transform: translateY(var(--pf-reveal-distance, 28px));
   transition: opacity 0.7s ease, transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
 }
 .pf-reveal.pf-visible {
@@ -277,4 +280,110 @@ section[id] {
 }
 @media (prefers-reduced-motion: reduce) {
   .pf-reveal { opacity: 1; transform: none; transition: none; }
+}
+
+/* ══ Landing Folyyo — dynamisme (scroll reveal, tilt, flottement, marquee) ══ */
+
+/* Apparition au défilement des sections de la landing (namespace "ld-" distinct
+   de "pf-" qui concerne le rendu des portfolios générés pour les clients). */
+.ld-reveal {
+  opacity: 0;
+  transform: translateY(32px);
+  transition: opacity 0.8s ease, transform 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.ld-reveal.ld-visible {
+  opacity: 1;
+  transform: none;
+}
+
+/* Léger effet de profondeur au survol (cartes fonctionnalités, cadre d'exemples) */
+.ld-tilt {
+  transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.3s ease;
+  transform: perspective(1000px) translateY(0) rotateX(0) scale(1);
+}
+.ld-tilt:hover {
+  transform: perspective(1000px) translateY(-4px) rotateX(2deg) scale(1.01);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.08), 0 24px 56px rgba(0, 0, 0, 0.10);
+}
+
+/* Flottement ambiant des post-it du hero — décalé pour ne pas bouger à l'unisson */
+@keyframes ld-float {
+  0%, 100% { transform: translateY(0) rotate(var(--ld-rot, 0deg)); }
+  50%      { transform: translateY(-6px) rotate(var(--ld-rot, 0deg)); }
+}
+.ld-float { animation: ld-float 5s ease-in-out infinite; }
+
+/* Défilement horizontal infini du bandeau de citations */
+@keyframes ld-marquee {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+.ld-marquee-track {
+  animation: ld-marquee 32s linear infinite;
+}
+.ld-marquee-wrap:hover .ld-marquee-track {
+  animation-play-state: paused;
+}
+
+/* Entrée en cascade des cartes d'une grille : chaque enfant direct de
+   .ld-stagger apparaît en fondu avec un léger décalage, au moment où la
+   section .ld-reveal ancêtre devient visible (même déclencheur que le reveal
+   de section — pas de second IntersectionObserver nécessaire). */
+.ld-stagger > * {
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+.ld-reveal.ld-visible .ld-stagger > * {
+  opacity: 1;
+}
+.ld-stagger > *:nth-child(1) { transition-delay: 0ms; }
+.ld-stagger > *:nth-child(2) { transition-delay: 80ms; }
+.ld-stagger > *:nth-child(3) { transition-delay: 160ms; }
+.ld-stagger > *:nth-child(4) { transition-delay: 240ms; }
+.ld-stagger > *:nth-child(5) { transition-delay: 320ms; }
+.ld-stagger > *:nth-child(6) { transition-delay: 400ms; }
+
+/* Trait qui se dessine : chemin SVG avec pathLength="1" normalisé, on anime
+   simplement stroke-dashoffset de 1 (invisible) à 0 (tracé complet). Décalé
+   après l'apparition de sa carte (.ld-stagger) pour un effet séquencé. */
+.ld-draw-path {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  transition: stroke-dashoffset 0.7s ease;
+}
+.ld-reveal.ld-visible .ld-draw-path {
+  stroke-dashoffset: 0;
+}
+.ld-stagger > *:nth-child(1) .ld-draw-path { transition-delay: 300ms; }
+.ld-stagger > *:nth-child(2) .ld-draw-path { transition-delay: 380ms; }
+.ld-stagger > *:nth-child(3) .ld-draw-path { transition-delay: 460ms; }
+
+/* Apparition d'une bulle du chat mock (édition en langage naturel) */
+@keyframes ld-chat-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: none; }
+}
+.ld-chat-in { animation: ld-chat-in 0.3s ease; }
+
+/* Barre de progression du hero — se remplit sur la durée d'un cycle de carte
+   (voir CARD_CYCLE_MS dans HeroVisual.tsx) ; redémarre via key={cardIndex}
+   sur l'élément React, qui remonte le noeud et donc relance l'animation CSS. */
+@keyframes ld-progress-grow {
+  from { width: 0%; }
+  to   { width: 100%; }
+}
+.ld-progress-fill {
+  animation: ld-progress-grow 4.5s linear;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ld-reveal { opacity: 1; transform: none; transition: none; }
+  .ld-tilt { transition: none; }
+  .ld-tilt:hover { transform: none; }
+  .ld-float { animation: none; }
+  .ld-marquee-track { animation: none; }
+  .ld-stagger > * { opacity: 1; transition: none; }
+  .ld-draw-path { stroke-dashoffset: 0; transition: none; }
+  .ld-chat-in { animation: none; }
+  .ld-progress-fill { animation: none; width: 100%; }
 }

@@ -166,6 +166,14 @@ THÈME (utilise EXACTEMENT ces valeurs)
   "background_pattern": "${backgroundPattern}"
 }
 
+En plus de ces valeurs fixes, choisis ces 5 réglages selon ton jugement (pas de
+valeur imposée — adapte au profil/style demandé) :
+  "widget_style"            : "strict" | "soft" | "glass" — rendu des widgets (plat / cartes arrondies / verre dépoli). "strict" par défaut sauf ambiance qui appelle explicitement l'un des deux autres.
+  "smooth_scroll"           : bool — défilement fluide au clic sur la nav. true par défaut, sobre et sans risque.
+  "scroll_reveal"           : bool — chaque section apparaît en fondu à l'arrivée à l'écran. true si l'ambiance demandée est dynamique/moderne, sinon false.
+  "scroll_reveal_intensity" : 0-100 — amplitude du glissement de cette apparition (ignoré si scroll_reveal=false). 50 par défaut.
+  "hero_parallax"           : bool — la photo de fond du hero défile plus lentement que le contenu. true seulement s'il y a une hero_image_url/hero_images.
+
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 SCHÉMA JSON ATTENDU
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -183,7 +191,7 @@ SCHÉMA JSON ATTENDU
     "twitter_url":   "string (URL ou vide)",
     "avatar_url":    "string (avatar GitHub si disponible, sinon vide)"
   },
-  "theme": { ... (utilise exactement les valeurs du bloc THÈME ci-dessus) },
+  "theme": { ... (valeurs fixes du bloc THÈME ci-dessus + les 5 réglages widget_style/smooth_scroll/scroll_reveal/scroll_reveal_intensity/hero_parallax choisis selon ton jugement) },
   "sections": [
     {
       "type": "hero",

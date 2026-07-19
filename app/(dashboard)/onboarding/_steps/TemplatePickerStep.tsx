@@ -7,12 +7,14 @@ import type { OnboardingData } from "../page";
 interface Props {
   profileType: NonNullable<OnboardingData["profileType"]>;
   templateId: string | null;
+  styleUrl: string;
   onSelect: (templateId: string | null) => void;
+  onStyleUrlChange: (url: string) => void;
   onBack: () => void;
   onContinue: () => void;
 }
 
-export default function TemplatePickerStep({ profileType, templateId, onSelect, onBack, onContinue }: Props) {
+export default function TemplatePickerStep({ profileType, templateId, styleUrl, onSelect, onStyleUrlChange, onBack, onContinue }: Props) {
   const [items, setItems] = useState<TemplateCardData[] | null>(null);
 
   useEffect(() => {
@@ -24,18 +26,15 @@ export default function TemplatePickerStep({ profileType, templateId, onSelect, 
     return () => { cancelled = true; };
   }, [profileType]);
 
-  // Rien à proposer (encore aucun portfolio featuré pour ce profil) → on ne bloque jamais le flux
-  useEffect(() => {
-    if (items && items.length === 0) onContinue();
-  }, [items, onContinue]);
-
-  if (items === null || items.length === 0) {
+  if (items === null) {
     return (
       <div className="text-center py-16">
         <p className="text-sm" style={{ color: "#a09a94" }}>Chargement…</p>
       </div>
     );
   }
+
+  const label = templateId ? "Continuer avec ce style" : styleUrl.trim() ? "Continuer avec ce style" : "Continuer sans style de départ";
 
   return (
     <div>
@@ -45,16 +44,39 @@ export default function TemplatePickerStep({ profileType, templateId, onSelect, 
           Envie de partir d&apos;un style existant ?
         </h1>
         <p className="text-sm" style={{ color: "#78716c" }}>
-          Choisis le style visuel d&apos;un portfolio de la communauté — ton contenu reste 100% personnalisé.
+          Choisis le style visuel d&apos;un portfolio de la communauté, ou colle l&apos;URL d&apos;un site dont tu aimes l&apos;esthétique — ton contenu reste 100% personnalisé.
         </p>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 mb-8">
-        {items.map((item) => (
-          <TemplateCard key={item.id} data={item}
-            selected={templateId === item.id}
-            onSelect={() => onSelect(templateId === item.id ? null : item.id)} />
-        ))}
+      {items.length > 0 && (
+        <div className="grid gap-3 sm:grid-cols-2 mb-6">
+          {items.map((item) => (
+            <TemplateCard key={item.id} data={item}
+              selected={templateId === item.id}
+              onSelect={() => { onSelect(templateId === item.id ? null : item.id); onStyleUrlChange(""); }} />
+          ))}
+        </div>
+      )}
+
+      <div className="mb-8">
+        {items.length > 0 && (
+          <div className="flex items-center gap-3 mb-4">
+            <div className="h-px flex-1" style={{ background: "rgba(0,0,0,0.08)" }} />
+            <span className="text-xs" style={{ color: "#a09a94" }}>ou</span>
+            <div className="h-px flex-1" style={{ background: "rgba(0,0,0,0.08)" }} />
+          </div>
+        )}
+        <label className="mb-1.5 block text-sm font-medium" style={{ color: "#78716c" }}>
+          Copier le style d&apos;un site — ex : apple.com
+        </label>
+        <input type="text" value={styleUrl}
+          onChange={(e) => { onStyleUrlChange(e.target.value); if (e.target.value.trim()) onSelect(null); }}
+          placeholder="https://…"
+          className="w-full rounded-xl px-4 py-3 text-sm outline-none transition"
+          style={{ background: "white", border: `1px solid ${styleUrl.trim() ? "#c9a96e" : "rgba(0,0,0,0.1)"}`, color: "#1c1917" }} />
+        <p className="mono mt-1.5 text-xs" style={{ color: "#a09a94" }}>
+          L&apos;IA s&apos;inspire de la palette et de la typographie du site — jamais de son contenu ni de ses images.
+        </p>
       </div>
 
       <div className="flex gap-3">
@@ -66,7 +88,7 @@ export default function TemplatePickerStep({ profileType, templateId, onSelect, 
         <button onClick={onContinue}
           className="flex-1 rounded-full px-6 py-3 text-sm font-medium text-white transition hover:opacity-80"
           style={{ background: "#1c1917" }}>
-          {templateId ? "Continuer avec ce style" : "Continuer sans template"}
+          {label}
         </button>
       </div>
     </div>

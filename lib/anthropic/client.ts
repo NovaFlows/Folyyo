@@ -1,5 +1,9 @@
 import Anthropic from "@anthropic-ai/sdk";
 
+// Modèle partagé par tous les appels Claude de l'app (génération, édition —
+// boucle d'outils comprise) : une seule source de vérité pour l'upgrade.
+export const CLAUDE_MODEL = "claude-sonnet-5";
+
 let _client: Anthropic | null = null;
 
 export function getAnthropicClient(): Anthropic {
@@ -17,7 +21,7 @@ export async function callClaude(
   const client = getAnthropicClient();
 
   const message = await client.messages.create({
-    model: "claude-sonnet-4-6",
+    model: CLAUDE_MODEL,
     max_tokens: maxTokens,
     system: systemPrompt,
     messages: [{ role: "user", content: userPrompt }],
@@ -50,7 +54,7 @@ export async function callClaudeWithImages(
   ];
 
   const message = await client.messages.create({
-    model: "claude-sonnet-4-6",
+    model: CLAUDE_MODEL,
     max_tokens: maxTokens,
     system: systemPrompt,
     messages: [{ role: "user", content }],

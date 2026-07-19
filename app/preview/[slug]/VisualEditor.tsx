@@ -5,8 +5,9 @@ import { useRouter } from "next/navigation";
 import RGL from "react-grid-layout";
 import type { ValidatedPortfolioJSON, ContentBlock, GridItem } from "@/lib/anthropic/schema";
 import { THEME_PRESETS } from "@/lib/portfolio/themes";
-import { BlockContent, WidgetFrame, sizeScale, WIDGET_FONT_OPTIONS, WIDGET_FONT_SIZES, type WidgetStyle } from "@/components/portfolio/blocks";
-import { GRID_COLS, GRID_ROW_HEIGHT, GRID_MARGIN, DEFAULT_SIZE, MIN_SIZE, gridUid, sortGridItems, nextY, migrateToGrid, nativeContentH } from "@/lib/portfolio/grid";
+import { BlockContent, WidgetFrame, nativeZoom, WIDGET_FONT_OPTIONS, WIDGET_FONT_SIZES, type WidgetStyle } from "@/components/portfolio/blocks";
+import { GRID_COLS, GRID_ROW_HEIGHT, GRID_MARGIN, DEFAULT_SIZE, MIN_SIZE, gridUid, sortGridItems, nextY, migrateToGrid, nativeContentH, getGrid, applyGrid, resolveNativeOverlap } from "@/lib/portfolio/grid";
+import { createDefaultBlock, createDefaultSection } from "@/lib/portfolio/section-factory";
 import HeroBackgroundCarousel from "@/components/portfolio/HeroBackgroundCarousel";
 
 const ReactGridLayout = RGL.WidthProvider(RGL);
@@ -15,6 +16,14 @@ type Layout = RGL.Layout;
 type VSection = ValidatedPortfolioJSON["sections"][number];
 type VMeta    = ValidatedPortfolioJSON["meta"];
 type VTheme   = ValidatedPortfolioJSON["theme"];
+
+// Item retourné par /api/community/featured — portfolios vedettes utilisables
+// comme style de départ depuis l'éditeur (cf. panneau "Communauté" du thème).
+type CommunityItem = {
+  id: string; profileType: string; slug: string|null;
+  name: string; title: string; tagline: string;
+  theme: { primary_color:string; background_color:string; accent_color:string; font_heading:string };
+};
 
 const MAX_HISTORY = 50;
 
@@ -45,51 +54,6 @@ function extractGithubUsername(raw: string): string {
     const url = new URL(raw.startsWith("http") ? raw : `https://${raw}`);
     return url.pathname.split("/").filter(Boolean)[0] ?? raw;
   } catch { return raw.replace(/^@/, "").trim(); }
-}
-
-function getGrid(section: VSection): GridItem[] {
-  return (section as { grid?: GridItem[] }).grid ?? [];
-}
-function applyGrid(section: VSection, grid: GridItem[]): VSection {
-  return { ...section, grid } as VSection;
-}
-
-function createDefaultBlock(type: ContentBlock["type"]): ContentBlock {
-  switch (type) {
-    case "image":   return { type: "image",   url: "", caption: "" };
-    case "text":    return { type: "text",    content: "Nouveau paragraphe…", style: "normal" };
-    case "quote":   return { type: "quote",   text: "Une phrase qui marque les esprits.", author: "" };
-    case "stats":   return { type: "stats",   items: [{ value: "0", label: "Stat 1" }, { value: "0", label: "Stat 2" }, { value: "0", label: "Stat 3" }] };
-    case "button":  return { type: "button",  label: "En savoir plus", url: "#", variant: "primary" };
-    case "divider": return { type: "divider" };
-    case "carousel": return { type: "carousel", images: [] };
-    case "links":   return { type: "links", items: [{ label: "Mon site", url: "https://" }] };
-    case "section_content": return { type: "section_content" };
-  }
-}
-
-function createDefaultSection(type: VSection["type"], profileType: string): VSection {
-  const L: Record<string, Record<string, string>> = {
-    musicien: { projects: "Discographie", experience: "Scène & Lives", skills: "Instruments & Outils" },
-    artist:   { projects: "Œuvres",       experience: "Expositions",   skills: "Techniques" },
-    fashion:  { projects: "Campagnes",    experience: "Agences & Collabs", skills: "Spécialités" },
-  };
-  const lbl = L[profileType] ?? {};
-  const base = ((): VSection => {
-    switch (type) {
-      case "hero":       return { type: "hero", title: "", subtitle: "", cta_text: "Voir mon travail", cta_url: "#projects" };
-      case "about":      return { type: "about", section_title: "À propos", content: "Présente-toi ici…", highlight: undefined };
-      case "skills":     return { type: "skills", section_title: lbl.skills ?? "Compétences", hide_level: false, items: [{ name: "Nouvelle compétence", level: 3, category: "Général" }] };
-      case "projects":   return { type: "projects", section_title: lbl.projects ?? "Projets", items: [{ name: "Nouveau projet", description: "Description", tech_stack: [], github_url: undefined, live_url: undefined, stars: null, image_url: "" }] };
-      case "experience": return { type: "experience", section_title: lbl.experience ?? "Expérience", items: [{ company: "Entreprise", role: "Poste", period: "2024 – présent", description: "" }] };
-      case "contact":    return { type: "contact", section_title: "Contact", email: "contact@example.com", message: "N'hésitez pas à me contacter !", links: [] };
-    }
-  })();
-  // Toute section hors hero embarque son contenu natif comme item de grille
-  if (type !== "hero") {
-    return applyGrid(base, [{ id: gridUid(), block: { type: "section_content" }, x: 0, y: 0, w: 12, h: nativeContentH(base as { type: string; items?: unknown[] }) }]);
-  }
-  return base;
 }
 
 function getSectionSuggestions(profileType: string) {
@@ -397,10 +361,10 @@ export default function VisualEditor({ initialData, portfolioId, slug, profileTy
       return l && (l.x !== it.x || l.y !== it.y || l.w !== it.w || l.h !== it.h);
     });
     if (!changed) return;
-    mutateGrid(sectionIdx, its => its.map(it => {
+    mutateGrid(sectionIdx, its => resolveNativeOverlap(its.map(it => {
       const l = byId.get(it.id);
       return l ? { ...it, x: l.x, y: l.y, w: l.w, h: l.h } : it;
-    }));
+    })));
   };
 
   const save = async () => {
@@ -621,23 +585,65 @@ function BlockItemWrapper({ children, selected, pri, onSelect, onRemove }: {
   );
 }
 
+// Délai (ms) qu'il faut rester appuyé avant qu'un widget devienne "prenable".
+// En dessous : un clic gauche, même avec un minuscule tremblement, sélectionne
+// et ouvre l'édition — jamais de glissement accidentel.
+const HOLD_TO_DRAG_MS = 180;
+
 // ── Chrome d'un item de grille : outline sélection + toolbar Éditer/✕ ─────────
 // Le contenu natif d'une section (removable=false) n'a pas de croix : on le
 // déplace/redimensionne mais on ne le supprime qu'en supprimant la section.
-function GridItemChrome({ children, selected, pri, label, removable, onSelect, onRemove }: {
+// Le widget porte la classe "no-drag" (exclue via draggableCancel dans
+// GridBlocksArea) TANT QUE le clic n'a pas été maintenu HOLD_TO_DRAG_MS ms.
+// react-grid-layout n'évalue draggableCancel qu'UNE SEULE FOIS, au moment du
+// mousedown — trop tôt pour un délai. On retire donc la classe puis on
+// réinjecte nous-même un mousedown natif à la position courante une fois le
+// délai écoulé (si le bouton est toujours enfoncé) : react-grid-layout le
+// reçoit comme un vrai mousedown et démarre son suivi de glissement à partir
+// de là. Un relâchement avant le délai annule le timer → simple clic.
+function GridItemChrome({ children, selected, pri, label, removable, onSelect, onRemove, onMouseDown }: {
   children:React.ReactNode; selected:boolean; pri:string; label?:string; removable:boolean;
-  onSelect:()=>void; onRemove:()=>void;
+  onSelect:()=>void; onRemove:()=>void; onMouseDown?:()=>void;
 }) {
   const [hov, setHov] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const pressTimer = useRef<number|null>(null);
   const show = hov || selected;
+
+  const clearPressTimer = () => {
+    if (pressTimer.current != null) { window.clearTimeout(pressTimer.current); pressTimer.current = null; }
+  };
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    onMouseDown?.();
+    if (e.button !== 0) return; // clic gauche uniquement
+    const { clientX, clientY } = e;
+    clearPressTimer();
+    pressTimer.current = window.setTimeout(() => {
+      pressTimer.current = null;
+      const el = rootRef.current;
+      el?.classList.remove("no-drag");
+      el?.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, cancelable: true, clientX, clientY, button: 0 }));
+    }, HOLD_TO_DRAG_MS);
+  };
+
+  const releasePress = () => {
+    clearPressTimer();
+    rootRef.current?.classList.add("no-drag"); // reverrouille pour le prochain geste
+  };
+
   return (
     <div
+      ref={rootRef}
+      className="no-drag"
       style={{height:"100%",position:"relative",outline:selected?"2px solid #ffffff":hov?"1px dashed rgba(255,255,255,0.75)":"none",outlineOffset:2,
         // Halo sombre autour du liseré blanc pour qu'il reste visible sur fond clair
         boxShadow:selected?"0 0 0 4px rgba(0,0,0,0.28)":"none",
         borderRadius:"0.5rem",cursor:"grab"}}
+      onMouseDown={handleMouseDown}
+      onMouseUp={releasePress}
       onClick={e=>{e.stopPropagation();onSelect();}}
-      onMouseEnter={()=>setHov(true)} onMouseLeave={()=>setHov(false)}>
+      onMouseEnter={()=>setHov(true)} onMouseLeave={()=>{setHov(false);releasePress();}}>
       {show&&(
         <div className="widget-ui" style={{position:"absolute",top:-12,right:0,zIndex:20,display:"flex",gap:3}} onClick={e=>e.stopPropagation()}>
           <span onClick={onSelect} style={{background:pri,color:"#1c1917",borderRadius:4,padding:"0 7px",fontSize:"0.6rem",fontWeight:700,cursor:"pointer",letterSpacing:"0.05em",textTransform:"uppercase",lineHeight:"18px"}}>{label??"Éditer"}</span>
@@ -662,6 +668,25 @@ function GridBlocksArea({ items, editMode, selectedId, widgetStyle, pri, bg, txt
   // Un simple clic ne doit pas commit ni supprimer la sélection : on ne commit
   // qu'après un vrai déplacement (dragMoved), et on avale le click de fin de drag.
   const dragMoved = useRef(false);
+  // NB : un défilement automatique pendant le drag, puis un "figeage" du contenu
+  // natif via layout[].static pendant qu'on déplace un autre widget, ont été
+  // essayés puis retirés — les deux cassaient le drag/resize normal (RGL ne
+  // supporte pas bien un changement de layout[] réactif en cours de geste).
+  // Pour déplacer un widget au-delà d'un bloc plus grand que l'écran, utiliser
+  // les boutons "Au-dessus / En dessous du contenu" du panneau de droite.
+  //
+  // Position de départ brute de la souris (indépendante de tout calcul de
+  // grille), utilisée uniquement pour le seuil clic/glissement ci-dessous —
+  // la décision "au-dessus/en dessous" du contenu natif, elle, est purement
+  // géométrique (voir resolveNativeOverlap).
+  const dragStartClientY = useRef<number|null>(null);
+  const dragStartClientX = useRef<number|null>(null);
+  // Seuil de tolérance avant de considérer que c'est un vrai glissement (et
+  // non un clic, voire un double-clic — où la souris peut bouger de 1-2px
+  // entre les deux clics sans que ce soit une intention de glisser). Sans ce
+  // seuil, `onDrag` de react-grid-layout se déclenche au moindre frémissement
+  // et bloquait à tort la sélection au clic.
+  const DRAG_THRESHOLD_PX = 6;
 
   if (!editMode && items.length===0) return null;
 
@@ -698,14 +723,27 @@ function GridBlocksArea({ items, editMode, selectedId, widgetStyle, pri, bg, txt
 
   return (
     <div style={{marginTop:"0.875rem"}} onClick={e=>e.stopPropagation()}>
+      {/* Pas de isBounded : ça confine le glissement à la hauteur ACTUELLE du
+          conteneur, or celle-ci s'arrête au bas de l'item le plus haut (souvent
+          le contenu natif) — impossible de glisser un widget en dessous. */}
       <ReactGridLayout
         cols={GRID_COLS} rowHeight={GRID_ROW_HEIGHT} margin={[GRID_MARGIN,GRID_MARGIN]}
-        containerPadding={[0,0]} compactType="vertical" isBounded
+        containerPadding={[0,0]} compactType="vertical"
         isDraggable={editMode} isResizable={editMode}
-        resizeHandles={["se","e","s"]} draggableCancel=".widget-ui"
+        resizeHandles={["se","e","s"]} draggableCancel=".widget-ui, .no-drag"
         layout={layout}
-        onDragStart={startGesture}
-        onDrag={()=>{ dragMoved.current = true; }}
+        onDragStart={(l,oldItem,ni,ph,e)=>{
+          startGesture();
+          const ev = e as unknown as MouseEvent;
+          dragStartClientY.current = ev.clientY;
+          dragStartClientX.current = ev.clientX;
+        }}
+        onDrag={(l,oldItem,ni,ph,e)=>{
+          const ev = e as unknown as MouseEvent;
+          const dx = dragStartClientX.current!=null ? ev.clientX-dragStartClientX.current : 0;
+          const dy = dragStartClientY.current!=null ? ev.clientY-dragStartClientY.current : 0;
+          if (Math.hypot(dx,dy) > DRAG_THRESHOLD_PX) dragMoved.current = true;
+        }}
         onDragStop={l=>endGesture(l, dragMoved.current)}
         onResizeStart={startGesture}
         onResizeStop={l=>endGesture(l, true)}
@@ -716,11 +754,12 @@ function GridBlocksArea({ items, editMode, selectedId, widgetStyle, pri, bg, txt
             <div key={it.id}>
               <GridItemChrome selected={selectedId===it.id} pri={pri}
                 label={isNative?"Contenu →":undefined} removable={!isNative}
+                onMouseDown={()=>{ dragMoved.current = false; }}
                 onSelect={()=>{ if(dragMoved.current) return; if(isNative) onSelectNative(); else onSelect(it.id); }}
                 onRemove={()=>onRemove(it.id)}>
                 <WidgetFrame widgetStyle={widgetStyle} block={it.block} bg={bg} txt={txt}>
                   {isNative
-                    ? <div style={{height:"100%",overflow:"hidden",zoom:sizeScale(it.block.size)}}>{renderNative?.()}</div>
+                    ? <div style={{height:"100%",overflow:"hidden",zoom:nativeZoom(it.block),fontFamily:(it.block as {fontFamily?:string}).fontFamily||undefined}}>{renderNative?.()}</div>
                     : <BlockContent block={it.block} pri={pri} txt={txt} hFont={hFont} editMode fill={widgetStyle!=="strict"}/>}
                 </WidgetFrame>
               </GridItemChrome>
@@ -936,8 +975,8 @@ function SectionRender({ section, meta, theme, bg, txt, pri, acc, hFont, section
     }
     case "about": return (
       <section style={{padding:"5rem 1.5rem",background:`${bg}f0`}}>
-        <div style={{maxWidth:720,margin:"0 auto"}}>
-          <h2 style={{fontFamily:hFont,fontSize:"1.75rem",fontWeight:700,color:txt,marginBottom:"1.25rem"}}>{section.section_title??"À propos"}</h2>
+        <div style={{maxWidth:960,margin:"0 auto"}}>
+          <h2 style={{fontFamily:hFont,fontSize:"1.75rem",fontWeight:700,color:txt,marginBottom:"1.25rem",textAlign:section.title_align??"left"}}>{section.section_title??"À propos"}</h2>
           {blocksArea}
         </div>
       </section>
@@ -945,7 +984,7 @@ function SectionRender({ section, meta, theme, bg, txt, pri, acc, hFont, section
     case "skills": return (
       <section style={{padding:"5rem 1.5rem",background:bg}}>
         <div style={{maxWidth:960,margin:"0 auto"}}>
-          <h2 style={{fontFamily:hFont,fontSize:"1.75rem",fontWeight:700,color:txt,marginBottom:"2rem"}}>{section.section_title??"Compétences"}</h2>
+          <h2 style={{fontFamily:hFont,fontSize:"1.75rem",fontWeight:700,color:txt,marginBottom:"2rem",textAlign:section.title_align??"left"}}>{section.section_title??"Compétences"}</h2>
           {blocksArea}
         </div>
       </section>
@@ -953,15 +992,15 @@ function SectionRender({ section, meta, theme, bg, txt, pri, acc, hFont, section
     case "projects": return (
       <section style={{padding:"5rem 1.5rem",background:`${bg}f0`}}>
         <div style={{maxWidth:960,margin:"0 auto"}}>
-          <h2 style={{fontFamily:hFont,fontSize:"1.75rem",fontWeight:700,color:txt,marginBottom:"2rem"}}>{section.section_title??"Projets"}</h2>
+          <h2 style={{fontFamily:hFont,fontSize:"1.75rem",fontWeight:700,color:txt,marginBottom:"2rem",textAlign:section.title_align??"left"}}>{section.section_title??"Projets"}</h2>
           {blocksArea}
         </div>
       </section>
     );
     case "experience": return (
       <section style={{padding:"5rem 1.5rem",background:bg}}>
-        <div style={{maxWidth:720,margin:"0 auto"}}>
-          <h2 style={{fontFamily:hFont,fontSize:"1.75rem",fontWeight:700,color:txt,marginBottom:"2rem"}}>{section.section_title??"Expérience"}</h2>
+        <div style={{maxWidth:960,margin:"0 auto"}}>
+          <h2 style={{fontFamily:hFont,fontSize:"1.75rem",fontWeight:700,color:txt,marginBottom:"2rem",textAlign:section.title_align??"left"}}>{section.section_title??"Expérience"}</h2>
           {blocksArea}
         </div>
       </section>
@@ -969,7 +1008,7 @@ function SectionRender({ section, meta, theme, bg, txt, pri, acc, hFont, section
     case "contact": return (
       <section style={{padding:"5rem 1.5rem",background:`${bg}f0`}}>
         <div style={{maxWidth:640,margin:"0 auto"}}>
-          <h2 style={{fontFamily:hFont,fontSize:"1.75rem",fontWeight:700,color:txt,marginBottom:"1rem",textAlign:"center"}}>{section.section_title??"Contact"}</h2>
+          <h2 style={{fontFamily:hFont,fontSize:"1.75rem",fontWeight:700,color:txt,marginBottom:"1rem",textAlign:section.title_align??"center"}}>{section.section_title??"Contact"}</h2>
           {blocksArea}
         </div>
       </section>
@@ -1074,7 +1113,7 @@ function BlockEditor({ block, pri, profileType, meta, onUpdate, onRemove, onBack
       setScrapeState({loading:null, error:(e as Error).message});
     }
   }
-  const labels:Record<string,string>={image:"Image",carousel:"Carrousel",text:"Texte",quote:"Citation",stats:"Chiffres clés",button:"Bouton",links:"Liens",divider:"Séparateur"};
+  const labels:Record<string,string> = Object.fromEntries(BLOCK_SUGGESTIONS.map(s=>[s.type,s.label]));
 
   return (
     <div style={{padding:"1.25rem"}}>
@@ -1142,6 +1181,24 @@ function BlockEditor({ block, pri, profileType, meta, onUpdate, onRemove, onBack
               <option value="">Auto</option>
               {WIDGET_FONT_SIZES.map(sz=><option key={sz} value={sz}>{sz}px</option>)}
             </select>
+          </div>
+        </div>
+      )}
+
+      {(block.type==="text"||block.type==="quote")&&(
+        <div style={{marginBottom:"1.25rem"}}>
+          <label style={{display:"block",fontSize:"0.7rem",color:"#78716c",marginBottom:"0.375rem"}}>Alignement</label>
+          <div style={{display:"flex",gap:"0.375rem"}}>
+            {([["left","Gauche"],["center","Centre"],["right","Droite"]] as const).map(([val,label])=>{
+              const active=(block.align??"left")===val;
+              const widths=val==="left"?[70,50,60]:val==="center"?[60,45,55]:[55,40,50];
+              return (
+                <button key={val} title={label} onClick={()=>onUpdate({...block,align:val})}
+                  style={{flex:1,padding:"0.45rem 0.3rem",borderRadius:"0.4rem",border:`1px solid ${active?pri:"rgba(0,0,0,0.1)"}`,background:active?`${pri}12`:"white",cursor:"pointer",display:"flex",flexDirection:"column",gap:3,alignItems:val==="left"?"flex-start":val==="center"?"center":"flex-end"}}>
+                  {widths.map((w,i)=><span key={i} style={{display:"block",height:2,width:`${w}%`,background:active?pri:"#a09a94",borderRadius:1}}/>)}
+                </button>
+              );
+            })}
           </div>
         </div>
       )}
@@ -1317,11 +1374,46 @@ function ThemeEditor({ meta, theme, updateMeta, updateTheme, profileType, portfo
 }) {
   const [aiStatus, setAiStatus] = useState<"idle"|"loading"|"done"|"error">("idle");
   const [aiReason, setAiReason] = useState("");
+  const [aiError, setAiError] = useState("");
+  const [styleUrl, setStyleUrl] = useState("");
   const filtered = THEME_PRESETS.filter(p=>p.profile_types.includes(profileType));
+
+  // Portfolios vedettes de la communauté (même profil) — utilisables comme style
+  // de départ directement depuis l'éditeur, avec un lien pour les visiter.
+  const [featured, setFeatured] = useState<CommunityItem[]|null>(null);
+  const [applyingId, setApplyingId] = useState<string|null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`/api/community/featured?profileType=${encodeURIComponent(profileType)}`)
+      .then(r=>r.json()).then(d=>{ if(!cancelled) setFeatured((d.items ?? []).filter((it:CommunityItem)=>it.id!==portfolioId)); })
+      .catch(()=>{ if(!cancelled) setFeatured([]); });
+    return ()=>{ cancelled=true; };
+  }, [profileType, portfolioId]);
+  async function useCommunityStyle(id:string) {
+    setApplyingId(id); setAiError("");
+    try{
+      const res = await fetch(`/api/community/template/${id}`);
+      if(!res.ok) throw new Error();
+      const { theme:t } = await res.json();
+      updateTheme({ ...t, theme_preset_id: t.theme_preset_id ?? "custom" });
+    } catch { setAiError("Impossible de récupérer ce style, réessaie."); }
+    finally { setApplyingId(null); }
+  }
+
   async function genAiTheme() {
-    setAiStatus("loading"); setAiReason("");
+    setAiStatus("loading"); setAiReason(""); setAiError("");
     try{const res=await fetch(`/api/portfolio/${portfolioId}/generate-theme`,{method:"POST"});if(!res.ok)throw new Error();const{theme:t,reasoning}=await res.json();updateTheme(t);setAiReason(reasoning);setAiStatus("done");}
     catch{setAiStatus("error");}
+  }
+  async function genThemeFromUrl() {
+    if (!styleUrl.trim()) return;
+    setAiStatus("loading"); setAiReason(""); setAiError("");
+    try{
+      const res=await fetch(`/api/portfolio/${portfolioId}/generate-theme`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({styleUrl})});
+      const data=await res.json();
+      if(!res.ok) throw new Error(data.error||"Erreur");
+      updateTheme(data.theme); setAiReason(data.reasoning); setAiStatus("done");
+    } catch(e) { setAiStatus("error"); setAiError((e as Error).message||"Impossible d'analyser ce site"); }
   }
   return (
     <div style={{padding:"1.25rem"}}>
@@ -1336,6 +1428,24 @@ function ThemeEditor({ meta, theme, updateMeta, updateTheme, profileType, portfo
             </div>
             <div style={{padding:"0.3rem 0.5rem",background:"white"}}><p style={{fontSize:"0.675rem",color:"#78716c",margin:0}}>{aiStatus==="done"&&aiReason?aiReason:"L'IA analyse ton portfolio et crée le thème idéal"}</p></div>
           </button>
+
+          <div style={{gridColumn:"1/-1",border:theme.theme_preset_id==="style-url"?"2px solid #c9a96e":"1px solid rgba(0,0,0,0.1)",borderRadius:"0.5rem",padding:"0.625rem",background:"#faf9f7"}}>
+            <p style={{fontSize:"0.675rem",fontWeight:700,color:"#1c1917",margin:"0 0 0.375rem"}}>🎨 Copier le style d&apos;un site</p>
+            <div style={{display:"flex",gap:"0.375rem"}}>
+              <input type="text" value={styleUrl} onChange={e=>setStyleUrl(e.target.value)}
+                onKeyDown={e=>{if(e.key==="Enter"){e.preventDefault();genThemeFromUrl();}}}
+                placeholder="apple.com" disabled={aiStatus==="loading"}
+                style={{flex:1,padding:"0.4rem 0.5rem",fontSize:"0.7375rem",color:"#1c1917",background:"white",border:"1px solid rgba(0,0,0,0.1)",borderRadius:"0.4rem",outline:"none",minWidth:0}}/>
+              <button onClick={genThemeFromUrl} disabled={aiStatus==="loading"||!styleUrl.trim()}
+                style={{padding:"0.4rem 0.75rem",fontSize:"0.7rem",fontWeight:700,color:"#1c1917",background:"#c9a96e",border:"none",borderRadius:"0.4rem",cursor:aiStatus==="loading"||!styleUrl.trim()?"default":"pointer",opacity:aiStatus==="loading"||!styleUrl.trim()?0.5:1,flexShrink:0}}>
+                {aiStatus==="loading"?"…":"Copier"}
+              </button>
+            </div>
+            {theme.theme_preset_id==="style-url"&&aiStatus==="done"&&aiReason&&<p style={{fontSize:"0.65rem",color:"#78716c",margin:"0.375rem 0 0"}}>{aiReason}</p>}
+            {aiStatus==="error"&&aiError&&<p style={{fontSize:"0.65rem",color:"#dc2626",margin:"0.375rem 0 0"}}>{aiError}</p>}
+            <p style={{fontSize:"0.6rem",color:"#a09a94",margin:"0.375rem 0 0"}}>S&apos;inspire de la palette et de la typo du site — jamais de son contenu ni de ses images.</p>
+          </div>
+
           {filtered.map(preset=>(
             <button key={preset.id}
               onClick={()=>updateTheme({primary_color:preset.primary_color,background_color:preset.background_color,text_color:preset.text_color,accent_color:preset.accent_color,font_heading:preset.font_heading,font_body:preset.font_body,style:preset.style,hero_image_url:preset.hero_image_url??undefined,overlay_opacity:preset.overlay_opacity,theme_preset_id:preset.id})}
@@ -1348,6 +1458,41 @@ function ThemeEditor({ meta, theme, updateMeta, updateTheme, profileType, portfo
           ))}
         </div>
       </PanelSection>
+      {featured&&featured.length>0&&(
+        <PanelSection title="Portfolios vedettes de la communauté">
+          <p style={{fontSize:"0.675rem",color:"#a09a94",marginBottom:"0.75rem",marginTop:"-0.375rem"}}>Inspire-toi des meilleurs portfolios du même profil que le tien — visite-les ou reprends leur style en un clic.</p>
+          <div style={{display:"flex",flexDirection:"column",gap:"0.5rem"}}>
+            {featured.map(item=>(
+              <div key={item.id} style={{border:"1px solid rgba(0,0,0,0.08)",borderRadius:"0.625rem",padding:"0.625rem",background:"white"}}>
+                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"0.5rem"}}>
+                  <div style={{minWidth:0}}>
+                    <p style={{fontSize:"0.75rem",fontWeight:600,color:"#1c1917",margin:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.name}</p>
+                    {item.title&&<p style={{fontSize:"0.675rem",color:"#a09a94",margin:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.title}</p>}
+                  </div>
+                  <div style={{display:"flex",gap:3,flexShrink:0,marginLeft:"0.5rem"}}>
+                    {[item.theme.primary_color,item.theme.background_color,item.theme.accent_color].map((c,i)=>(
+                      <span key={i} style={{width:12,height:12,borderRadius:"50%",background:c,border:"1px solid rgba(0,0,0,0.1)"}}/>
+                    ))}
+                  </div>
+                </div>
+                <div style={{display:"flex",gap:"0.375rem"}}>
+                  {item.slug&&(
+                    <a href={`/preview/${item.slug}`} target="_blank" rel="noopener noreferrer"
+                      style={{flex:1,padding:"0.35rem",fontSize:"0.7rem",textAlign:"center",borderRadius:"0.4rem",border:"1px solid rgba(0,0,0,0.1)",color:"#78716c",textDecoration:"none",fontWeight:500}}>
+                      Voir ↗
+                    </a>
+                  )}
+                  <button onClick={()=>useCommunityStyle(item.id)} disabled={applyingId===item.id}
+                    style={{flex:1,padding:"0.35rem",fontSize:"0.7rem",borderRadius:"0.4rem",border:"none",background:"rgba(201,169,110,0.12)",color:"#c9a96e",cursor:applyingId===item.id?"wait":"pointer",fontWeight:600}}>
+                    {applyingId===item.id?"…":"Utiliser ce style"}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+          {aiError&&<p style={{fontSize:"0.65rem",color:"#dc2626",marginTop:"0.5rem"}}>{aiError}</p>}
+        </PanelSection>
+      )}
       <PanelSection title="Style des widgets">
         <div style={{display:"flex",gap:"0.5rem"}}>
           {([["strict","Strict"],["soft","Arrondi"],["glass","Verre"]] as const).map(([val,label])=>{
@@ -1373,16 +1518,28 @@ function ThemeEditor({ meta, theme, updateMeta, updateTheme, profileType, portfo
           ["hero_parallax", "Parallaxe sur le fond", "La photo de fond du haut de page défile plus lentement que le reste — effet de profondeur."],
         ] as const).map(([key,label,desc])=>{
           const checked = (theme as unknown as Record<string,boolean|undefined>)[key] ?? false;
+          const intensity = (theme as {scroll_reveal_intensity?:number}).scroll_reveal_intensity ?? 50;
           return (
-            <label key={key} style={{display:"flex",gap:"0.625rem",alignItems:"flex-start",padding:"0.5rem 0",cursor:"pointer"}}>
-              <input type="checkbox" checked={checked}
-                onChange={e=>updateTheme({[key]:e.target.checked} as Partial<VTheme>)}
-                style={{marginTop:2,accentColor:"#c9a96e",width:15,height:15,cursor:"pointer",flexShrink:0}}/>
-              <span>
-                <span style={{display:"block",fontSize:"0.775rem",fontWeight:600,color:"#1c1917"}}>{label}</span>
-                <span style={{display:"block",fontSize:"0.675rem",color:"#a09a94",marginTop:"0.125rem",lineHeight:1.4}}>{desc}</span>
-              </span>
-            </label>
+            <div key={key}>
+              <label style={{display:"flex",gap:"0.625rem",alignItems:"flex-start",padding:"0.5rem 0",cursor:"pointer"}}>
+                <input type="checkbox" checked={checked}
+                  onChange={e=>updateTheme({[key]:e.target.checked} as Partial<VTheme>)}
+                  style={{marginTop:2,accentColor:"#c9a96e",width:15,height:15,cursor:"pointer",flexShrink:0}}/>
+                <span>
+                  <span style={{display:"block",fontSize:"0.775rem",fontWeight:600,color:"#1c1917"}}>{label}</span>
+                  <span style={{display:"block",fontSize:"0.675rem",color:"#a09a94",marginTop:"0.125rem",lineHeight:1.4}}>{desc}</span>
+                </span>
+              </label>
+              {key==="scroll_reveal"&&checked&&(
+                <div style={{margin:"0 0 0.5rem 1.625rem",display:"flex",alignItems:"center",gap:"0.5rem"}}>
+                  <span style={{fontSize:"0.65rem",color:"#a09a94"}}>Subtil</span>
+                  <input type="range" min={0} max={100} value={intensity}
+                    onChange={e=>updateTheme({scroll_reveal_intensity:Number(e.target.value)} as Partial<VTheme>)}
+                    style={{flex:1,accentColor:"#c9a96e",cursor:"pointer"}}/>
+                  <span style={{fontSize:"0.65rem",color:"#a09a94"}}>Prononcé</span>
+                </div>
+              )}
+            </div>
           );
         })}
         <p style={{fontSize:"0.625rem",color:"#c8c4bf",marginTop:"0.375rem"}}>Visible sur le site publié — l&apos;éditeur reste statique pour faciliter l&apos;édition.</p>
@@ -1423,13 +1580,13 @@ function SectionEditor({ section, idx, updateSection, removeSection, onClose, me
 }) {
   const update=(s:VSection)=>updateSection(idx,s);
   const gridItems=sortGridItems(getGrid(section)).filter(it=>it.block.type!=="section_content");
-  const tl:Record<string,string>={image:"🖼 Image",carousel:"▤ Carrousel",text:"¶ Texte",quote:"❝ Citation",stats:"◫ Chiffres",button:"⇒ Bouton",links:"🔗 Liens",divider:"─ Séparateur"};
-  // Taille du texte du contenu natif (bloc "section_content" de la grille)
+  const tl:Record<string,string> = Object.fromEntries(BLOCK_SUGGESTIONS.map(s=>[s.type,`${s.icon} ${s.label}`]));
+  // Police & taille du contenu natif (bloc "section_content" de la grille) —
+  // mêmes menus déroulants que pour les widgets ordinaires.
   const nativeItem = getGrid(section).find(it=>it.block.type==="section_content");
-  const nativeSize = Math.min(5,Math.max(1,(nativeItem?.block.size)??3));
-  const setNativeSize = (v:number) => {
+  const updateNativeBlock = (patch:Partial<{fontFamily:string; fontSize:number}>) => {
     if (!nativeItem) return;
-    const g = getGrid(section).map(it=>it.id===nativeItem.id?{...it,block:{...it.block,size:Math.min(5,Math.max(1,v))}}:it);
+    const g = getGrid(section).map(it=>it.id===nativeItem.id?{...it,block:{...it.block,...patch}}:it);
     update(applyGrid(section,g));
   };
 
@@ -1449,23 +1606,49 @@ function SectionEditor({ section, idx, updateSection, removeSection, onClose, me
         <PanelField label="Lien du bouton"  value={section.cta_url}  onChange={v=>update({...section,cta_url:v})}/>
       </>}
       {section.type!=="hero"&&<PanelField label="Titre de la section" value={(section as {section_title?:string}).section_title??""} onChange={v=>update({...section,section_title:v||undefined} as VSection)}/>}
-      {nativeItem&&(
-        <div style={{marginBottom:"1.25rem"}}>
-          <label style={{display:"block",fontSize:"0.7rem",color:"#78716c",marginBottom:"0.5rem"}}>Taille du texte du contenu</label>
-          <div style={{display:"flex",alignItems:"center",gap:"0.625rem"}}>
-            <button onClick={()=>setNativeSize(nativeSize-1)} disabled={nativeSize<=1}
-              style={{width:30,height:30,borderRadius:"0.5rem",border:"1px solid rgba(0,0,0,0.12)",background:nativeSize<=1?"#f0ece6":"white",color:nativeSize<=1?"#c4beb6":"#1c1917",fontSize:"1rem",fontWeight:700,cursor:nativeSize<=1?"default":"pointer"}}>−</button>
-            <div style={{flex:1,display:"flex",gap:4,alignItems:"center"}}>
-              {[1,2,3,4,5].map(v=>(
-                <div key={v} onClick={()=>setNativeSize(v)}
-                  style={{flex:1,height:6,borderRadius:3,background:v<=nativeSize?"#c9a96e":"rgba(0,0,0,0.08)",cursor:"pointer",transition:"background 0.15s"}}/>
-              ))}
+      {section.type!=="hero"&&(()=>{
+        const curAlign=(section as {title_align?:"left"|"center"|"right"}).title_align??"left";
+        return (
+          <div style={{marginBottom:"1.25rem"}}>
+            <label style={{display:"block",fontSize:"0.7rem",color:"#78716c",marginBottom:"0.375rem"}}>Alignement du titre</label>
+            <div style={{display:"flex",gap:"0.375rem"}}>
+              {([["left","Gauche"],["center","Centre"],["right","Droite"]] as const).map(([val,label])=>{
+                const active=curAlign===val;
+                const widths=val==="left"?[70,50,60]:val==="center"?[60,45,55]:[55,40,50];
+                return (
+                  <button key={val} title={label} onClick={()=>update({...section,title_align:val} as VSection)}
+                    style={{flex:1,padding:"0.45rem 0.3rem",borderRadius:"0.4rem",border:`1px solid ${active?"#c9a96e":"rgba(0,0,0,0.1)"}`,background:active?"rgba(201,169,110,0.08)":"white",cursor:"pointer",display:"flex",flexDirection:"column",gap:3,alignItems:val==="left"?"flex-start":val==="center"?"center":"flex-end"}}>
+                    {widths.map((w,i)=><span key={i} style={{display:"block",height:2,width:`${w}%`,background:active?"#c9a96e":"#a09a94",borderRadius:1}}/>)}
+                  </button>
+                );
+              })}
             </div>
-            <button onClick={()=>setNativeSize(nativeSize+1)} disabled={nativeSize>=5}
-              style={{width:30,height:30,borderRadius:"0.5rem",border:"1px solid rgba(0,0,0,0.12)",background:nativeSize>=5?"#f0ece6":"white",color:nativeSize>=5?"#c4beb6":"#1c1917",fontSize:"1rem",fontWeight:700,cursor:nativeSize>=5?"default":"pointer"}}>+</button>
           </div>
-        </div>
-      )}
+        );
+      })()}
+      {nativeItem&&(()=>{
+        const nb = nativeItem.block as {fontFamily?:string; fontSize?:number};
+        return (
+          <div style={{marginBottom:"1.25rem"}}>
+            <label style={{display:"block",fontSize:"0.7rem",color:"#78716c",marginBottom:"0.5rem"}}>Police & taille du contenu</label>
+            <div style={{display:"flex",gap:"0.5rem"}}>
+              <div style={{flex:2}}>
+                <select value={nb.fontFamily??""} onChange={e=>updateNativeBlock({fontFamily:e.target.value||undefined})}
+                  style={{width:"100%",padding:"0.4rem 0.5rem",fontSize:"0.7875rem",color:"#1c1917",background:"white",border:"1px solid rgba(0,0,0,0.1)",borderRadius:"0.4rem",outline:"none",boxSizing:"border-box"}}>
+                  {WIDGET_FONT_OPTIONS.map(f=><option key={f.label} value={f.value}>{f.label}</option>)}
+                </select>
+              </div>
+              <div style={{flex:1}}>
+                <select value={nb.fontSize??""} onChange={e=>updateNativeBlock({fontSize:e.target.value?Number(e.target.value):undefined})}
+                  style={{width:"100%",padding:"0.4rem 0.5rem",fontSize:"0.7875rem",color:"#1c1917",background:"white",border:"1px solid rgba(0,0,0,0.1)",borderRadius:"0.4rem",outline:"none",boxSizing:"border-box"}}>
+                  <option value="">Auto</option>
+                  {WIDGET_FONT_SIZES.map(sz=><option key={sz} value={sz}>{sz}px</option>)}
+                </select>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
       {section.type==="about"&&<>
         <PanelTextarea label="Contenu"        value={section.content}       onChange={v=>update({...section,content:v})} rows={5}/>
         <PanelTextarea label="Citation (opt)" value={section.highlight??""} onChange={v=>update({...section,highlight:v||undefined})}/>

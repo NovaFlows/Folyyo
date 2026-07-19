@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { createVercelProject, deployToVercel, waitForDeployment } from "@/lib/vercel/deploy";
-import { getJson } from "@/lib/r2/client";
+import { readSourceCode, IS_DEV } from "@/lib/dev-storage";
 import {
   getPortfolioById,
   setPortfolioDeploying,
@@ -10,24 +10,8 @@ import {
   setPortfolioStatus,
 } from "@/lib/db/queries";
 import type { SourceCode } from "@/types/portfolio";
-import fs from "fs";
-import path from "path";
-import os from "os";
 
 export const maxDuration = 120;
-
-const IS_DEV = process.env.NODE_ENV === "development";
-
-async function getSourceCode(sourceCodeKey: string): Promise<SourceCode> {
-  if (sourceCodeKey.startsWith("local:")) {
-    const key = sourceCodeKey.slice(6);
-    const safeName = key.replace(/\//g, "_");
-    const filePath = path.join(os.tmpdir(), "folyyo-source", safeName);
-    const raw = fs.readFileSync(filePath, "utf-8");
-    return JSON.parse(raw) as SourceCode;
-  }
-  return getJson<SourceCode>(sourceCodeKey);
-}
 
 export async function POST(request: NextRequest) {
   const { userId } = await auth();
@@ -55,7 +39,7 @@ export async function POST(request: NextRequest) {
 
   let sourceCode: SourceCode;
   try {
-    sourceCode = await getSourceCode(portfolio.source_code_key);
+    sourceCode = await readSourceCode<SourceCode>(portfolio.source_code_key);
   } catch (err) {
     console.error("[deploy] failed to load source code:", err);
     return NextResponse.json({ error: "Impossible de charger le code source" }, { status: 500 });

@@ -25,7 +25,8 @@
     "react-dom": "^18",
     "react-grid-layout": "^1.4.4",
     "tailwind-merge": "^2.4.0",
-    "zod": "^3.23.8"
+    "zod": "^3.23.8",
+    "zod-to-json-schema": "^3.25.2"
   },
   "devDependencies": {
     "@types/archiver": "^6.0.2",

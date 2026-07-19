@@ -96,6 +96,7 @@ export default function GeneratingStep({ data, onDone }: Props) {
             linkedinUrl: data.linkedinUrl, twitterUrl: data.twitterUrl,
             cvStoragePath, githubData, youtubeData,
             templateId: data.templateId || undefined,
+            styleUrl: data.styleUrl || undefined,
           }),
         });
         if (!generateRes.ok) {

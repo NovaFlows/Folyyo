@@ -41,6 +41,36 @@ export const MIN_SIZE: Record<ContentBlock["type"], { w: number; h: number }> = 
   section_content: { w: 4, h: 3 },
 };
 
+// Lecture/écriture de la grille d'une section (le champ `grid` est optionnel
+// dans le schéma tant qu'une section n'a jamais été migrée/éditée).
+export function getGrid(section: { grid?: GridItem[] }): GridItem[] {
+  return section.grid ?? [];
+}
+export function applyGrid<S extends { grid?: GridItem[] }>(section: S, grid: GridItem[]): S {
+  return { ...section, grid };
+}
+
+// Rejette (plutôt que de clamper silencieusement) tout placement/redimension-
+// nement hors bornes — utilisé par les outils d'édition IA (add_widget,
+// move_widget) : un message d'erreur explicite laisse Claude se corriger au
+// tour suivant, un clamp silencieux produirait un résultat qui ne correspond
+// pas à ce qu'il a demandé.
+export function validateGridBounds(
+  item: { x: number; y: number; w: number; h: number },
+  blockType: ContentBlock["type"],
+): void {
+  const min = MIN_SIZE[blockType];
+  if (item.w < min.w || item.h < min.h) {
+    throw new Error(`Taille trop petite pour "${blockType}" : minimum ${min.w}×${min.h} (largeur×hauteur en colonnes/lignes de grille), reçu ${item.w}×${item.h}.`);
+  }
+  if (item.x < 0 || item.x + item.w > GRID_COLS) {
+    throw new Error(`Position horizontale invalide : x=${item.x}, w=${item.w} dépasse la grille de ${GRID_COLS} colonnes.`);
+  }
+  if (item.y < 0) {
+    throw new Error(`Position verticale invalide : y=${item.y} ne peut pas être négatif.`);
+  }
+}
+
 // Hauteur estimée du contenu natif d'une section, selon son type et le nombre
 // d'items — approximation généreuse, l'utilisateur ajuste ensuite à la poignée.
 export function nativeContentH(section: { type: string; items?: unknown[]; highlight?: string | null }): number {
@@ -85,6 +115,50 @@ export function sortGridItems(items: GridItem[]): GridItem[] {
 // Première ligne libre sous tous les items (pour ajouter en bas de grille)
 export function nextY(items: GridItem[]): number {
   return items.reduce((max, it) => Math.max(max, it.y + it.h), 0);
+}
+
+// Corrige, APRÈS un glissement/redimensionnement (jamais pendant — modifier le
+// layout en cours de geste casse le drag), tout widget qui se retrouve
+// mélangé aux rangées du contenu natif. react-grid-layout ne gère pas bien la
+// collision entre un item beaucoup plus grand qu'un autre : au lieu de
+// repousser proprement le petit de l'autre côté, il le laisse chevaucher sans
+// jamais franchir le milieu du grand.
+//
+// Règle purement géométrique (aucun suivi de souris nécessaire) : on mesure le
+// chevauchement HORIZONTAL restant entre les deux items, en % de la largeur du
+// contenu natif. Sous 50%, le widget déplacé est considéré comme suffisamment
+// "sorti" de l'emprise du natif pour passer en dessous ; au-dessus de 50%, il
+// est encore trop dans son emprise horizontale, on le garde au-dessus (et le
+// natif descend d'autant). Partagée entre l'éditeur manuel (VisualEditor.tsx,
+// après un drag RGL) et l'exécuteur d'outils IA (après move_widget/add_widget).
+export function resolveNativeOverlap(items: GridItem[]): GridItem[] {
+  let result = items;
+  let guard = 0;
+  while (guard++ < 10) {
+    const native = result.find(it => it.block.type === "section_content");
+    if (!native) return result;
+    const nativeTop = native.y, nativeBottom = native.y + native.h;
+    const overlapping = result.find(it => it.id !== native.id && it.y < nativeBottom && it.y + it.h > nativeTop);
+    if (!overlapping) return result;
+
+    const overlapStart = Math.max(overlapping.x, native.x);
+    const overlapEnd = Math.min(overlapping.x + overlapping.w, native.x + native.w);
+    const overlapWidth = Math.max(0, overlapEnd - overlapStart);
+    const overlapFraction = native.w > 0 ? overlapWidth / native.w : 1;
+    const pushBelow = overlapFraction < 0.5;
+
+    if (pushBelow) {
+      result = result.map(it => it.id === overlapping.id ? { ...it, y: nativeBottom } : it);
+    } else {
+      // Passe au-dessus, le contenu natif descend d'autant
+      result = result.map(it => {
+        if (it.id === overlapping.id) return { ...it, y: nativeTop };
+        if (it.id === native.id) return { ...it, y: nativeTop + overlapping.h };
+        return it;
+      });
+    }
+  }
+  return result;
 }
 
 // Migration en mémoire au montage de l'éditeur, rien n'est persisté avant save :

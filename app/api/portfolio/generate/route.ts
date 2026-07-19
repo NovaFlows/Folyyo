@@ -4,47 +4,20 @@ export const maxDuration = 120;
 import { auth } from "@clerk/nextjs/server";
 import { callClaude } from "@/lib/anthropic/client";
 import { buildGenerateSystemPrompt, buildGenerateUserPrompt } from "@/lib/anthropic/prompts/generate-portfolio";
+import { generateThemeFromUrl } from "@/lib/anthropic/style-from-url";
 import { PortfolioJSONSchema } from "@/lib/anthropic/schema";
 import { generateDeveloperCode } from "@/lib/portfolio/code-generator";
-import { getFileBuffer, putJson, keys } from "@/lib/r2/client";
+import { keys } from "@/lib/r2/client";
+import { readCvBuffer, writeSourceCode } from "@/lib/dev-storage";
 import { createPortfolio, setPortfolioReady, setPortfolioError, getFeaturedPortfolioById } from "@/lib/db/queries";
 import type { DeveloperInputData } from "@/types/portfolio";
 import type { ValidatedPortfolioJSON } from "@/lib/anthropic/schema";
-import fs from "fs";
-import path from "path";
-import os from "os";
 // pdf-parse has no ESM export
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const pdfParse = require("pdf-parse");
 
-const IS_DEV = process.env.NODE_ENV === "development";
-
-async function getCvBuffer(cvStoragePath: string): Promise<Buffer | null> {
-  // Local dev: CV stored in temp filesystem
-  if (cvStoragePath.startsWith("local:")) {
-    const key = cvStoragePath.slice(6);
-    const safeName = key.replace(/\//g, "_");
-    const filePath = path.join(os.tmpdir(), "folyyo-cvs", safeName);
-    if (fs.existsSync(filePath)) return fs.readFileSync(filePath);
-    return null;
-  }
-  // Production: fetch from R2
-  return getFileBuffer(cvStoragePath);
-}
-
 async function storeSourceCode(portfolioId: string, sourceCode: unknown): Promise<string> {
-  const sourceCodeKey = keys.sourceCode(portfolioId);
-  if (IS_DEV) {
-    // Local dev: write source code to temp filesystem
-    const tmpDir = path.join(os.tmpdir(), "folyyo-source");
-    fs.mkdirSync(tmpDir, { recursive: true });
-    const safeName = sourceCodeKey.replace(/\//g, "_");
-    fs.writeFileSync(path.join(tmpDir, safeName), JSON.stringify(sourceCode));
-    console.log(`[generate] DEV: saved source code to temp file`);
-    return `local:${sourceCodeKey}`;
-  }
-  await putJson(sourceCodeKey, sourceCode);
-  return sourceCodeKey;
+  return writeSourceCode(keys.sourceCode(portfolioId), sourceCode);
 }
 
 export async function POST(request: NextRequest) {
@@ -52,7 +25,7 @@ export async function POST(request: NextRequest) {
   if (!userId) return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
 
   const body = await request.json();
-  const { profileType, slug, name, title, email, githubUsername, instagramHandle, youtubeHandle, linkedinUrl, twitterUrl, cvStoragePath, githubData, youtubeData, templateId } = body;
+  const { profileType, slug, name, title, email, githubUsername, instagramHandle, youtubeHandle, linkedinUrl, twitterUrl, cvStoragePath, githubData, youtubeData, templateId, styleUrl } = body;
 
   const requiresCv = profileType === "developer";
   if (!profileType || !name || !email || (requiresCv && !cvStoragePath)) {
@@ -73,7 +46,7 @@ export async function POST(request: NextRequest) {
   try {
     let cvText = "";
     try {
-      const cvBuffer = await getCvBuffer(cvStoragePath);
+      const cvBuffer = await readCvBuffer(cvStoragePath);
       if (cvBuffer) {
         const parsed = await pdfParse(cvBuffer);
         cvText = parsed.text.slice(0, 4000);
@@ -93,10 +66,27 @@ export async function POST(request: NextRequest) {
       youtube_data:    youtubeData || undefined,
     };
 
-    // Si un template communauté a été choisi, on réutilise son style visuel (jamais son contenu) —
-    // re-vérifié côté serveur (featured && live), on ne fait jamais confiance à l'id fourni par le client.
+    // Style visuel de départ : soit repris d'un template communauté (jamais son
+    // contenu, re-vérifié serveur), soit analysé depuis l'URL d'un site externe
+    // ("copier le style de ce site") — l'URL a priorité si les deux sont fournis.
     let themeOverride: ValidatedPortfolioJSON["theme"] | undefined;
-    if (templateId) {
+    if (styleUrl) {
+      const urlTheme = await generateThemeFromUrl(styleUrl);
+      if (urlTheme) {
+        themeOverride = {
+          primary_color: urlTheme.primary_color,
+          background_color: urlTheme.background_color,
+          text_color: urlTheme.text_color,
+          accent_color: urlTheme.accent_color,
+          font_heading: urlTheme.font_heading,
+          font_body: urlTheme.font_body,
+          style: urlTheme.style,
+          overlay_opacity: urlTheme.overlay_opacity,
+          theme_preset_id: "style-url",
+        } as ValidatedPortfolioJSON["theme"];
+      }
+    }
+    if (!themeOverride && templateId) {
       const templatePortfolio = await getFeaturedPortfolioById(templateId);
       const templateJson = templatePortfolio?.site_json as ValidatedPortfolioJSON | undefined;
       themeOverride = templateJson?.theme;

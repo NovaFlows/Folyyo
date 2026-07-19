@@ -2,6 +2,9 @@ import Link from "next/link";
 import { Globe, PenLine, Download, RotateCcw, Layers, Lock } from "lucide-react";
 import PortfolioPreviews from "@/components/landing/PortfolioPreviews";
 import HeroVisual from "@/components/landing/HeroVisual";
+import AnimatedCounter from "@/components/landing/AnimatedCounter";
+import TestimonialMarquee from "@/components/landing/TestimonialMarquee";
+import EditChatMock from "@/components/landing/EditChatMock";
 import type { ReactNode } from "react";
 
 function PostIt({ children }: { children: ReactNode }) {
@@ -138,7 +141,9 @@ export default function LandingPage() {
               ))}
               <div className="h-8 w-px hidden sm:block" style={{ background: "rgba(0,0,0,0.08)" }} />
               <p className="text-xs" style={{ color: "#a09a94" }}>
-                <span style={{ color: "#c9a96e", fontWeight: 600 }}>1 247</span> portfolios créés
+                <span style={{ color: "#c9a96e", fontWeight: 600 }}>
+                  <AnimatedCounter value={1247} />
+                </span> portfolios créés
               </p>
             </div>
           </div>
@@ -152,7 +157,7 @@ export default function LandingPage() {
       </section>
 
       {/* ── EXAMPLES ───────────────────────────────── */}
-      <section id="examples" className="px-6 py-24" style={{ background: "#f0ece6" }}>
+      <section id="examples" className="ld-reveal px-6 py-24" style={{ background: "#f0ece6" }}>
         <div className="mx-auto max-w-5xl">
           <div className="mb-14 text-center">
             <p className="text-sm tracking-widest uppercase mb-3" style={{ color: "#a09a94" }}>Exemples réels</p>
@@ -169,7 +174,7 @@ export default function LandingPage() {
       </section>
 
       {/* ── HOW IT WORKS ───────────────────────────── */}
-      <section id="how" className="px-6 py-24 relative overflow-visible">
+      <section id="how" className="ld-reveal px-6 py-24 relative overflow-visible">
 
         {/* Post-it LEFT — "Aucun code à écrire !" */}
         <div className="hidden xl:block" style={{
@@ -207,7 +212,7 @@ export default function LandingPage() {
             </h2>
           </div>
 
-          <div className="grid gap-6 md:grid-cols-3">
+          <div className="ld-stagger grid gap-6 md:grid-cols-3">
             {[
               {
                 num: "01",
@@ -228,8 +233,14 @@ export default function LandingPage() {
               <div
                 key={s.num}
                 className="rounded-2xl p-8"
-                style={{ background: "#f0ece6", border: "1px solid rgba(0,0,0,0.06)" }}
+                style={{ background: "#f0ece6", border: "1px solid rgba(0,0,0,0.06)", position: "relative" }}
               >
+                {/* Trait qui se dessine : coche tracée au scroll (stroke-dashoffset,
+                    pathLength normalise le chemin quelle que soit sa géométrie réelle) */}
+                <svg width="28" height="28" viewBox="0 0 28 28" fill="none" style={{ position: "absolute", top: 20, right: 20 }} aria-hidden="true">
+                  <circle className="ld-draw-path" cx="14" cy="14" r="11" pathLength={1} stroke="#c9a96e" strokeWidth="1.5" opacity="0.45" />
+                  <path className="ld-draw-path" d="M9 14.5l3.2 3.2L19.5 10" pathLength={1} stroke="#c9a96e" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
                 <p
                   className="text-6xl font-light mb-6"
                   style={{ fontFamily: "'Playfair Display', Georgia, serif", color: "rgba(201,169,110,0.25)" }}
@@ -245,7 +256,7 @@ export default function LandingPage() {
       </section>
 
       {/* ── FEATURES ───────────────────────────────── */}
-      <section id="features" className="px-6 py-24" style={{ background: "#f0ece6" }}>
+      <section id="features" className="ld-reveal px-6 py-24" style={{ background: "#f0ece6" }}>
         <div className="mx-auto max-w-5xl">
           <div className="mb-16 text-center">
             <p className="text-sm tracking-widest uppercase mb-3" style={{ color: "#a09a94" }}>Fonctionnalités</p>
@@ -258,7 +269,7 @@ export default function LandingPage() {
             </h2>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="ld-stagger grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {(
               [
                 { icon: Globe,      title: "Mise en ligne automatique",  desc: "Ton portfolio est publié automatiquement dès qu'il est généré. Aucune configuration requise." },
@@ -271,7 +282,7 @@ export default function LandingPage() {
             ).map(({ icon: Icon, title, desc }) => (
               <div
                 key={title}
-                className="rounded-2xl p-6 transition-all hover:-translate-y-0.5"
+                className="ld-tilt rounded-2xl p-6"
                 style={{ background: "#f8f5f0", border: "1px solid rgba(0,0,0,0.06)" }}
               >
                 <div className="mb-5">
@@ -286,7 +297,7 @@ export default function LandingPage() {
       </section>
 
       {/* ── EDIT SECTION ───────────────────────────── */}
-      <section className="px-6 py-24">
+      <section className="ld-reveal px-6 py-24">
         <div className="mx-auto max-w-5xl">
           <div className="grid gap-16 items-center md:grid-cols-2">
             <div>
@@ -316,80 +327,24 @@ export default function LandingPage() {
               </div>
             </div>
 
-            {/* Chat mock */}
-            <div
-              className="rounded-2xl overflow-hidden"
-              style={{ border: "1px solid rgba(0,0,0,0.08)", background: "#f0ece6" }}
-            >
-              <div className="px-5 py-4" style={{ borderBottom: "1px solid rgba(0,0,0,0.06)" }}>
-                <p className="text-xs font-medium" style={{ color: "#a09a94" }}>Éditeur Folyyo</p>
-              </div>
-
-              <div className="p-5 space-y-3 min-h-[230px]">
-                {[
-                  { role: "user",    text: "Change la couleur principale en terracotta" },
-                  { role: "system",  text: "Analyse en cours…" },
-                  { role: "success", text: "✓ Couleur mise à jour · Site republié" },
-                  { role: "user",    text: "Le titre du hero est trop petit, rends-le plus imposant" },
-                  { role: "success", text: "✓ Titre agrandi et mis en gras · Site republié" },
-                ].map((msg, i) => (
-                  <div key={i} className={`flex gap-2 text-sm ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-                    {msg.role !== "user" && (
-                      <div
-                        className="h-6 w-6 shrink-0 rounded-full flex items-center justify-center text-xs"
-                        style={{
-                          background: msg.role === "success" ? "rgba(201,169,110,0.15)" : "rgba(0,0,0,0.06)",
-                          color: msg.role === "success" ? "#c9a96e" : "#a09a94",
-                        }}
-                      >
-                        {msg.role === "success" ? "✓" : "·"}
-                      </div>
-                    )}
-                    <div
-                      className="rounded-2xl px-4 py-2.5 max-w-[80%] text-sm"
-                      style={{
-                        background: msg.role === "user"
-                          ? "#1c1917"
-                          : msg.role === "success"
-                          ? "rgba(201,169,110,0.1)"
-                          : "rgba(0,0,0,0.05)",
-                        color: msg.role === "user"
-                          ? "#fff"
-                          : msg.role === "success"
-                          ? "#b8935a"
-                          : "#a09a94",
-                        border: msg.role === "success" ? "1px solid rgba(201,169,110,0.2)" : "none",
-                      }}
-                    >
-                      {msg.text}
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="px-4 py-3" style={{ borderTop: "1px solid rgba(0,0,0,0.06)" }}>
-                <div className="flex gap-2">
-                  <div
-                    className="flex-1 rounded-xl px-4 py-3 text-sm"
-                    style={{ background: "rgba(255,255,255,0.7)", color: "#c4bdb5" }}
-                  >
-                    Décris une modification…
-                  </div>
-                  <button
-                    className="rounded-xl px-5 py-3 text-sm font-medium text-white"
-                    style={{ background: "#1c1917" }}
-                  >
-                    →
-                  </button>
-                </div>
-              </div>
-            </div>
+            <EditChatMock />
           </div>
         </div>
       </section>
 
+      {/* ── TESTIMONIALS ───────────────────────────── */}
+      <section className="ld-reveal py-16">
+        <div className="mb-10 text-center px-6">
+          <p className="text-sm tracking-widest uppercase mb-3" style={{ color: "#a09a94" }}>Ils l&apos;ont utilisé</p>
+          <h2 className="text-4xl" style={{ fontFamily: "'Playfair Display', Georgia, serif", fontWeight: 500, color: "#1c1917" }}>
+            Ce qu&apos;ils en <em className="font-normal" style={{ color: "#c9a96e" }}>disent.</em>
+          </h2>
+        </div>
+        <TestimonialMarquee />
+      </section>
+
       {/* ── CTA ────────────────────────────────────── */}
-      <section className="px-6 py-32" style={{ background: "#1c1917" }}>
+      <section className="ld-reveal px-6 py-32" style={{ background: "#1c1917" }}>
         <div className="mx-auto max-w-3xl text-center">
           <p className="text-sm tracking-widest uppercase mb-5" style={{ color: "rgba(201,169,110,0.6)" }}>Prêt ?</p>
           <h2
@@ -433,6 +388,18 @@ export default function LandingPage() {
         </div>
       </footer>
 
+      {/* Apparition au défilement des sections .ld-reveal — JS pur, une fois par section */}
+      <script
+        dangerouslySetInnerHTML={{
+          __html: `(function(){
+            if (!('IntersectionObserver' in window)) { document.querySelectorAll('.ld-reveal').forEach(function(el){el.classList.add('ld-visible')}); return; }
+            var io = new IntersectionObserver(function(entries){
+              entries.forEach(function(e){ if (e.isIntersecting) { e.target.classList.add('ld-visible'); io.unobserve(e.target); } });
+            }, { threshold: 0.12 });
+            document.querySelectorAll('.ld-reveal').forEach(function(el){ io.observe(el); });
+          })();`,
+        }}
+      />
     </div>
   );
 }

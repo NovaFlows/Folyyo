@@ -2,24 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { getPortfolioById, getVersionById, updatePortfolioJsonAndCode } from "@/lib/db/queries";
 import { generateDeveloperCode } from "@/lib/portfolio/code-generator";
+import { writeSourceCode, IS_DEV } from "@/lib/dev-storage";
+import { keys } from "@/lib/r2/client";
 import type { ValidatedPortfolioJSON } from "@/lib/anthropic/schema";
-import fs from "fs";
-import path from "path";
-import os from "os";
-
-const IS_DEV = process.env.NODE_ENV === "development";
-
-async function writeCode(key: string, code: unknown): Promise<string> {
-  if (IS_DEV) {
-    const dir = path.join(os.tmpdir(), "folyyo-source");
-    fs.mkdirSync(dir, { recursive: true });
-    fs.writeFileSync(path.join(dir, key.replace(/\//g, "_")), JSON.stringify(code));
-    return `local:${key}`;
-  }
-  const { putJson } = await import("@/lib/r2/client");
-  await putJson(key, code);
-  return key;
-}
 
 export async function POST(request: NextRequest) {
   const { userId } = await auth();
@@ -55,8 +40,8 @@ export async function POST(request: NextRequest) {
 
   // Régénère le code depuis le site_json restauré et écrase l'état courant
   const newCode  = generateDeveloperCode(restoredJson);
-  const codeKey  = `source-code/${portfolioId}/portfolio.json`;
-  const savedKey = await writeCode(codeKey, newCode);
+  const codeKey  = keys.sourceCode(portfolioId);
+  const savedKey = await writeSourceCode(codeKey, newCode);
   await updatePortfolioJsonAndCode(portfolioId, restoredJson, savedKey);
 
   // Redéploiement en prod (best-effort) ; en dev l'aperçu lit directement le site_json

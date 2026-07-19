@@ -87,10 +87,12 @@ export default async function PreviewPage({
 
   // Effets visuels — public uniquement (l'éditeur garde tout visible/statique
   // pour pouvoir sélectionner/éditer sans que le contenu apparaisse/disparaisse).
-  const fx = theme as { smooth_scroll?: boolean; scroll_reveal?: boolean; hero_parallax?: boolean };
+  const fx = theme as { smooth_scroll?: boolean; scroll_reveal?: boolean; scroll_reveal_intensity?: number; hero_parallax?: boolean };
   const smoothScroll = fx.smooth_scroll ?? false;
   const scrollReveal = fx.scroll_reveal ?? false;
   const heroParallax = fx.hero_parallax ?? false;
+  // 0 → pas de glissement (fondu seul), 100 → glissement prononcé. 50 (défaut) = 28px, la valeur historique.
+  const revealDistance = ((fx.scroll_reveal_intensity ?? 50) / 100) * 56;
 
   // Widgets ajoutés dans l'éditeur visuel — grille libre (nouveau) ou lignes (legacy)
   const gridOf = (s: object) => (s as { grid?: GridItem[] }).grid;
@@ -135,7 +137,8 @@ export default async function PreviewPage({
   };
 
   return (
-    <main style={{ fontFamily: bFont, background: bg, color: txt, minHeight: "100vh", position: "relative" }}>
+    <main style={{ fontFamily: bFont, background: bg, color: txt, minHeight: "100vh", position: "relative",
+      ...(scrollReveal ? { ["--pf-reveal-distance" as string]: `${revealDistance}px` } : {}) } as React.CSSProperties}>
       {/* scroll-behavior s'applique au document entier — sans effet sur l'éditeur,
           qui rend ce composant dans un <div> scrollable distinct, pas <html>. */}
       {smoothScroll && <style>{`html{scroll-behavior:smooth}`}</style>}
@@ -197,8 +200,8 @@ export default async function PreviewPage({
 
           case "about": return (
             <section key={i} id="about" className={`pf-section${scrollReveal?" pf-reveal":""}`} style={{ background: `${bg}f0` }}>
-              <div style={{ maxWidth: 720, margin: "0 auto" }}>
-                <h2 style={{ fontFamily: hFont, fontSize: "1.875rem", fontWeight: 700, color: txt, marginBottom: "1.5rem" }}>
+              <div style={{ maxWidth: 960, margin: "0 auto" }}>
+                <h2 style={{ fontFamily: hFont, fontSize: "1.875rem", fontWeight: 700, color: txt, marginBottom: "1.5rem", textAlign: section.title_align ?? "left" }}>
                   {section.section_title ?? "À propos"}
                 </h2>
                 {sectionBody(section, <>
@@ -216,7 +219,7 @@ export default async function PreviewPage({
             return (
               <section key={i} id="skills" className={`pf-section${scrollReveal?" pf-reveal":""}`} style={{ background: bg }}>
                 <div style={{ maxWidth: 960, margin: "0 auto" }}>
-                  <h2 style={{ fontFamily: hFont, fontSize: "1.875rem", fontWeight: 700, color: txt, marginBottom: "2.5rem" }}>
+                  <h2 style={{ fontFamily: hFont, fontSize: "1.875rem", fontWeight: 700, color: txt, marginBottom: "2.5rem", textAlign: section.title_align ?? "left" }}>
                     {section.section_title ?? "Compétences"}
                   </h2>
                   {sectionBody(section, hideLevel ? (
@@ -252,7 +255,7 @@ export default async function PreviewPage({
           case "projects": return (
             <section key={i} id="projects" className={`pf-section${scrollReveal?" pf-reveal":""}`} style={{ background: `${bg}f0` }}>
               <div style={{ maxWidth: 960, margin: "0 auto" }}>
-                <h2 style={{ fontFamily: hFont, fontSize: "1.875rem", fontWeight: 700, color: txt, marginBottom: "2.5rem" }}>
+                <h2 style={{ fontFamily: hFont, fontSize: "1.875rem", fontWeight: 700, color: txt, marginBottom: "2.5rem", textAlign: section.title_align ?? "left" }}>
                   {section.section_title ?? "Projets"}
                 </h2>
                 {sectionBody(section,
@@ -294,8 +297,8 @@ export default async function PreviewPage({
 
           case "experience": return (
             <section key={i} id="experience" className={`pf-section${scrollReveal?" pf-reveal":""}`} style={{ background: bg }}>
-              <div style={{ maxWidth: 720, margin: "0 auto" }}>
-                <h2 style={{ fontFamily: hFont, fontSize: "1.875rem", fontWeight: 700, color: txt, marginBottom: "2.5rem" }}>
+              <div style={{ maxWidth: 960, margin: "0 auto" }}>
+                <h2 style={{ fontFamily: hFont, fontSize: "1.875rem", fontWeight: 700, color: txt, marginBottom: "2.5rem", textAlign: section.title_align ?? "left" }}>
                   {section.section_title ?? "Expérience"}
                 </h2>
                 {sectionBody(section,
@@ -319,8 +322,8 @@ export default async function PreviewPage({
 
           case "contact": return (
             <section key={i} id="contact" className={`pf-section${scrollReveal?" pf-reveal":""}`} style={{ textAlign: "center", background: `${bg}f0` }}>
-              <div style={{ maxWidth: 480, margin: "0 auto" }}>
-                <h2 style={{ fontFamily: hFont, fontSize: "1.875rem", fontWeight: 700, color: txt, marginBottom: "1rem" }}>
+              <div style={{ maxWidth: 640, margin: "0 auto" }}>
+                <h2 style={{ fontFamily: hFont, fontSize: "1.875rem", fontWeight: 700, color: txt, marginBottom: "1rem", textAlign: section.title_align || undefined }}>
                   {section.section_title ?? "Contact"}
                 </h2>
                 {sectionBody(section, <>

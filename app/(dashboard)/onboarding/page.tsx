@@ -13,6 +13,7 @@ import GeneratingStep from "./_steps/GeneratingStep";
 export type OnboardingData = {
   profileType: "developer" | "artist" | "fashion" | "other" | "musicien" | null;
   templateId: string | null;
+  styleUrl: string;
   slug: string;
   name: string;
   title: string;
@@ -26,7 +27,7 @@ export type OnboardingData = {
 };
 
 const INITIAL_DATA: OnboardingData = {
-  profileType: null, templateId: null, slug: "", name: "", title: "", email: "",
+  profileType: null, templateId: null, styleUrl: "", slug: "", name: "", title: "", email: "",
   githubUsername: "", instagramHandle: "", youtubeHandle: "", linkedinUrl: "", twitterUrl: "", cvFile: null,
 };
 
@@ -98,8 +99,9 @@ export default function OnboardingPage() {
         )}
 
         {step === "template" && data.profileType && (
-          <TemplatePickerStep profileType={data.profileType} templateId={data.templateId}
+          <TemplatePickerStep profileType={data.profileType} templateId={data.templateId} styleUrl={data.styleUrl}
             onSelect={(id) => updateData({ templateId: id })}
+            onStyleUrlChange={(url) => updateData({ styleUrl: url })}
             onBack={() => setStep("type")} onContinue={() => setStep("form")} />
         )}
 

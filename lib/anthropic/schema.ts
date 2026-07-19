@@ -14,10 +14,13 @@ const size = z.number().min(1).max(5).optional();
 // widgets à texte — remplacent le calcul par `size` quand ils sont définis.
 const fontSize   = z.number().min(10).max(72).optional();
 const fontFamily = z.string().optional();
+// Alignement horizontal façon Word — texte/citation uniquement (les autres
+// types n'ont pas de paragraphe libre à aligner).
+const align = z.enum(["left", "center", "right"]).optional();
 export const ContentBlockSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("image"),   url: z.string().default(""), caption: z.string().optional(), size }),
-  z.object({ type: z.literal("text"),    content: z.string().default(""), style: z.enum(["normal", "lead"]).default("normal"), size, fontSize, fontFamily }),
-  z.object({ type: z.literal("quote"),   text: z.string().default(""), author: z.string().optional(), size, fontSize, fontFamily }),
+  z.object({ type: z.literal("text"),    content: z.string().default(""), style: z.enum(["normal", "lead"]).default("normal"), size, fontSize, fontFamily, align }),
+  z.object({ type: z.literal("quote"),   text: z.string().default(""), author: z.string().optional(), size, fontSize, fontFamily, align }),
   z.object({ type: z.literal("stats"),   items: z.array(z.object({ label: z.string(), value: z.string() })).default([]), size, fontSize, fontFamily }),
   z.object({ type: z.literal("button"),  label: z.string().default("En savoir plus"), url: z.string().default("#"), variant: z.enum(["primary", "outline"]).default("primary"), size, fontSize, fontFamily }),
   z.object({ type: z.literal("divider"), size }),
@@ -25,7 +28,9 @@ export const ContentBlockSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("links"), items: z.array(z.object({ label: z.string().default(""), url: z.string().default("") })).default([]), size, fontSize, fontFamily }),
   // Le contenu natif de la section (texte, compétences, projets…) placé dans la
   // grille comme n'importe quel widget — un seul par section, non supprimable.
-  z.object({ type: z.literal("section_content"), size }),
+  // fontFamily/fontSize s'appliquent à tout le bloc (aucun élément interne ne
+  // fixe sa propre police, l'héritage CSS suffit à tout propager).
+  z.object({ type: z.literal("section_content"), size, fontSize, fontFamily }),
 ]);
 export type ContentBlock = z.infer<typeof ContentBlockSchema>;
 
@@ -96,12 +101,16 @@ const ThemeSchema = z.object({
   // rester visible/statique pour pouvoir cliquer et éditer sans surprise).
   smooth_scroll: z.boolean().optional().default(false), // nav/CTA : défilement fluide au lieu du saut instantané
   scroll_reveal: z.boolean().optional().default(false), // sections qui apparaissent en fondu au défilement
+  scroll_reveal_intensity: z.number().min(0).max(100).optional().default(50), // amplitude du glissement de l'apparition (0 = fondu seul, 100 = glissement prononcé)
   hero_parallax: z.boolean().optional().default(false), // fond du hero qui défile plus lentement que le contenu
 });
 
 const blocks        = z.array(BlockRowSchema).optional(); // legacy (lecture seule, migré vers grid)
 const grid          = z.array(GridItemSchema).optional();
 const content_aside = ContentAsideSchema.optional();
+// Alignement du titre de section — par défaut à gauche, réglable pour que les
+// sections restent visuellement cohérentes entre elles.
+const title_align   = z.enum(["left", "center", "right"]).optional();
 
 const HeroSectionSchema = z.object({
   type:          z.literal("hero"),
@@ -118,6 +127,7 @@ const HeroSectionSchema = z.object({
 const AboutSectionSchema = z.object({
   type:          z.literal("about"),
   section_title: z.string().optional(),
+  title_align,
   content:       z.string().default(""),
   highlight:     z.string().optional().nullable(),
   blocks,
@@ -128,6 +138,7 @@ const AboutSectionSchema = z.object({
 const SkillsSectionSchema = z.object({
   type:          z.literal("skills"),
   section_title: z.string().optional(),
+  title_align,
   hide_level:    z.boolean().optional(),
   items: z.array(z.object({
     name:     z.string(),
@@ -142,6 +153,7 @@ const SkillsSectionSchema = z.object({
 const ProjectsSectionSchema = z.object({
   type:          z.literal("projects"),
   section_title: z.string().optional(),
+  title_align,
   items: z.array(z.object({
     name:        z.string(),
     description: z.string(),
@@ -159,6 +171,7 @@ const ProjectsSectionSchema = z.object({
 const ExperienceSectionSchema = z.object({
   type:          z.literal("experience"),
   section_title: z.string().optional(),
+  title_align,
   items: z.array(z.object({
     company:     z.string(),
     role:        z.string(),
@@ -173,6 +186,7 @@ const ExperienceSectionSchema = z.object({
 const ContactSectionSchema = z.object({
   type:          z.literal("contact"),
   section_title: z.string().optional(),
+  title_align,
   email:         z.string().email().catch("contact@example.com"),
   message:       z.string().default(""),
   links: z.array(z.object({
