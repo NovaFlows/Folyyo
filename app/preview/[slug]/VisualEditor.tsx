@@ -268,6 +268,31 @@ export default function VisualEditor({ initialData, portfolioId, slug, profileTy
   // Section drag (reorder sections)
   const [secDragSrc, setSecDragSrc]   = useState<number | null>(null);
   const [secDragOver, setSecDragOver] = useState<number | null>(null);
+  // Auto-scroll pendant le drag d'une section : le panneau preview a sa
+  // propre zone de scroll (pas la fenêtre), donc le navigateur ne scrolle
+  // jamais tout seul en approchant du bord pendant un drag natif HTML5.
+  const previewScrollRef = useRef<HTMLDivElement>(null);
+  const dragYRef          = useRef<number | null>(null);
+  useEffect(() => {
+    if (secDragSrc === null) return;
+    const EDGE = 90, MAX_SPEED = 18;
+    let raf = 0;
+    const tick = () => {
+      const el = previewScrollRef.current;
+      const y = dragYRef.current;
+      if (el && y !== null) {
+        const rect = el.getBoundingClientRect();
+        if (y < rect.top + EDGE) {
+          el.scrollTop -= MAX_SPEED * (1 - Math.max(0, y - rect.top) / EDGE);
+        } else if (y > rect.bottom - EDGE) {
+          el.scrollTop += MAX_SPEED * (1 - Math.max(0, rect.bottom - y) / EDGE);
+        }
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [secDragSrc]);
   // Vrai pendant un drag/resize react-grid-layout : le click de fin de geste
   // remonte au wrapper de section (ancêtre commun mousedown/mouseup) et ne doit
   // pas sélectionner la section.
@@ -408,7 +433,9 @@ export default function VisualEditor({ initialData, portfolioId, slug, profileTy
   return (
     <div style={{ display:"flex", height:"100vh", overflow:"hidden", fontFamily:"system-ui,sans-serif" }}>
       {/* ── LEFT ── */}
-      <div style={{ flex:1, overflowY:"auto", minWidth:0 }}>
+      <div ref={previewScrollRef} style={{ flex:1, overflowY:"auto", minWidth:0 }}
+        onDragOver={e => { if (secDragSrc !== null) dragYRef.current = e.clientY; }}
+        onDragEnd={() => { dragYRef.current = null; }}>
         <div style={{ position:"sticky", top:0, zIndex:100, background:"#1c1917", height:52, display:"flex", alignItems:"center", padding:"0 1.25rem", gap:"0.75rem" }}>
           <button onClick={() => router.push(`/portfolio/${portfolioId}`)} style={{ color:"#c9a96e", background:"none", border:"none", cursor:"pointer", fontSize:"0.875rem", whiteSpace:"nowrap" }}>← Retour</button>
           <span style={{ flex:1, fontSize:"0.7rem", color:"#6b7280" }}>
