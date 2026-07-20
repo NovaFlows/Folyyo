@@ -1642,6 +1642,7 @@ function ProjectPicker({ kind, usernameOrHandle, existing, onClose, onApply }: {
   const [repos, setRepos]     = useState<GitHubRepo[] | null>(null);
   const [videos, setVideos]   = useState<YouTubeVideo[] | null>(null);
   const [error, setError]     = useState<string | null>(null);
+  const [applying, setApplying] = useState(false);
   const existingKeys = new Set(
     existing.map((p) => (kind === "github" ? p.github_url : p.live_url)).filter(Boolean) as string[]
   );
@@ -1678,16 +1679,42 @@ function ProjectPicker({ kind, usernameOrHandle, existing, onClose, onApply }: {
     });
   }
 
-  function handleApply() {
-    const added: ProjectItem[] = [];
-    if (kind === "github" && repos) for (const r of repos) if (selected.has(r.html_url) && !existingKeys.has(r.html_url)) added.push(repoToProject(r));
+  async function handleApply() {
+    const addedRepos: GitHubRepo[] = [];
+    const addedVideos: YouTubeVideo[] = [];
+    if (kind === "github" && repos) for (const r of repos) if (selected.has(r.html_url) && !existingKeys.has(r.html_url)) addedRepos.push(r);
     if (kind === "youtube" && videos) for (const v of videos) {
       const url = `https://www.youtube.com/watch?v=${v.videoId}`;
-      if (selected.has(url) && !existingKeys.has(url)) added.push(videoToProject(v));
+      if (selected.has(url) && !existingKeys.has(url)) addedVideos.push(v);
     }
     const removedKeys = Array.from(existingKeys).filter((k) => !selected.has(k));
-    if (added.length || removedKeys.length) onApply(added, removedKeys);
-    else onClose();
+    const added: ProjectItem[] = [...addedRepos.map(repoToProject), ...addedVideos.map(videoToProject)];
+
+    if (!added.length && !removedKeys.length) { onClose(); return; }
+
+    // Résumé rédigé par l'IA pour chaque nouvel élément — la description brute
+    // GitHub/YouTube est souvent vide ou trop technique, contrairement aux
+    // descriptions écrites par Claude à la génération initiale du portfolio.
+    if (added.length) {
+      setApplying(true);
+      try {
+        const items = [
+          ...addedRepos.map((r) => ({ name: r.name, kind: "github" as const, description: r.description, language: r.language, topics: r.topics })),
+          ...addedVideos.map((v) => ({ name: v.title, kind: "youtube" as const, description: v.description })),
+        ];
+        const res = await fetch("/api/portfolio/summarize-projects", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ items }),
+        });
+        const data = await res.json();
+        if (res.ok && Array.isArray(data.descriptions)) {
+          data.descriptions.forEach((d: string, i: number) => { if (d) added[i] = { ...added[i], description: d }; });
+        }
+      } catch { /* best-effort — garde la description brute en repli */ }
+      setApplying(false);
+    }
+    onApply(added, removedKeys);
   }
 
   const loading = kind === "github" ? repos === null : videos === null;
@@ -1739,9 +1766,9 @@ function ProjectPicker({ kind, usernameOrHandle, existing, onClose, onApply }: {
           })}
         </div>
         <div style={{ padding: "0.875rem 1.25rem", borderTop: "1px solid rgba(0,0,0,0.06)" }}>
-          <button onClick={handleApply} disabled={!changed}
-            style={{ width: "100%", padding: "0.6rem", fontSize: "0.8rem", fontWeight: 600, borderRadius: "0.5rem", border: "none", cursor: !changed ? "default" : "pointer", background: !changed ? "#f0ece6" : "#1c1917", color: !changed ? "#a09a94" : "white" }}>
-            {changed ? "Appliquer la sélection" : "Aucun changement"}
+          <button onClick={handleApply} disabled={!changed || applying}
+            style={{ width: "100%", padding: "0.6rem", fontSize: "0.8rem", fontWeight: 600, borderRadius: "0.5rem", border: "none", cursor: (!changed || applying) ? "default" : "pointer", background: (!changed || applying) ? "#f0ece6" : "#1c1917", color: (!changed || applying) ? "#a09a94" : "white" }}>
+            {applying ? "Rédaction des résumés…" : changed ? "Appliquer la sélection" : "Aucun changement"}
           </button>
         </div>
       </div>
