@@ -1600,17 +1600,26 @@ function videoToProject(v: YouTubeVideo): ProjectItem {
   };
 }
 
-function ProjectPicker({ kind, usernameOrHandle, existing, onClose, onImport }: {
+// Sélection à deux sens : coché = présent dans le portfolio à la validation,
+// décoché = absent — pas juste un "importeur" à sens unique. Les éléments déjà
+// dans le portfolio apparaissent pré-cochés (décocher les retire) ; les
+// nouveaux se cochent pour les ajouter. `onApply` reçoit les items à ajouter
+// et les clés (github_url / URL YouTube) des items désormais décochés à retirer.
+function ProjectPicker({ kind, usernameOrHandle, existing, onClose, onApply }: {
   kind: "github" | "youtube";
   usernameOrHandle: string;
   existing: ProjectItem[];
   onClose: () => void;
-  onImport: (items: ProjectItem[]) => void;
+  onApply: (added: ProjectItem[], removedKeys: string[]) => void;
 }) {
   const [repos, setRepos]     = useState<GitHubRepo[] | null>(null);
   const [videos, setVideos]   = useState<YouTubeVideo[] | null>(null);
   const [error, setError]     = useState<string | null>(null);
-  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const existingKeys = new Set(
+    existing.map((p) => (kind === "github" ? p.github_url : p.live_url)).filter(Boolean) as string[]
+  );
+  // Pré-coché avec ce qui est déjà dans le portfolio ; décocher = retirer.
+  const [selected, setSelected] = useState<Set<string>>(() => new Set(existingKeys));
 
   useEffect(() => {
     let cancelled = false;
@@ -1634,8 +1643,6 @@ function ProjectPicker({ kind, usernameOrHandle, existing, onClose, onImport }: 
     return () => { cancelled = true; };
   }, [kind, usernameOrHandle]);
 
-  const existingKeys = new Set(existing.map((p) => p.github_url || p.live_url).filter(Boolean));
-
   function toggle(key: string) {
     setSelected((prev) => {
       const next = new Set(prev);
@@ -1644,23 +1651,32 @@ function ProjectPicker({ kind, usernameOrHandle, existing, onClose, onImport }: 
     });
   }
 
-  function handleImport() {
-    const items: ProjectItem[] = [];
-    if (kind === "github" && repos) for (const r of repos) if (selected.has(r.html_url)) items.push(repoToProject(r));
-    if (kind === "youtube" && videos) for (const v of videos) if (selected.has(v.videoId)) items.push(videoToProject(v));
-    if (items.length) onImport(items);
+  function handleApply() {
+    const added: ProjectItem[] = [];
+    if (kind === "github" && repos) for (const r of repos) if (selected.has(r.html_url) && !existingKeys.has(r.html_url)) added.push(repoToProject(r));
+    if (kind === "youtube" && videos) for (const v of videos) {
+      const url = `https://www.youtube.com/watch?v=${v.videoId}`;
+      if (selected.has(url) && !existingKeys.has(url)) added.push(videoToProject(v));
+    }
+    const removedKeys = Array.from(existingKeys).filter((k) => !selected.has(k));
+    if (added.length || removedKeys.length) onApply(added, removedKeys);
+    else onClose();
   }
 
   const loading = kind === "github" ? repos === null : videos === null;
-  const rowStyle: React.CSSProperties = { display: "flex", alignItems: "flex-start", gap: "0.625rem", padding: "0.5rem 0", borderBottom: "1px solid rgba(0,0,0,0.04)" };
+  const changed = selected.size !== existingKeys.size || Array.from(selected).some((k) => !existingKeys.has(k));
+  const rowStyle: React.CSSProperties = { display: "flex", alignItems: "flex-start", gap: "0.625rem", padding: "0.5rem 0", borderBottom: "1px solid rgba(0,0,0,0.04)", cursor: "pointer" };
 
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", padding: "1.5rem" }} onClick={onClose}>
       <div style={{ background: "white", borderRadius: "1rem", width: "100%", maxWidth: 480, maxHeight: "80vh", display: "flex", flexDirection: "column", overflow: "hidden" }} onClick={(e) => e.stopPropagation()}>
         <div style={{ padding: "1rem 1.25rem", borderBottom: "1px solid rgba(0,0,0,0.06)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <h3 style={{ fontSize: "0.875rem", fontWeight: 600, color: "#1c1917", margin: 0 }}>
-            {kind === "github" ? "Tes repos GitHub" : "Tes vidéos YouTube"}
-          </h3>
+          <div>
+            <h3 style={{ fontSize: "0.875rem", fontWeight: 600, color: "#1c1917", margin: 0 }}>
+              {kind === "github" ? "Tes repos GitHub" : "Tes vidéos YouTube"}
+            </h3>
+            <p style={{ fontSize: "0.675rem", color: "#a09a94", margin: "0.15rem 0 0" }}>Coche ce que tu veux garder dans ton portfolio, décoche le reste</p>
+          </div>
           <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", fontSize: "1rem", color: "#a09a94" }}>✕</button>
         </div>
         <div style={{ overflowY: "auto", flex: 1, padding: "0.25rem 1.25rem" }}>
@@ -1669,13 +1685,12 @@ function ProjectPicker({ kind, usernameOrHandle, existing, onClose, onImport }: 
           {!error && !loading && kind === "github" && repos?.length === 0 && <p style={{ fontSize: "0.75rem", color: "#a09a94", padding: "0.75rem 0" }}>Aucun repo public trouvé.</p>}
           {!error && !loading && kind === "youtube" && videos?.length === 0 && <p style={{ fontSize: "0.75rem", color: "#a09a94", padding: "0.75rem 0" }}>Aucune vidéo trouvée.</p>}
           {kind === "github" && repos?.map((r) => {
-            const already = existingKeys.has(r.html_url);
-            const checked = already || selected.has(r.html_url);
+            const checked = selected.has(r.html_url);
             return (
-              <label key={r.id} style={{ ...rowStyle, cursor: already ? "default" : "pointer", opacity: already ? 0.5 : 1 }}>
-                <input type="checkbox" checked={checked} disabled={already} onChange={() => toggle(r.html_url)} style={{ marginTop: 3, accentColor: "#c9a96e" }} />
+              <label key={r.id} style={rowStyle}>
+                <input type="checkbox" checked={checked} onChange={() => toggle(r.html_url)} style={{ marginTop: 3, accentColor: "#c9a96e" }} />
                 <div style={{ minWidth: 0, flex: 1 }}>
-                  <p style={{ fontSize: "0.8rem", fontWeight: 600, color: "#1c1917", margin: 0 }}>{r.name}{already ? " · déjà importé" : ""}</p>
+                  <p style={{ fontSize: "0.8rem", fontWeight: 600, color: "#1c1917", margin: 0 }}>{r.name}</p>
                   {r.description && <p style={{ fontSize: "0.7rem", color: "#78716c", margin: "0.15rem 0 0" }}>{r.description}</p>}
                   <p style={{ fontSize: "0.65rem", color: "#a09a94", margin: "0.15rem 0 0" }}>{r.language ?? "—"}{r.stargazers_count > 0 ? ` · ★ ${r.stargazers_count}` : ""}</p>
                 </div>
@@ -1684,23 +1699,22 @@ function ProjectPicker({ kind, usernameOrHandle, existing, onClose, onImport }: 
           })}
           {kind === "youtube" && videos?.map((v) => {
             const url = `https://www.youtube.com/watch?v=${v.videoId}`;
-            const already = existingKeys.has(url);
-            const checked = already || selected.has(v.videoId);
+            const checked = selected.has(url);
             return (
-              <label key={v.videoId} style={{ ...rowStyle, cursor: already ? "default" : "pointer", opacity: already ? 0.5 : 1 }}>
-                <input type="checkbox" checked={checked} disabled={already} onChange={() => toggle(v.videoId)} style={{ marginTop: 3, accentColor: "#c9a96e" }} />
+              <label key={v.videoId} style={rowStyle}>
+                <input type="checkbox" checked={checked} onChange={() => toggle(url)} style={{ marginTop: 3, accentColor: "#c9a96e" }} />
                 {v.thumbnail && <img src={v.thumbnail} alt="" style={{ width: 56, height: 32, objectFit: "cover", borderRadius: "0.25rem", flexShrink: 0 }} />}
                 <div style={{ minWidth: 0, flex: 1 }}>
-                  <p style={{ fontSize: "0.8rem", fontWeight: 600, color: "#1c1917", margin: 0 }}>{v.title}{already ? " · déjà importé" : ""}</p>
+                  <p style={{ fontSize: "0.8rem", fontWeight: 600, color: "#1c1917", margin: 0 }}>{v.title}</p>
                 </div>
               </label>
             );
           })}
         </div>
         <div style={{ padding: "0.875rem 1.25rem", borderTop: "1px solid rgba(0,0,0,0.06)" }}>
-          <button onClick={handleImport} disabled={selected.size === 0}
-            style={{ width: "100%", padding: "0.6rem", fontSize: "0.8rem", fontWeight: 600, borderRadius: "0.5rem", border: "none", cursor: selected.size === 0 ? "default" : "pointer", background: selected.size === 0 ? "#f0ece6" : "#1c1917", color: selected.size === 0 ? "#a09a94" : "white" }}>
-            Importer{selected.size > 0 ? ` (${selected.size})` : ""}
+          <button onClick={handleApply} disabled={!changed}
+            style={{ width: "100%", padding: "0.6rem", fontSize: "0.8rem", fontWeight: 600, borderRadius: "0.5rem", border: "none", cursor: !changed ? "default" : "pointer", background: !changed ? "#f0ece6" : "#1c1917", color: !changed ? "#a09a94" : "white" }}>
+            {changed ? "Appliquer la sélection" : "Aucun changement"}
           </button>
         </div>
       </div>
@@ -1840,7 +1854,12 @@ function SectionEditor({ section, idx, updateSection, removeSection, onClose, me
           return (
             <ProjectPicker kind={picker} usernameOrHandle={usernameOrHandle} existing={section.items}
               onClose={()=>setPicker(null)}
-              onImport={(items)=>{update({...section,items:[...section.items,...items]});setPicker(null);}}/>
+              onApply={(added,removedKeys)=>{
+                const keyOf = (p:ProjectItem)=>picker==="github"?p.github_url:p.live_url;
+                const kept = section.items.filter(p=>{const k=keyOf(p);return !k||!removedKeys.includes(k);});
+                update({...section,items:[...kept,...added]});
+                setPicker(null);
+              }}/>
           );
         })()}
       </div>}
