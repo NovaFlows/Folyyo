@@ -11,7 +11,10 @@ function headers() {
   };
 }
 
-export async function fetchGitHubData(username: string): Promise<GitHubData> {
+// limit=6 par défaut (utilisé à la génération/rafraîchissement, on ne veut
+// que les meilleurs) ; le picker de l'éditeur ("parcourir tous mes repos")
+// passe une limite plus large pour lister tout le catalogue.
+export async function fetchGitHubData(username: string, limit = 6): Promise<GitHubData> {
   const [userRes, reposRes] = await Promise.all([
     fetch(`${BASE}/users/${username}`, { headers: headers() }),
     fetch(`${BASE}/users/${username}/repos?per_page=100&sort=updated`, {
@@ -27,11 +30,11 @@ export async function fetchGitHubData(username: string): Promise<GitHubData> {
   const user = await userRes.json();
   const allRepos: GitHubRepo[] = reposRes.ok ? await reposRes.json() : [];
 
-  // Filter out forks, keep top 6 by stars
+  // Filter out forks, keep top N by stars
   const ownRepos = allRepos
     .filter((r) => !r.fork)
     .sort((a, b) => b.stargazers_count - a.stargazers_count)
-    .slice(0, 6)
+    .slice(0, limit)
     .map((r) => ({
       id: r.id,
       name: r.name,

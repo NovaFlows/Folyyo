@@ -8,9 +8,11 @@ export async function GET(request: NextRequest) {
 
   const username = request.nextUrl.searchParams.get("username");
   if (!username) return NextResponse.json({ error: "Paramètre username manquant" }, { status: 400 });
+  const limitParam = request.nextUrl.searchParams.get("limit");
+  const limit = limitParam ? Math.min(100, Math.max(1, Number(limitParam) || 6)) : undefined;
 
   try {
-    const githubData = await fetchGitHubData(username);
+    const githubData = await fetchGitHubData(username, limit);
     return NextResponse.json({ githubData });
   } catch (err) {
     return NextResponse.json({ error: (err as Error).message }, { status: 400 });

@@ -12,8 +12,12 @@ async function ytFetch(url: string) {
   return res.json() as Promise<Record<string, unknown>>;
 }
 
-export async function fetchYouTubeData(handle: string): Promise<YouTubeData> {
+// limit=10 par défaut (génération/rafraîchissement) ; le picker de l'éditeur
+// ("parcourir toutes mes vidéos") passe une limite plus large. L'API YouTube
+// plafonne playlistItems à 50 résultats par page.
+export async function fetchYouTubeData(handle: string, limit = 10): Promise<YouTubeData> {
   if (!YT_KEY) throw new Error("YOUTUBE_API_KEY non configurée");
+  const maxResults = Math.min(50, Math.max(1, limit));
 
   // 1. Resolve channel — try forHandle first (works for @handle), fallback to forUsername
   let channelRes = await ytFetch(
@@ -48,9 +52,9 @@ export async function fetchYouTubeData(handle: string): Promise<YouTubeData> {
   const viewCount        = parseInt(channel.statistics.viewCount ?? "0", 10);
   const uploadsPlaylist  = channel.contentDetails.relatedPlaylists.uploads;
 
-  // 2. Get recent 10 video IDs from uploads playlist
+  // 2. Get recent video IDs from uploads playlist
   const playlistRes = await ytFetch(
-    `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId=${uploadsPlaylist}&maxResults=10&key=${YT_KEY}`
+    `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId=${uploadsPlaylist}&maxResults=${maxResults}&key=${YT_KEY}`
   );
 
   const playlistItems = (playlistRes.items as { snippet: { resourceId: { videoId: string }; publishedAt: string } }[]) ?? [];

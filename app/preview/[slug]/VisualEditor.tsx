@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import RGL from "react-grid-layout";
 import type { ValidatedPortfolioJSON, ContentBlock, GridItem } from "@/lib/anthropic/schema";
+import type { GitHubRepo, YouTubeVideo } from "@/types/portfolio";
 import { THEME_PRESETS } from "@/lib/portfolio/themes";
 import { BlockContent, WidgetFrame, nativeZoom, WIDGET_FONT_OPTIONS, WIDGET_FONT_SIZES, type WidgetStyle } from "@/components/portfolio/blocks";
 import { GRID_COLS, GRID_ROW_HEIGHT, GRID_MARGIN, DEFAULT_SIZE, MIN_SIZE, gridUid, sortGridItems, nextY, migrateToGrid, nativeContentH, getGrid, applyGrid, resolveNativeOverlap } from "@/lib/portfolio/grid";
@@ -16,6 +17,7 @@ type Layout = RGL.Layout;
 type VSection = ValidatedPortfolioJSON["sections"][number];
 type VMeta    = ValidatedPortfolioJSON["meta"];
 type VTheme   = ValidatedPortfolioJSON["theme"];
+type ProjectItem = Extract<VSection, { type: "projects" }>["items"][number];
 
 // Item retourné par /api/community/featured — portfolios vedettes utilisables
 // comme style de départ depuis l'éditeur (cf. panneau "Communauté" du thème).
@@ -1570,6 +1572,142 @@ function ThemeEditor({ meta, theme, updateMeta, updateTheme, profileType, portfo
 // ── Section editor ─────────────────────────────────────────────────────────────
 const SLABELS:Record<string,string>={hero:"Hero",about:"À propos",skills:"Compétences",projects:"Projets",experience:"Expérience",contact:"Contact"};
 
+// ── Picker "parcourir tous mes repos/vidéos" (façon import Vercel) ────────────
+// Le fetch de génération/rafraîchissement ne garde que le top 6 repos / 10
+// vidéos ; ce picker demande la liste complète (limit=50) pour laisser le
+// client choisir lui-même quoi mettre en avant, plutôt que de subir le tri
+// automatique.
+function repoToProject(r: GitHubRepo): ProjectItem {
+  return {
+    name: r.name,
+    description: r.description ?? "",
+    tech_stack: r.language ? [r.language] : [],
+    github_url: r.html_url,
+    live_url: r.homepage || undefined,
+    stars: r.stargazers_count,
+    image_url: "",
+  };
+}
+function videoToProject(v: YouTubeVideo): ProjectItem {
+  return {
+    name: v.title,
+    description: v.description ?? "",
+    tech_stack: [],
+    github_url: undefined,
+    live_url: `https://www.youtube.com/watch?v=${v.videoId}`,
+    stars: null,
+    image_url: v.thumbnail ?? "",
+  };
+}
+
+function ProjectPicker({ kind, usernameOrHandle, existing, onClose, onImport }: {
+  kind: "github" | "youtube";
+  usernameOrHandle: string;
+  existing: ProjectItem[];
+  onClose: () => void;
+  onImport: (items: ProjectItem[]) => void;
+}) {
+  const [repos, setRepos]     = useState<GitHubRepo[] | null>(null);
+  const [videos, setVideos]   = useState<YouTubeVideo[] | null>(null);
+  const [error, setError]     = useState<string | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        if (kind === "github") {
+          const res = await fetch(`/api/github/fetch?username=${encodeURIComponent(usernameOrHandle)}&limit=50`);
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || "Impossible de récupérer tes repos GitHub");
+          if (!cancelled) setRepos((data.githubData?.repos ?? []) as GitHubRepo[]);
+        } else {
+          const res = await fetch(`/api/youtube/fetch?handle=${encodeURIComponent(usernameOrHandle)}&limit=50`);
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || "Impossible de récupérer tes vidéos YouTube");
+          if (!cancelled) setVideos((data.youtubeData?.videos ?? []) as YouTubeVideo[]);
+        }
+      } catch (e) {
+        if (!cancelled) setError((e as Error).message);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [kind, usernameOrHandle]);
+
+  const existingKeys = new Set(existing.map((p) => p.github_url || p.live_url).filter(Boolean));
+
+  function toggle(key: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      return next;
+    });
+  }
+
+  function handleImport() {
+    const items: ProjectItem[] = [];
+    if (kind === "github" && repos) for (const r of repos) if (selected.has(r.html_url)) items.push(repoToProject(r));
+    if (kind === "youtube" && videos) for (const v of videos) if (selected.has(v.videoId)) items.push(videoToProject(v));
+    if (items.length) onImport(items);
+  }
+
+  const loading = kind === "github" ? repos === null : videos === null;
+  const rowStyle: React.CSSProperties = { display: "flex", alignItems: "flex-start", gap: "0.625rem", padding: "0.5rem 0", borderBottom: "1px solid rgba(0,0,0,0.04)" };
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", padding: "1.5rem" }} onClick={onClose}>
+      <div style={{ background: "white", borderRadius: "1rem", width: "100%", maxWidth: 480, maxHeight: "80vh", display: "flex", flexDirection: "column", overflow: "hidden" }} onClick={(e) => e.stopPropagation()}>
+        <div style={{ padding: "1rem 1.25rem", borderBottom: "1px solid rgba(0,0,0,0.06)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <h3 style={{ fontSize: "0.875rem", fontWeight: 600, color: "#1c1917", margin: 0 }}>
+            {kind === "github" ? "Tes repos GitHub" : "Tes vidéos YouTube"}
+          </h3>
+          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", fontSize: "1rem", color: "#a09a94" }}>✕</button>
+        </div>
+        <div style={{ overflowY: "auto", flex: 1, padding: "0.25rem 1.25rem" }}>
+          {error && <p style={{ fontSize: "0.75rem", color: "#dc2626", padding: "0.75rem 0" }}>{error}</p>}
+          {!error && loading && <p style={{ fontSize: "0.75rem", color: "#a09a94", padding: "0.75rem 0" }}>Chargement…</p>}
+          {!error && !loading && kind === "github" && repos?.length === 0 && <p style={{ fontSize: "0.75rem", color: "#a09a94", padding: "0.75rem 0" }}>Aucun repo public trouvé.</p>}
+          {!error && !loading && kind === "youtube" && videos?.length === 0 && <p style={{ fontSize: "0.75rem", color: "#a09a94", padding: "0.75rem 0" }}>Aucune vidéo trouvée.</p>}
+          {kind === "github" && repos?.map((r) => {
+            const already = existingKeys.has(r.html_url);
+            const checked = already || selected.has(r.html_url);
+            return (
+              <label key={r.id} style={{ ...rowStyle, cursor: already ? "default" : "pointer", opacity: already ? 0.5 : 1 }}>
+                <input type="checkbox" checked={checked} disabled={already} onChange={() => toggle(r.html_url)} style={{ marginTop: 3, accentColor: "#c9a96e" }} />
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <p style={{ fontSize: "0.8rem", fontWeight: 600, color: "#1c1917", margin: 0 }}>{r.name}{already ? " · déjà importé" : ""}</p>
+                  {r.description && <p style={{ fontSize: "0.7rem", color: "#78716c", margin: "0.15rem 0 0" }}>{r.description}</p>}
+                  <p style={{ fontSize: "0.65rem", color: "#a09a94", margin: "0.15rem 0 0" }}>{r.language ?? "—"}{r.stargazers_count > 0 ? ` · ★ ${r.stargazers_count}` : ""}</p>
+                </div>
+              </label>
+            );
+          })}
+          {kind === "youtube" && videos?.map((v) => {
+            const url = `https://www.youtube.com/watch?v=${v.videoId}`;
+            const already = existingKeys.has(url);
+            const checked = already || selected.has(v.videoId);
+            return (
+              <label key={v.videoId} style={{ ...rowStyle, cursor: already ? "default" : "pointer", opacity: already ? 0.5 : 1 }}>
+                <input type="checkbox" checked={checked} disabled={already} onChange={() => toggle(v.videoId)} style={{ marginTop: 3, accentColor: "#c9a96e" }} />
+                {v.thumbnail && <img src={v.thumbnail} alt="" style={{ width: 56, height: 32, objectFit: "cover", borderRadius: "0.25rem", flexShrink: 0 }} />}
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <p style={{ fontSize: "0.8rem", fontWeight: 600, color: "#1c1917", margin: 0 }}>{v.title}{already ? " · déjà importé" : ""}</p>
+                </div>
+              </label>
+            );
+          })}
+        </div>
+        <div style={{ padding: "0.875rem 1.25rem", borderTop: "1px solid rgba(0,0,0,0.06)" }}>
+          <button onClick={handleImport} disabled={selected.size === 0}
+            style={{ width: "100%", padding: "0.6rem", fontSize: "0.8rem", fontWeight: 600, borderRadius: "0.5rem", border: "none", cursor: selected.size === 0 ? "default" : "pointer", background: selected.size === 0 ? "#f0ece6" : "#1c1917", color: selected.size === 0 ? "#a09a94" : "white" }}>
+            Importer{selected.size > 0 ? ` (${selected.size})` : ""}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function SectionEditor({ section, idx, updateSection, removeSection, onClose, meta, updateMeta, onAddBlock, onSelectBlock, onRemoveBlock }: {
   section:VSection; idx:number;
   updateSection:(i:number,s:VSection)=>void; removeSection:(i:number)=>void;
@@ -1579,6 +1717,7 @@ function SectionEditor({ section, idx, updateSection, removeSection, onClose, me
   onRemoveBlock:(id:string)=>void;
 }) {
   const update=(s:VSection)=>updateSection(idx,s);
+  const [picker,setPicker]=useState<"github"|"youtube"|null>(null);
   const gridItems=sortGridItems(getGrid(section)).filter(it=>it.block.type!=="section_content");
   const tl:Record<string,string> = Object.fromEntries(BLOCK_SUGGESTIONS.map(s=>[s.type,`${s.icon} ${s.label}`]));
   // Police & taille du contenu natif (bloc "section_content" de la grille) —
@@ -1674,6 +1813,12 @@ function SectionEditor({ section, idx, updateSection, removeSection, onClose, me
         <button onClick={()=>{const it=[...section.items,{name:"Nouvelle compétence",level:3,category:"Général"}];update({...section,items:it});}} style={{width:"100%",padding:"0.4rem",fontSize:"0.75rem",color:"#c9a96e",background:"rgba(201,169,110,0.08)",border:"1px dashed rgba(201,169,110,0.4)",borderRadius:"0.5rem",cursor:"pointer"}}>+ Ajouter</button>
       </div>}
       {section.type==="projects"&&<div>
+        {(meta.github_url||meta.youtube_url)&&(
+          <div style={{display:"flex",gap:"0.5rem",marginBottom:"0.75rem",flexWrap:"wrap"}}>
+            {meta.github_url&&<button onClick={()=>setPicker("github")} style={{flex:1,minWidth:140,padding:"0.4rem 0.5rem",fontSize:"0.7rem",fontWeight:600,color:"#1c1917",background:"white",border:"1px solid rgba(0,0,0,0.1)",borderRadius:"0.5rem",cursor:"pointer"}}>📦 Parcourir mes repos GitHub</button>}
+            {meta.youtube_url&&<button onClick={()=>setPicker("youtube")} style={{flex:1,minWidth:140,padding:"0.4rem 0.5rem",fontSize:"0.7rem",fontWeight:600,color:"#1c1917",background:"white",border:"1px solid rgba(0,0,0,0.1)",borderRadius:"0.5rem",cursor:"pointer"}}>▶ Parcourir mes vidéos YouTube</button>}
+          </div>
+        )}
         {section.items.map((p,pi)=>{const img=(p as {image_url?:string}).image_url;return(
           <div key={pi} style={{marginBottom:"0.75rem",padding:"0.75rem",background:"white",borderRadius:"0.5rem",border:"1px solid rgba(0,0,0,0.06)"}}>
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"0.5rem"}}>
@@ -1688,6 +1833,16 @@ function SectionEditor({ section, idx, updateSection, removeSection, onClose, me
           </div>
         );})}
         <button onClick={()=>{const it=[...section.items,{name:"Nouveau",description:"",tech_stack:[],github_url:undefined,live_url:undefined,stars:null,image_url:""}];update({...section,items:it});}} style={{width:"100%",padding:"0.4rem",fontSize:"0.75rem",color:"#c9a96e",background:"rgba(201,169,110,0.08)",border:"1px dashed rgba(201,169,110,0.4)",borderRadius:"0.5rem",cursor:"pointer"}}>+ Ajouter</button>
+        {picker&&(()=>{
+          const raw = picker==="github"?meta.github_url:meta.youtube_url;
+          if (!raw) return null;
+          const usernameOrHandle = picker==="github"?extractGithubUsername(raw):extractYoutubeHandle(raw);
+          return (
+            <ProjectPicker kind={picker} usernameOrHandle={usernameOrHandle} existing={section.items}
+              onClose={()=>setPicker(null)}
+              onImport={(items)=>{update({...section,items:[...section.items,...items]});setPicker(null);}}/>
+          );
+        })()}
       </div>}
       {section.type==="experience"&&<div>
         {section.items.map((exp,ei)=>(
