@@ -1,6 +1,7 @@
 "use client";
 
 import { PROFILE_LABEL } from "@/lib/profile-labels";
+import type { Dictionary } from "@/lib/i18n/dictionaries/fr";
 
 export interface TemplateCardData {
   id: string;
@@ -17,13 +18,18 @@ export interface TemplateCardData {
   };
 }
 
-export default function TemplateCard({ data, selected, onSelect, showPreviewLink }: {
+export default function TemplateCard({ data, selected, onSelect, showPreviewLink, t }: {
   data: TemplateCardData;
   selected?: boolean;
   onSelect?: () => void;
   showPreviewLink?: boolean;
+  t?: Dictionary["templateCard"];
 }) {
   const { profileType, name, title, tagline, slug, theme, id } = data;
+  const tc = t ?? {
+    font: "police", selected: "✓ Sélectionné", chooseStyle: "Choisir ce style",
+    viewSite: "Voir le site ↗", useStyle: "Utiliser ce style",
+  };
 
   return (
     <div
@@ -53,7 +59,7 @@ export default function TemplateCard({ data, selected, onSelect, showPreviewLink
       {tagline && <p className="text-xs mb-4 line-clamp-2" style={{ color: "#78716c" }}>{tagline}</p>}
 
       <p className="mono text-xs mb-4" style={{ color: "#c8c4bf" }}>
-        police <span style={{ color: "#a09a94" }}>{theme.font_heading}</span>
+        {tc.font} <span style={{ color: "#a09a94" }}>{theme.font_heading}</span>
       </p>
 
       <div className="flex gap-2">
@@ -64,7 +70,7 @@ export default function TemplateCard({ data, selected, onSelect, showPreviewLink
               background: selected ? "#1c1917" : "rgba(201,169,110,0.1)",
               color: selected ? "white" : "#c9a96e",
             }}>
-            {selected ? "✓ Sélectionné" : "Choisir ce style"}
+            {selected ? tc.selected : tc.chooseStyle}
           </button>
         )}
         {showPreviewLink && slug && (
@@ -72,7 +78,7 @@ export default function TemplateCard({ data, selected, onSelect, showPreviewLink
             onClick={(e) => e.stopPropagation()}
             className="flex-1 rounded-xl py-2 text-center text-xs font-medium transition hover:opacity-70"
             style={{ border: "1px solid rgba(0,0,0,0.08)", color: "#78716c" }}>
-            Voir le site ↗
+            {tc.viewSite}
           </a>
         )}
         {showPreviewLink && (
@@ -80,7 +86,7 @@ export default function TemplateCard({ data, selected, onSelect, showPreviewLink
             onClick={(e) => e.stopPropagation()}
             className="flex-1 rounded-xl py-2 text-center text-xs font-medium transition hover:opacity-70"
             style={{ background: "rgba(201,169,110,0.1)", color: "#c9a96e" }}>
-            Utiliser ce style
+            {tc.useStyle}
           </a>
         )}
       </div>

@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { deletePortfolio, updatePortfolioJsonAndCode, getPortfolioById } from "@/lib/db/queries";
+import { deletePortfolio, updatePortfolioJsonAndCode, getPortfolioById, getUserSettings } from "@/lib/db/queries";
 import { PortfolioJSONSchema } from "@/lib/anthropic/schema";
 import { generateDeveloperCode } from "@/lib/portfolio/code-generator";
 import { writeSourceCode } from "@/lib/dev-storage";
 import { keys } from "@/lib/r2/client";
+import { hasActiveAccess } from "@/lib/billing/access";
 
 // Statut du portfolio — utilisé par PortfolioEditor pour savoir si une édition IA
 // est encore en cours (barre de chargement persistante après un refresh).
@@ -28,6 +29,17 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
 export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
+
+  // Vérification de propriétaire manquante jusqu'ici — n'importe quel compte
+  // connecté pouvait écraser le site_json de n'importe quel portfolio en
+  // connaissant simplement son id.
+  const portfolio = await getPortfolioById(params.id, userId);
+  if (!portfolio) return NextResponse.json({ error: "Introuvable" }, { status: 404 });
+
+  const settings = await getUserSettings(userId);
+  if (!settings || !hasActiveAccess(settings)) {
+    return NextResponse.json({ error: "Ton essai gratuit est terminé — abonne-toi pour continuer à éditer." }, { status: 403 });
+  }
 
   const body = await request.json();
   const parsed = PortfolioJSONSchema.safeParse(body.siteJson);

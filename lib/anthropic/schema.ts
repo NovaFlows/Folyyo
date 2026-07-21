@@ -24,13 +24,18 @@ export const ContentBlockSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("stats"),   items: z.array(z.object({ label: z.string(), value: z.string() })).default([]), size, fontSize, fontFamily }),
   z.object({ type: z.literal("button"),  label: z.string().default("En savoir plus"), url: z.string().default("#"), variant: z.enum(["primary", "outline"]).default("primary"), size, fontSize, fontFamily }),
   z.object({ type: z.literal("divider"), size }),
-  z.object({ type: z.literal("carousel"), images: z.array(z.object({ url: z.string().default(""), caption: z.string().optional(), linkUrl: optionalUrl })).default([]), size }),
+  z.object({ type: z.literal("carousel"), images: z.array(z.object({ url: z.string().default(""), caption: z.string().optional(), description: z.string().max(500).optional(), linkUrl: optionalUrl })).default([]), size, fontSize, fontFamily, descriptionWidth: z.number().min(160).max(480).optional() }),
   z.object({ type: z.literal("links"), items: z.array(z.object({ label: z.string().default(""), url: z.string().default("") })).default([]), size, fontSize, fontFamily }),
   // Le contenu natif de la section (texte, compétences, projets…) placé dans la
   // grille comme n'importe quel widget — un seul par section, non supprimable.
   // fontFamily/fontSize s'appliquent à tout le bloc (aucun élément interne ne
   // fixe sa propre police, l'héritage CSS suffit à tout propager).
   z.object({ type: z.literal("section_content"), size, fontSize, fontFamily }),
+  // Marqueur de position pour le titre de section (texte réel dans
+  // section.section_title, pas ici) — un seul par section non-hero, non
+  // supprimable, jamais ajoutable/modifiable via les outils d'édition IA
+  // génériques (même traitement que section_content).
+  z.object({ type: z.literal("section_title") }),
 ]);
 export type ContentBlock = z.infer<typeof ContentBlockSchema>;
 

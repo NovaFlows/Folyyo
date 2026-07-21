@@ -17,7 +17,8 @@ RÈGLES ABSOLUES :
 export function buildGenerateUserPrompt(
   input: DeveloperInputData,
   profileType = "developer",
-  themeOverride?: ValidatedPortfolioJSON["theme"]
+  themeOverride?: ValidatedPortfolioJSON["theme"],
+  language: "fr" | "en" = "fr"
 ): string {
   const presets = getPresetsForProfile(profileType);
   // hero_image_url d'un portfolio featuré est SA photo (contenu, pas style) — et peut être
@@ -70,7 +71,25 @@ Ne génère JAMAIS de titres de sons/albums/clips fictifs.
 - Idem pour les dates de sortie : utilise publishedAt si disponible, sinon "[Date à compléter]".
 - Ne réutilise jamais les titres d'autres artistes.` : "";
 
+  const languageRule = language === "en" ? `
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+LANGUAGE — WRITE IN ENGLISH
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Write ALL generated text content in English: tagline, about/bio, project
+and experience descriptions, contact message, section titles, everything
+except proper nouns (names, company names, technology names). The JSON
+field names themselves stay in English as specified below (that part is
+unrelated to this rule).` : `
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+LANGUE — RÉDIGE EN FRANÇAIS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Rédige tout le contenu textuel généré en français : accroche, à propos,
+descriptions de projets/expériences, message de contact, titres de
+sections — à l'exception des noms propres (personnes, entreprises,
+technologies).`;
+
   return `PROFIL À GÉNÉRER
+${languageRule}
 
 Type : ${profileType}
 Nom : ${input.name}

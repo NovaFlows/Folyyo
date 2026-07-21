@@ -2,14 +2,22 @@
 
 import { useState, useEffect } from "react";
 import { useSignUp, useAuth } from "@clerk/nextjs";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { clerkErrorMessage } from "@/lib/clerk-errors";
+import { useLocale } from "@/lib/i18n/useLocale";
+import { getDictionary } from "@/lib/i18n/dictionaries";
+import LanguageToggle from "@/components/i18n/LanguageToggle";
+import PasswordInput from "@/components/auth/PasswordInput";
+import CountrySelect from "@/components/auth/CountrySelect";
 
 export default function SignupPage() {
+  const [locale, setLocale] = useLocale();
+  const t = getDictionary(locale);
   const { isSignedIn } = useAuth();
   const { signUp, setActive, isLoaded } = useSignUp();
   const [email, setEmail]             = useState("");
+  const [country, setCountry]         = useState("");
   const [password, setPassword]       = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [code, setCode]         = useState("");
@@ -20,6 +28,18 @@ export default function SignupPage() {
   const [resendMsg, setResendMsg] = useState<string | null>(null);
   const [cooldown, setCooldown]   = useState(0);
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // Slug déjà choisi via le vérificateur de disponibilité du hero de la
+  // landing (?slug=...) — repris ici sans le faire retaper, mémorisé en
+  // sessionStorage (survit à la redirection GitHub OAuth) pour que
+  // l'onboarding le reprenne une fois le compte créé (voir
+  // app/(dashboard)/onboarding/page.tsx).
+  useEffect(() => {
+    const pendingSlug = searchParams.get("slug");
+    if (pendingSlug) sessionStorage.setItem("folyyo_pending_slug", pendingSlug);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (isSignedIn) router.replace("/dashboard");
@@ -34,8 +54,9 @@ export default function SignupPage() {
   async function handleSignup(e: React.FormEvent) {
     e.preventDefault();
     if (!isLoaded) return;
-    if (!email.includes("@")) { setError("Merci de saisir une adresse email valide (ex : toi@exemple.com)."); return; }
-    if (password !== confirmPassword) { setError("Les deux mots de passe ne correspondent pas."); return; }
+    if (!email.includes("@")) { setError(t.auth.signup.invalidEmail); return; }
+    if (!country) { setError(t.auth.signup.countryRequired); return; }
+    if (password !== confirmPassword) { setError(t.auth.signup.passwordMismatch); return; }
     setLoading(true); setError(null);
     try {
       await signUp.create({ emailAddress: email, password });
@@ -43,7 +64,7 @@ export default function SignupPage() {
       setVerifying(true);
       setCooldown(60);
     } catch (err: unknown) {
-      setError(clerkErrorMessage(err, "Erreur lors de la création du compte."));
+      setError(clerkErrorMessage(err, t.auth.signup.genericError, locale));
     } finally { setLoading(false); }
   }
 
@@ -55,10 +76,19 @@ export default function SignupPage() {
       const result = await signUp.attemptEmailAddressVerification({ code });
       if (result.status === "complete") {
         await setActive({ session: result.createdSessionId });
+        // Best-effort : le pays a déjà été choisi dans le formulaire d'inscription
+        // (voir plus bas) — enregistré ici, une fois la session active (avant ça,
+        // aucun appel API authentifié n'est possible). Si ça échoue, l'étape pays
+        // de l'onboarding (CountryStep) sert de filet de sécurité.
+        fetch("/api/user/settings", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ country }),
+        }).catch(() => {});
         router.push("/onboarding");
       }
     } catch (err: unknown) {
-      setError(clerkErrorMessage(err, "Code invalide."));
+      setError(clerkErrorMessage(err, t.auth.verify.invalidCode, locale));
       setLoading(false);
     }
   }
@@ -68,10 +98,10 @@ export default function SignupPage() {
     setResending(true); setError(null); setResendMsg(null);
     try {
       await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
-      setResendMsg("Un nouveau code vient d'être envoyé !");
+      setResendMsg(t.auth.verify.resendSuccess);
       setCooldown(60);
     } catch (err: unknown) {
-      setError(clerkErrorMessage(err, "Impossible de renvoyer le code — réessaie dans un instant."));
+      setError(clerkErrorMessage(err, t.auth.verify.resendError, locale));
     } finally { setResending(false); }
   }
 
@@ -91,20 +121,23 @@ export default function SignupPage() {
       <div className="flex min-h-screen items-center justify-center px-4" style={{ background: "#f8f5f0" }}>
         <button onClick={() => { setVerifying(false); setError(null); setResendMsg(null); }}
           className="fixed left-6 top-6 inline-flex items-center gap-1.5 text-sm transition hover:opacity-70" style={{ color: "#a09a94", background: "none", border: "none", cursor: "pointer", padding: 0 }}>
-          ← Modifier mon email
+          {t.auth.backToEmail}
         </button>
+        <div className="fixed right-6 top-6">
+          <LanguageToggle locale={locale} onChange={setLocale} />
+        </div>
         <div className="w-full max-w-sm">
           <div className="mb-8 text-center">
             <Link href="/" style={{ fontFamily: "'Playfair Display', Georgia, serif", color: "#1c1917", fontSize: "1.75rem", fontWeight: 500 }}>
               folyyo
             </Link>
-            <p className="mt-2 text-sm" style={{ color: "#78716c" }}>Vérifie tes emails</p>
-            <p className="mt-1 text-xs" style={{ color: "#a09a94" }}>Code envoyé à <strong style={{ color: "#78716c" }}>{email}</strong></p>
+            <p className="mt-2 text-sm" style={{ color: "#78716c" }}>{t.auth.verify.checkEmail}</p>
+            <p className="mt-1 text-xs" style={{ color: "#a09a94" }}>{t.auth.verify.codeSentTo} <strong style={{ color: "#78716c" }}>{email}</strong></p>
           </div>
           <div className="rounded-2xl p-8" style={cardStyle}>
             <form onSubmit={handleVerify} className="space-y-4">
               <div>
-                <label className="mb-1.5 block text-sm" style={{ color: "#78716c" }}>Code de vérification</label>
+                <label className="mb-1.5 block text-sm" style={{ color: "#78716c" }}>{t.auth.verify.codeLabel}</label>
                 <input type="text" inputMode="numeric" value={code} onChange={(e) => setCode(e.target.value)}
                   required maxLength={6}
                   className="w-full rounded-xl py-3 text-center text-2xl tracking-widest outline-none transition"
@@ -116,14 +149,14 @@ export default function SignupPage() {
               <button type="submit" disabled={loading}
                 className="w-full rounded-xl py-3 text-sm font-semibold text-white transition hover:opacity-80 disabled:opacity-50"
                 style={{ background: "#1c1917" }}>
-                {loading ? "Vérification…" : "Confirmer →"}
+                {loading ? t.auth.verify.submitting : t.auth.verify.submit}
               </button>
             </form>
             <p className="mt-5 text-center text-sm" style={{ color: "#a09a94" }}>
-              Pas reçu de code ?{" "}
+              {t.auth.verify.noCode}{" "}
               <button onClick={handleResendCode} disabled={resending||cooldown>0}
                 className="font-medium transition hover:opacity-80 disabled:opacity-50" style={{ color: "#c9a96e", background: "none", border: "none", cursor: (resending||cooldown>0) ? "default" : "pointer", padding: 0 }}>
-                {resending ? "Envoi…" : cooldown>0 ? `Renvoyer dans ${cooldown}s` : "Recevoir un nouveau code"}
+                {resending ? t.auth.verify.resendSending : cooldown>0 ? t.auth.verify.resendCooldown(cooldown) : t.auth.verify.resend}
               </button>
             </p>
           </div>
@@ -135,14 +168,17 @@ export default function SignupPage() {
   return (
     <div className="flex min-h-screen items-center justify-center px-4" style={{ background: "#f8f5f0" }}>
       <Link href="/" className="fixed left-6 top-6 inline-flex items-center gap-1.5 text-sm transition hover:opacity-70" style={{ color: "#a09a94" }}>
-        ← Retour à l&apos;accueil
+        {t.auth.backHome}
       </Link>
+      <div className="fixed right-6 top-6">
+        <LanguageToggle locale={locale} onChange={setLocale} />
+      </div>
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
           <Link href="/" style={{ fontFamily: "'Playfair Display', Georgia, serif", color: "#1c1917", fontSize: "1.75rem", fontWeight: 500 }}>
             folyyo
           </Link>
-          <p className="mt-2 text-sm" style={{ color: "#78716c" }}>Crée ton compte</p>
+          <p className="mt-2 text-sm" style={{ color: "#78716c" }}>{t.auth.signup.title}</p>
         </div>
 
         <div className="rounded-2xl p-8" style={cardStyle}>
@@ -150,7 +186,7 @@ export default function SignupPage() {
             className="mb-6 flex w-full items-center justify-center gap-3 rounded-xl py-3 text-sm font-medium transition hover:opacity-80"
             style={{ background: "white", border: "1px solid rgba(0,0,0,0.1)", color: "#1c1917" }}>
             <GitHubIcon />
-            Continuer avec GitHub
+            {t.auth.continueWithGithub}
           </button>
 
           <div className="relative mb-6">
@@ -158,38 +194,39 @@ export default function SignupPage() {
               <div className="w-full border-t" style={{ borderColor: "rgba(0,0,0,0.08)" }} />
             </div>
             <div className="relative flex justify-center text-xs" style={{ color: "#a09a94" }}>
-              <span className="px-3" style={{ background: "#f0ece6" }}>ou avec email</span>
+              <span className="px-3" style={{ background: "#f0ece6" }}>{t.auth.orWithEmail}</span>
             </div>
           </div>
 
           <form onSubmit={handleSignup} className="space-y-4">
             <div>
-              <label className="mb-1.5 block text-sm" style={{ color: "#78716c" }}>Email</label>
+              <label className="mb-1.5 block text-sm" style={{ color: "#78716c" }}>{t.auth.email}</label>
               <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required
                 className="input-warm" placeholder="toi@exemple.com" />
             </div>
+            <CountrySelect value={country} onChange={setCountry} />
             <div>
-              <label className="mb-1.5 block text-sm" style={{ color: "#78716c" }}>Mot de passe</label>
-              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8}
-                className="input-warm" placeholder="8 caractères minimum" />
+              <label className="mb-1.5 block text-sm" style={{ color: "#78716c" }}>{t.auth.password}</label>
+              <PasswordInput value={password} onChange={setPassword} required minLength={8}
+                className="input-warm" placeholder={t.auth.signup.passwordPlaceholder} />
             </div>
             <div>
-              <label className="mb-1.5 block text-sm" style={{ color: "#78716c" }}>Confirmer le mot de passe</label>
-              <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required minLength={8}
-                className="input-warm" placeholder="Retape ton mot de passe" />
+              <label className="mb-1.5 block text-sm" style={{ color: "#78716c" }}>{t.auth.signup.confirmPassword}</label>
+              <PasswordInput value={confirmPassword} onChange={setConfirmPassword} required minLength={8}
+                className="input-warm" placeholder={t.auth.signup.confirmPasswordPlaceholder} />
             </div>
             {error && <p className="rounded-xl px-4 py-2.5 text-sm" style={{ background: "rgba(220,38,38,0.06)", border: "1px solid rgba(220,38,38,0.15)", color: "#dc2626" }}>{error}</p>}
             <button type="submit" disabled={loading}
               className="w-full rounded-xl py-3 text-sm font-semibold text-white transition hover:opacity-80 disabled:opacity-50"
               style={{ background: "#1c1917" }}>
-              {loading ? "Création…" : "Créer mon compte →"}
+              {loading ? t.auth.signup.submitting : t.auth.signup.submit}
             </button>
           </form>
         </div>
 
         <p className="mt-6 text-center text-sm" style={{ color: "#a09a94" }}>
-          Déjà un compte ?{" "}
-          <Link href="/login" style={{ color: "#c9a96e" }} className="hover:opacity-80 transition">Se connecter</Link>
+          {t.auth.signup.haveAccount}{" "}
+          <Link href="/login" style={{ color: "#c9a96e" }} className="hover:opacity-80 transition">{t.auth.signup.loginLink}</Link>
         </p>
       </div>
     </div>

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import type { ViewSourceCount } from "@/lib/db/queries";
 
-export default function ViewsBreakdown({ sources }: { sources: ViewSourceCount[] }) {
+export default function ViewsBreakdown({ sources, label }: { sources: ViewSourceCount[]; label: string }) {
   const [open, setOpen] = useState(false);
   const total = sources.reduce((sum, s) => sum + s.count, 0);
   if (total === 0) return null;
@@ -13,7 +13,7 @@ export default function ViewsBreakdown({ sources }: { sources: ViewSourceCount[]
       <button onClick={() => setOpen((o) => !o)}
         className="flex items-center gap-1 text-left transition hover:opacity-70"
         style={{ color: "#c9a96e" }}>
-        <span className="text-xs">D&apos;où viennent les vues</span>
+        <span className="text-xs">{label}</span>
         <span className="text-xs" style={{ transform: open ? "rotate(90deg)" : undefined, transition: "transform 0.15s" }}>›</span>
       </button>
       {open && (

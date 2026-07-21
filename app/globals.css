@@ -202,6 +202,27 @@ section[id] {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
 }
 
+/* ══ Champs texte riches (éditeur, gras/italique) — placeholder simulé, ══
+   ══ contentEditable n'a pas d'attribut placeholder natif.            ══ */
+.rich-text-editable:empty:before {
+  content: attr(data-placeholder);
+  color: #c8c4bf;
+  pointer-events: none;
+}
+
+/* ══ Liens inline dans un champ texte riche (voir lib/portfolio/rich-text.ts) ══
+   ══ — couleur du texte environnant au repos, bleu au survol.          ══ */
+.rt-link {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: currentColor;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+.rt-link:hover {
+  color: #2563eb;
+}
+
 /* ══ Widgets "soft" (carte arrondie, hover lift + tilt léger) ══ */
 .widget-soft {
   transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.25s ease;

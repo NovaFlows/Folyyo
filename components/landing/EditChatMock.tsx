@@ -1,18 +1,38 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import type { Locale } from "@/lib/i18n/types";
 
 // Mock animé du chat d'édition — démontre la fonctionnalité (édition en
 // langage naturel) au lieu de juste la décrire : la commande s'écrit lettre
 // par lettre, puis la réponse apparaît, en boucle sur les 4 exemples déjà
 // listés dans la colonne de gauche de la section. aria-hidden : purement
 // décoratif, le vrai contenu textuel de la section suffit sans JS.
-const EXCHANGES = [
-  { cmd: "Change la couleur principale en terracotta", reply: "Couleur mise à jour · Site republié" },
-  { cmd: "Ajoute une section témoignages", reply: "Section ajoutée · Site republié" },
-  { cmd: "Mets ma photo en fond du hero", reply: "Photo de fond mise à jour · Site republié" },
-  { cmd: "Réécris mon intro, je veux quelque chose de plus percutant", reply: "Intro réécrite · Site republié" },
-];
+const EXCHANGES = {
+  fr: [
+    { cmd: "Change la couleur principale en terracotta", reply: "Couleur mise à jour · Site republié" },
+    { cmd: "Ajoute une section témoignages", reply: "Section ajoutée · Site republié" },
+    { cmd: "Mets ma photo en fond du hero", reply: "Photo de fond mise à jour · Site republié" },
+    { cmd: "Réécris mon intro, je veux quelque chose de plus percutant", reply: "Intro réécrite · Site republié" },
+  ],
+  en: [
+    { cmd: "Change the primary color to terracotta", reply: "Color updated · Site republished" },
+    { cmd: "Add a testimonials section", reply: "Section added · Site republished" },
+    { cmd: "Set my photo as the hero background", reply: "Background photo updated · Site republished" },
+    { cmd: "Rewrite my intro, I want something punchier", reply: "Intro rewritten · Site republished" },
+  ],
+  es: [
+    { cmd: "Cambia el color principal a terracota", reply: "Color actualizado · Sitio republicado" },
+    { cmd: "Añade una sección de testimonios", reply: "Sección añadida · Sitio republicado" },
+    { cmd: "Pon mi foto como fondo del hero", reply: "Foto de fondo actualizada · Sitio republicado" },
+    { cmd: "Reescribe mi introducción, quiero algo más contundente", reply: "Introducción reescrita · Sitio republicado" },
+  ],
+};
+const UI_STRINGS = {
+  fr: { header: "Éditeur Folyyo", thinking: "Analyse en cours…", placeholder: "Décris une modification…" },
+  en: { header: "Folyyo Editor", thinking: "Analyzing…", placeholder: "Describe a change…" },
+  es: { header: "Editor de Folyyo", thinking: "Analizando…", placeholder: "Describe un cambio…" },
+};
 
 type Phase = "typing" | "thinking" | "success";
 
@@ -20,13 +40,15 @@ const TYPE_MS_PER_CHAR = 28;
 const THINK_MS = 700;
 const SUCCESS_HOLD_MS = 2400;
 
-export default function EditChatMock() {
+export default function EditChatMock({ locale }: { locale: Locale }) {
   const [cmdIndex, setCmdIndex] = useState(0);
   const [phase, setPhase] = useState<Phase>("typing");
   const [typedLen, setTypedLen] = useState(0);
   const [reduced, setReduced] = useState(false);
 
-  const exchange = EXCHANGES[cmdIndex];
+  const exchanges = EXCHANGES[locale];
+  const ui = UI_STRINGS[locale];
+  const exchange = exchanges[cmdIndex];
 
   useEffect(() => {
     const rm = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -55,12 +77,12 @@ export default function EditChatMock() {
   useEffect(() => {
     if (reduced || phase !== "success") return;
     const t = setTimeout(() => {
-      setCmdIndex((i) => (i + 1) % EXCHANGES.length);
+      setCmdIndex((i) => (i + 1) % exchanges.length);
       setTypedLen(0);
       setPhase("typing");
     }, SUCCESS_HOLD_MS);
     return () => clearTimeout(t);
-  }, [phase, reduced]);
+  }, [phase, reduced, exchanges.length]);
 
   const userText = reduced ? exchange.cmd : exchange.cmd.slice(0, typedLen);
   const showCursor = !reduced && phase === "typing";
@@ -68,7 +90,7 @@ export default function EditChatMock() {
   return (
     <div aria-hidden="true" className="rounded-2xl overflow-hidden" style={{ border: "1px solid rgba(0,0,0,0.08)", background: "#f0ece6" }}>
       <div className="px-5 py-4" style={{ borderBottom: "1px solid rgba(0,0,0,0.06)" }}>
-        <p className="text-xs font-medium" style={{ color: "#a09a94" }}>Éditeur Folyyo</p>
+        <p className="text-xs font-medium" style={{ color: "#a09a94" }}>{ui.header}</p>
       </div>
 
       <div className="p-5 flex flex-col justify-center gap-3" style={{ minHeight: 230 }}>
@@ -83,7 +105,7 @@ export default function EditChatMock() {
           <div className="ld-chat-in flex justify-start gap-2 text-sm">
             <div className="h-6 w-6 shrink-0 rounded-full flex items-center justify-center text-xs" style={{ background: "rgba(0,0,0,0.06)", color: "#a09a94" }}>·</div>
             <div className="rounded-2xl px-4 py-2.5 max-w-[80%] text-sm" style={{ background: "rgba(0,0,0,0.05)", color: "#a09a94" }}>
-              Analyse en cours…
+              {ui.thinking}
             </div>
           </div>
         )}
@@ -101,7 +123,7 @@ export default function EditChatMock() {
       <div className="px-4 py-3" style={{ borderTop: "1px solid rgba(0,0,0,0.06)" }}>
         <div className="flex gap-2">
           <div className="flex-1 rounded-xl px-4 py-3 text-sm" style={{ background: "rgba(255,255,255,0.7)", color: "#c4bdb5" }}>
-            Décris une modification…
+            {ui.placeholder}
           </div>
           <button className="rounded-xl px-5 py-3 text-sm font-medium text-white" style={{ background: "#1c1917" }}>→</button>
         </div>

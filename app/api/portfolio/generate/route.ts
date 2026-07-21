@@ -9,9 +9,11 @@ import { PortfolioJSONSchema } from "@/lib/anthropic/schema";
 import { generateDeveloperCode } from "@/lib/portfolio/code-generator";
 import { keys } from "@/lib/r2/client";
 import { readCvBuffer, writeSourceCode } from "@/lib/dev-storage";
-import { createPortfolio, setPortfolioReady, setPortfolioError, getFeaturedPortfolioById } from "@/lib/db/queries";
+import { createPortfolio, setPortfolioReady, setPortfolioError, getFeaturedPortfolioById, getUserSettings, upsertUserSettings } from "@/lib/db/queries";
+import { hasActiveAccess } from "@/lib/billing/access";
 import { parsePdfText } from "@/lib/pdf-parse";
 import { isReservedSlug } from "@/lib/portfolio/reserved-slugs";
+import { languageForCountry } from "@/lib/i18n/country-language";
 import type { DeveloperInputData } from "@/types/portfolio";
 import type { ValidatedPortfolioJSON } from "@/lib/anthropic/schema";
 
@@ -26,7 +28,7 @@ export async function POST(request: NextRequest) {
   if (!userId) return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
 
   const body = await request.json();
-  const { profileType, slug, name, title, email, githubUsername, instagramHandle, youtubeHandle, linkedinUrl, twitterUrl, cvStoragePath, githubData, youtubeData, templateId, styleUrl } = body;
+  const { profileType, slug, name, title, email, country, githubUsername, instagramHandle, youtubeHandle, linkedinUrl, twitterUrl, cvStoragePath, githubData, youtubeData, templateId, styleUrl } = body;
 
   const requiresCv = profileType === "developer";
   if (!profileType || !name || !email || (requiresCv && !cvStoragePath)) {
@@ -36,9 +38,30 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Ce slug est invalide, choisis-en un autre." }, { status: 400 });
   }
 
+  // Abonnement : un compte qui n'existe pas encore (première génération)
+  // démarre son essai à l'instant même — rien à vérifier. Un compte existant
+  // doit avoir un essai en cours ou un abonnement actif.
+  const existingSettings = await getUserSettings(userId);
+  if (existingSettings && !hasActiveAccess(existingSettings)) {
+    return NextResponse.json({ error: "Ton essai gratuit est terminé — abonne-toi pour continuer à créer des portfolios." }, { status: 403 });
+  }
+
+  // Langue du portfolio généré — source de vérité : le pays enregistré sur le
+  // compte (demandé une fois à l'onboarding, modifiable dans les paramètres).
+  // Repli sur le `country` du payload si l'enregistrement n'a pas encore eu
+  // lieu (ordre d'appel), et enfin sur le français si aucun des deux.
+  const resolvedCountry = existingSettings?.country ?? country ?? null;
+  const language = existingSettings?.language ?? (resolvedCountry ? (languageForCountry(resolvedCountry) ?? "en") : "fr");
+  // Toujours appelé (plus de garde `!userSettings &&`) : la requête utilise
+  // déjà COALESCE pour ne jamais écraser une valeur existante par une pire,
+  // donc l'appeler systématiquement est sans risque — et ça garantit que la
+  // ligne `users` (donc `trial_ends_at`, l'ancre de l'essai) existe toujours
+  // dès la première génération, même sans pays résolu.
+  await upsertUserSettings(userId, { country: resolvedCountry, language }).catch(() => {});
+
   let portfolio;
   try {
-    portfolio = await createPortfolio({ user_id: userId, name, profile_type: profileType, slug: slug || undefined });
+    portfolio = await createPortfolio({ user_id: userId, name, profile_type: profileType, slug: slug || undefined, country: resolvedCountry ?? undefined, language });
   } catch (err) {
     const e = err as { code?: string };
     if (e.code === "23505") {
@@ -93,7 +116,7 @@ export async function POST(request: NextRequest) {
       themeOverride = templateJson?.theme;
     }
 
-    const rawJson = await callClaude(buildGenerateSystemPrompt(), buildGenerateUserPrompt(inputData, profileType, themeOverride), 8192);
+    const rawJson = await callClaude(buildGenerateSystemPrompt(), buildGenerateUserPrompt(inputData, profileType, themeOverride, language), 8192);
     const cleaned = rawJson.replace(/^```json\s*/i, "").replace(/\s*```$/, "").trim();
 
     let siteJson;

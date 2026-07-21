@@ -1,5 +1,28 @@
 -- Run this once on your Neon project to initialize the schema
 
+-- Préférences de compte (pas de table Clerk locale — juste ce qu'on a besoin
+-- de retenir en plus de l'identité). Pays demandé une seule fois, à la
+-- création du compte (première visite de l'onboarding), modifiable ensuite
+-- depuis les paramètres — d'où le stockage au niveau du compte plutôt que du
+-- portfolio.
+CREATE TABLE IF NOT EXISTS users (
+  user_id     TEXT        PRIMARY KEY,
+  country     TEXT,
+  language    TEXT        NOT NULL DEFAULT 'fr',
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  -- Abonnement (essai 7 jours puis Stripe) — voir lib/billing/access.ts.
+  -- 'lifetime' = accès permanent gratuit accordé manuellement (comptes
+  -- historiques au moment du lancement de cette fonctionnalité), jamais posé
+  -- par le code applicatif lui-même.
+  subscription_status TEXT NOT NULL DEFAULT 'trialing', -- trialing | active | lifetime | canceled | past_due
+  trial_ends_at TIMESTAMPTZ NOT NULL DEFAULT (now() + interval '7 days'),
+  stripe_customer_id TEXT,
+  stripe_subscription_id TEXT,
+  stripe_price_id TEXT,
+  subscription_current_period_end TIMESTAMPTZ
+);
+
 CREATE TABLE IF NOT EXISTS portfolios (
   id               UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id          TEXT        NOT NULL,
@@ -17,6 +40,8 @@ CREATE TABLE IF NOT EXISTS portfolios (
   deployment_url   TEXT,
   custom_domain    TEXT,
   error_message    TEXT,
+  country          TEXT,
+  language         TEXT        NOT NULL DEFAULT 'fr',
   created_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at       TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -93,3 +118,21 @@ CREATE TABLE IF NOT EXISTS content_sync_state (
   known_video_ids  JSONB,
   last_checked_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- Messages de support envoyés depuis le dashboard (problème/suggestion/autre)
+-- — jamais un mailto, reste dans l'app ; consultés côté admin sur
+-- /dashboard/admin/support. `email` est capturé côté serveur (Clerk) au
+-- moment de l'envoi plutôt que joint via user_id à chaque lecture — reste
+-- correct même si la personne change d'email plus tard.
+CREATE TABLE IF NOT EXISTS support_messages (
+  id         UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id    TEXT        NOT NULL,
+  email      TEXT        NOT NULL,
+  category   TEXT        NOT NULL DEFAULT 'other',
+  message    TEXT        NOT NULL,
+  status     TEXT        NOT NULL DEFAULT 'new',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_support_messages_created_at ON support_messages(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_support_messages_status     ON support_messages(status);

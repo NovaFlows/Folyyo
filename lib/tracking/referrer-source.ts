@@ -1,13 +1,20 @@
+import type { Locale } from "@/lib/i18n/types";
+
 export type ViewSource = "instagram" | "facebook" | "linkedin" | "twitter" | "community" | "other";
 
-export const SOURCE_LABELS: Record<ViewSource, string> = {
-  instagram: "Instagram",
-  facebook: "Facebook",
-  linkedin: "LinkedIn",
-  twitter: "Twitter / X",
-  community: "Communauté Folyyo",
-  other: "Autre / direct",
-};
+const COMMUNITY_LABEL: Record<Locale, string> = { fr: "Communauté Folyyo", en: "Folyyo community", es: "Comunidad Folyyo" };
+const OTHER_LABEL: Record<Locale, string> = { fr: "Autre / direct", en: "Other / direct", es: "Otro / directo" };
+
+export function getSourceLabels(locale: Locale): Record<ViewSource, string> {
+  return {
+    instagram: "Instagram",
+    facebook: "Facebook",
+    linkedin: "LinkedIn",
+    twitter: "Twitter / X",
+    community: COMMUNITY_LABEL[locale],
+    other: OTHER_LABEL[locale],
+  };
+}
 
 // Classification par nom de domaine du referrer (pas de tracking, juste ce
 // que le navigateur envoie déjà) — "communauté" est repéré par le chemin

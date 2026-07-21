@@ -1,36 +1,30 @@
 import type { OnboardingData } from "../page";
+import type { Dictionary } from "@/lib/i18n/dictionaries/fr";
 
-const PROFILES: {
-  value: NonNullable<OnboardingData["profileType"]>;
-  label: string;
-  description: string;
-  mark: string;
-}[] = [
-  { value: "developer", label: "Développeur",           mark: "{ }",  description: "CV + GitHub → portfolio code-like avec projets et compétences" },
-  { value: "artist",    label: "Artiste / Créatif",     mark: "◇",    description: "CV + galerie d'images → portfolio minimaliste avec tes œuvres" },
-  { value: "fashion",   label: "Mode / Mannequin",      mark: "—",    description: "CV + photos → portfolio grand visuel plein écran" },
-  { value: "musicien",  label: "Musicien / Youtubeur",  mark: "♪",    description: "YouTube + Instagram → discographie, clips, scène — thème sombre & bold" },
-  { value: "other",     label: "Autre",                 mark: "·",    description: "Portfolio généraliste adapté à ton profil" },
-];
+const VALUES: NonNullable<OnboardingData["profileType"]>[] = ["developer", "artist", "fashion", "musicien", "other"];
+const MARKS = ["{ }", "◇", "—", "♪", "·"];
 
 interface Props {
   selected: OnboardingData["profileType"];
+  t: Dictionary["onboarding"];
   onSelect: (type: NonNullable<OnboardingData["profileType"]>) => void;
 }
 
-export default function ProfileTypeStep({ selected, onSelect }: Props) {
+export default function ProfileTypeStep({ selected, t, onSelect }: Props) {
+  const profiles = t.profileType.profiles.map((p, i) => ({ ...p, value: VALUES[i], mark: MARKS[i] }));
+
   return (
     <div>
       <div className="mb-8 text-center">
-        <p className="mono text-xs tracking-widest uppercase mb-3" style={{ color: "#a09a94", letterSpacing: "0.12em" }}>01 / profil</p>
+        <p className="mono text-xs tracking-widest uppercase mb-3" style={{ color: "#a09a94", letterSpacing: "0.12em" }}>{t.profileType.kicker}</p>
         <h1 className="mb-2 text-3xl serif" style={{ fontWeight: 500, color: "#1c1917" }}>
-          Quel est ton métier ?
+          {t.profileType.title}
         </h1>
-        <p className="text-sm" style={{ color: "#78716c" }}>On adapte le design et les sections à ton profil.</p>
+        <p className="text-sm" style={{ color: "#78716c" }}>{t.profileType.subtitle}</p>
       </div>
 
       <div className="grid gap-3">
-        {PROFILES.map((profile) => {
+        {profiles.map((profile) => {
           const isSelected = selected === profile.value;
           return (
             <button key={profile.value} onClick={() => onSelect(profile.value)}

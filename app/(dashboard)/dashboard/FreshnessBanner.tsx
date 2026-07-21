@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Bell } from "lucide-react";
 import type { GitHubRepo, YouTubeVideo } from "@/types/portfolio";
 
 // Bannière "il y a du nouveau" — ne modifie jamais le portfolio sans accord
@@ -60,13 +61,16 @@ export default function FreshnessBanner({
   return (
     <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl p-4"
       style={{ background: "rgba(201,169,110,0.08)", border: "1px solid rgba(201,169,110,0.2)" }}>
-      <div>
-        <p className="text-sm" style={{ color: "#1c1917" }}>
-          🎉 <strong>{bits.join(" et ")}</strong> sur <strong>{portfolioName}</strong> depuis ta dernière visite.
-          {status === "idle" && " Les ajouter à ton portfolio ?"}
-          {status === "loading" && " Ajout en cours…"}
-        </p>
-        {error && <p className="mt-1 text-xs" style={{ color: "#dc2626" }}>{error}</p>}
+      <div className="flex items-start gap-2.5">
+        <Bell size={16} strokeWidth={1.75} style={{ flexShrink: 0, marginTop: 2, color: "#c9a96e" }} />
+        <div>
+          <p className="text-sm" style={{ color: "#1c1917" }}>
+            <strong>{bits.join(" et ")}</strong> sur <strong>{portfolioName}</strong> depuis ta dernière visite.
+            {status === "idle" && " Les ajouter à ton portfolio ?"}
+            {status === "loading" && " Ajout en cours…"}
+          </p>
+          {error && <p className="mt-1 text-xs" style={{ color: "#dc2626" }}>{error}</p>}
+        </div>
       </div>
       {status !== "loading" && (
         <div className="flex shrink-0 gap-2">

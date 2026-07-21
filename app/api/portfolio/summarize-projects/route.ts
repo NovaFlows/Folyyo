@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { callClaude, CLAUDE_MODEL_FAST } from "@/lib/anthropic/client";
 import { buildSummarizeSystemPrompt, buildSummarizeUserPrompt, type SummarizeProjectInput } from "@/lib/anthropic/prompts/summarize-projects";
+import { getUserSettings } from "@/lib/db/queries";
+import { hasActiveAccess } from "@/lib/billing/access";
 
 // Rédige une description courte et professionnelle pour un lot de projets
 // (repos GitHub / vidéos YouTube) importés depuis le picker de l'éditeur —
@@ -10,6 +12,11 @@ import { buildSummarizeSystemPrompt, buildSummarizeUserPrompt, type SummarizePro
 export async function POST(request: NextRequest) {
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
+
+  const settings = await getUserSettings(userId);
+  if (!settings || !hasActiveAccess(settings)) {
+    return NextResponse.json({ error: "Ton essai gratuit est terminé — abonne-toi pour continuer." }, { status: 403 });
+  }
 
   const { items } = await request.json() as { items?: SummarizeProjectInput[] };
   if (!items?.length) return NextResponse.json({ error: "items requis" }, { status: 400 });

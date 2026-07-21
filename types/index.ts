@@ -1,5 +1,23 @@
 export type PortfolioStatus = "draft" | "generating" | "deploying" | "live" | "error" | "editing";
 
+// 'lifetime' = accès permanent gratuit accordé manuellement (jamais posé par
+// le code applicatif) — voir lib/billing/access.ts.
+export type SubscriptionStatus = "trialing" | "active" | "lifetime" | "canceled" | "past_due";
+
+export type UserSettings = {
+  user_id: string;
+  country: string | null;
+  language: "fr" | "en";
+  created_at: string;
+  updated_at: string;
+  subscription_status: SubscriptionStatus;
+  trial_ends_at: string;
+  stripe_customer_id: string | null;
+  stripe_subscription_id: string | null;
+  stripe_price_id: string | null;
+  subscription_current_period_end: string | null;
+};
+
 export type Portfolio = {
   id: string;
   user_id: string;
@@ -17,8 +35,19 @@ export type Portfolio = {
   deployment_url: string | null;
   custom_domain: string | null;
   error_message: string | null;
+  country: string | null;
+  language: "fr" | "en";
   created_at: string;
   updated_at: string;
+};
+
+// Portfolio public + statut d'abonnement du propriétaire, en une seule
+// requête (LEFT JOIN dans getPortfolioBySlugPublic) — évite un aller-retour
+// séparé sur le chemin public (rendu à chaque visite, déjà sensible à la
+// latence à cause du suivi de vues).
+export type PortfolioWithOwnerAccess = Portfolio & {
+  owner_subscription_status: SubscriptionStatus;
+  owner_trial_ends_at: string;
 };
 
 export type PortfolioVersion = {

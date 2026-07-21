@@ -26,19 +26,27 @@ export const DEFAULT_SIZE: Record<ContentBlock["type"], { w: number; h: number }
   links:    { w: 6,  h: 4 },
   divider:  { w: 12, h: 1 },
   section_content: { w: 12, h: 8 },
+  section_title: { w: 12, h: 2 },
 };
 
-// En-dessous, le contenu devient illisible ou les poignées inutilisables
+// En-dessous, le contenu devient illisible ou les poignées inutilisables.
+// h relevé pour text/quote/stats/links : le cadre non-strict (WidgetFrame,
+// components/portfolio/blocks.tsx) ajoute ~40px de padding vertical (1.25rem
+// haut+bas) — à h:2 (64px), il ne restait que 24px de contenu réel, pas assez
+// pour une seule ligne de texte à la taille par défaut (perte de mots visible
+// dès le redimensionnement le plus modeste). image élargi (w:2→3) pour éviter
+// un recadrage trop extrême avec object-fit:cover.
 export const MIN_SIZE: Record<ContentBlock["type"], { w: number; h: number }> = {
-  image:    { w: 2, h: 3 },
+  image:    { w: 3, h: 3 },
   carousel: { w: 4, h: 5 },
-  text:     { w: 3, h: 2 },
-  quote:    { w: 4, h: 2 },
-  stats:    { w: 4, h: 2 },
+  text:     { w: 3, h: 3 },
+  quote:    { w: 4, h: 3 },
+  stats:    { w: 4, h: 3 },
   button:   { w: 2, h: 2 },
-  links:    { w: 3, h: 2 },
+  links:    { w: 3, h: 3 },
   divider:  { w: 2, h: 1 },
   section_content: { w: 4, h: 3 },
+  section_title: { w: 3, h: 1 },
 };
 
 // Lecture/écriture de la grille d'une section (le champ `grid` est optionnel
@@ -206,6 +214,19 @@ export function migrateToGrid(data: ValidatedPortfolioJSON): ValidatedPortfolioJ
       // Les widgets existants passent sous le contenu natif
       const shifted = grid.map((it) => ({ ...it, y: it.y + nativeH }));
       grid = [...items, ...shifted];
+      mutated = true;
+    }
+
+    // Titre de section : injecté séparément (indépendant du bloc ci-dessus,
+    // qui peut avoir déjà tourné lors d'une session précédente) — vérifie
+    // aussi les portfolios déjà migrés en grille mais créés avant ce champ.
+    // Toujours tout en haut (y=0), le reste redescend d'autant.
+    if (s.type !== "hero" && !grid.some((it) => it.block.type === "section_title")) {
+      const titleH = DEFAULT_SIZE.section_title.h;
+      grid = [
+        { id: gridUid(), block: { type: "section_title" }, x: 0, y: 0, w: 12, h: titleH },
+        ...grid.map((it) => ({ ...it, y: it.y + titleH })),
+      ];
       mutated = true;
     }
 

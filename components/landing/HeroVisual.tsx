@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import type { Locale } from "@/lib/i18n/types";
 
 // Decorative hero composition: tilted profile card (cycles between 3 profile
 // styles) + floating post-it notes. aria-hidden — purely visual, no semantic
@@ -11,7 +12,14 @@ const CARD_CYCLE_MS = 4500;
 // (alex-martin, sophie-noir, solka) affichés plus bas sur la page.
 const URL_NAMES = ["alex", "sophie", "solka"];
 
-export default function HeroVisual() {
+const STRINGS = {
+  fr: { generating: "génération", yourUrl: "ton url", portfoliosCreated: "portfolios créés" },
+  en: { generating: "generating", yourUrl: "your url", portfoliosCreated: "portfolios created" },
+  es: { generating: "generación", yourUrl: "tu url", portfoliosCreated: "portfolios creados" },
+};
+
+export default function HeroVisual({ locale }: { locale: Locale }) {
+  const s = STRINGS[locale];
   const [cardIndex, setCardIndex] = useState(0);
   const [urlLen, setUrlLen] = useState(URL_NAMES[0].length);
   const [reduced, setReduced] = useState(false);
@@ -93,7 +101,7 @@ export default function HeroVisual() {
           fontSize: "1.5rem", fontWeight: 500,
           color: "#1c1917", lineHeight: 1, marginBottom: 5,
         }}>{"<60s"}</p>
-        <p style={{ fontSize: "0.575rem", color: "#a09a94", fontFamily: "'JetBrains Mono', monospace" }}>génération</p>
+        <p style={{ fontSize: "0.575rem", color: "#a09a94", fontFamily: "'JetBrains Mono', monospace" }}>{s.generating}</p>
       </div>
 
       {/* ── Post-it 2 : terminal badge — top left ─ */}
@@ -129,7 +137,7 @@ export default function HeroVisual() {
         ["--ld-rot" as string]: "-4.5deg",
       }}>
         <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: "0.5rem", color: "#c8c4bf", marginBottom: 3, letterSpacing: "0.03em" }}>
-          ton url
+          {s.yourUrl}
         </p>
         <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: "0.6875rem", color: "#1c1917", whiteSpace: "nowrap" }}>
           folyyo.com/<span style={{ color: "#c9a96e" }}>{URL_NAMES[cardIndex].slice(0, urlLen)}</span>
@@ -154,7 +162,7 @@ export default function HeroVisual() {
           fontSize: "1.375rem", fontWeight: 500,
           color: "#1c1917", lineHeight: 1, marginBottom: 4,
         }}>1 247</p>
-        <p style={{ fontSize: "0.575rem", color: "#a09a94" }}>portfolios créés</p>
+        <p style={{ fontSize: "0.575rem", color: "#a09a94" }}>{s.portfoliosCreated}</p>
       </div>
 
     </div>

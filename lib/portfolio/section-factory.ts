@@ -1,5 +1,5 @@
 import type { ValidatedPortfolioJSON, ContentBlock } from "@/lib/anthropic/schema";
-import { gridUid, applyGrid, nativeContentH } from "@/lib/portfolio/grid";
+import { gridUid, applyGrid, nativeContentH, DEFAULT_SIZE } from "@/lib/portfolio/grid";
 
 type VSection = ValidatedPortfolioJSON["sections"][number];
 
@@ -16,6 +16,7 @@ export function createDefaultBlock(type: ContentBlock["type"]): ContentBlock {
     case "carousel": return { type: "carousel", images: [] };
     case "links":   return { type: "links", items: [{ label: "Mon site", url: "https://" }] };
     case "section_content": return { type: "section_content" };
+    case "section_title": return { type: "section_title" };
   }
 }
 
@@ -38,9 +39,14 @@ export function createDefaultSection(type: VSection["type"], profileType: string
       case "contact":    return { type: "contact", section_title: "Contact", email: "contact@example.com", message: "N'hésitez pas à me contacter !", links: [] };
     }
   })();
-  // Toute section hors hero embarque son contenu natif comme item de grille
+  // Toute section hors hero embarque son contenu natif ET son titre comme
+  // items de grille (titre tout en haut, contenu natif juste en dessous).
   if (type !== "hero") {
-    return applyGrid(base, [{ id: gridUid(), block: { type: "section_content" }, x: 0, y: 0, w: 12, h: nativeContentH(base as { type: string; items?: unknown[] }) }]);
+    const titleH = DEFAULT_SIZE.section_title.h;
+    return applyGrid(base, [
+      { id: gridUid(), block: { type: "section_title" }, x: 0, y: 0, w: 12, h: titleH },
+      { id: gridUid(), block: { type: "section_content" }, x: 0, y: titleH, w: 12, h: nativeContentH(base as { type: string; items?: unknown[] }) },
+    ]);
   }
   return base;
 }

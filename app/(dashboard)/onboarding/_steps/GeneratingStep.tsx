@@ -2,35 +2,35 @@
 
 import { useEffect, useState } from "react";
 import type { OnboardingData } from "../page";
+import type { Dictionary } from "@/lib/i18n/dictionaries/fr";
 
-function getSteps(profileType: string | null) {
+function getSteps(profileType: string | null, t: Dictionary["onboarding"]) {
   if (profileType === "musicien") {
     return [
       "fetch youtube data",
       "generate portfolio.json",
       "build source code",
-      "deploy → production",
     ];
   }
   return [
     "upload cv.pdf",
-    profileType === "developer" ? "fetch github data" : "analyse du profil…",
+    profileType === "developer" ? "fetch github data" : t.generating.analyzingProfile,
     "generate portfolio.json",
     "build source code",
-    "deploy → production",
   ];
 }
 
 interface Props {
   data: OnboardingData;
+  t: Dictionary["onboarding"];
   onDone: (portfolioId: string) => void;
 }
 
-export default function GeneratingStep({ data, onDone }: Props) {
+export default function GeneratingStep({ data, t, onDone }: Props) {
   const [currentStep, setCurrentStep] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
-  const STEPS = getSteps(data.profileType);
+  const STEPS = getSteps(data.profileType, t);
 
   useEffect(() => {
     let cancelled = false;
@@ -48,7 +48,7 @@ export default function GeneratingStep({ data, onDone }: Props) {
             const ytRes = await fetch(`/api/youtube/fetch?handle=${encodeURIComponent(data.youtubeHandle)}`);
             if (!ytRes.ok) {
               const e = await ytRes.json().catch(() => ({}));
-              throw new Error(e.error || "Impossible de récupérer la chaîne YouTube");
+              throw new Error(e.error || t.generating.errorYoutube);
             }
             ({ youtubeData } = await ytRes.json());
           } else {
@@ -65,7 +65,7 @@ export default function GeneratingStep({ data, onDone }: Props) {
             formData.append("cv", data.cvFile);
             formData.append("profileType", data.profileType!);
             const uploadRes = await fetch("/api/upload", { method: "POST", body: formData });
-            if (!uploadRes.ok) throw new Error("Échec upload CV");
+            if (!uploadRes.ok) throw new Error(t.generating.errorCvUpload);
             ({ cvStoragePath } = await uploadRes.json());
           }
 
@@ -73,7 +73,7 @@ export default function GeneratingStep({ data, onDone }: Props) {
           setCurrentStep(1);
           if (data.profileType === "developer" && data.githubUsername) {
             const ghRes = await fetch(`/api/github/fetch?username=${encodeURIComponent(data.githubUsername)}`);
-            if (!ghRes.ok) throw new Error("Impossible de récupérer le profil GitHub");
+            if (!ghRes.ok) throw new Error(t.generating.errorGithub);
             const parsed = await ghRes.json();
             githubData = parsed.githubData;
           } else {
@@ -89,7 +89,7 @@ export default function GeneratingStep({ data, onDone }: Props) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             profileType: data.profileType, slug: data.slug,
-            name: data.name, title: data.title,
+            name: data.name, title: data.title, country: data.country,
             email: data.email, githubUsername: data.githubUsername || undefined,
             instagramHandle: data.instagramHandle || undefined,
             youtubeHandle: data.youtubeHandle || undefined,
@@ -101,25 +101,17 @@ export default function GeneratingStep({ data, onDone }: Props) {
         });
         if (!generateRes.ok) {
           const e = await generateRes.json().catch(() => ({}));
-          throw new Error(e.error || "Erreur de génération");
+          throw new Error(e.error || t.generating.errorGenerate);
         }
         const { portfolioId } = await generateRes.json();
 
         const isMusicien = data.profileType === "musicien";
         if (cancelled) return;
+        // "build source code" — dernière étape affichée ; le portfolio est déjà
+        // en ligne à cet instant (folyyo.com/[slug] lit site_json directement,
+        // aucun déploiement séparé à attendre).
         setCurrentStep(isMusicien ? 2 : 3);
         await new Promise((r) => setTimeout(r, 500));
-
-        setCurrentStep(isMusicien ? 3 : 4);
-        const deployRes = await fetch("/api/portfolio/deploy", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ portfolioId }),
-        });
-        if (!deployRes.ok) {
-          const e = await deployRes.json().catch(() => ({}));
-          throw new Error(e.error || "Erreur de déploiement");
-        }
 
         if (!cancelled) onDone(portfolioId);
       } catch (err) {
@@ -139,13 +131,13 @@ export default function GeneratingStep({ data, onDone }: Props) {
           <span style={{ color: "#dc2626", fontSize: "1rem", fontFamily: "'JetBrains Mono', monospace" }}>×</span>
         </div>
         <h2 className="mb-2 text-xl serif" style={{ fontWeight: 500, color: "#1c1917" }}>
-          Une erreur est survenue
+          {t.generating.errorTitle}
         </h2>
         <p className="mb-6 text-sm" style={{ color: "#78716c" }}>{error}</p>
         <button onClick={() => window.location.reload()}
           className="rounded-xl px-6 py-2.5 text-sm transition hover:opacity-70"
           style={{ border: "1px solid rgba(0,0,0,0.1)", color: "#78716c" }}>
-          Réessayer
+          {t.generating.retry}
         </button>
       </div>
     );
@@ -155,9 +147,9 @@ export default function GeneratingStep({ data, onDone }: Props) {
     <div>
       <div className="mb-6 text-center">
         <h2 className="mb-1 text-2xl serif" style={{ fontWeight: 500, color: "#1c1917" }}>
-          Génération en cours
+          {t.generating.title}
         </h2>
-        <p className="text-sm" style={{ color: "#a09a94" }}>Environ 30 secondes</p>
+        <p className="text-sm" style={{ color: "#a09a94" }}>{t.generating.subtitle}</p>
       </div>
 
       {/* Terminal build panel */}

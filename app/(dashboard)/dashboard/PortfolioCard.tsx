@@ -5,21 +5,27 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import type { Portfolio, PortfolioStatus } from "@/types";
 import { PROFILE_LABEL } from "@/lib/profile-labels";
+import { getDictionary } from "@/lib/i18n/dictionaries";
+import type { Locale } from "@/lib/i18n/types";
 
-const STATUS_CONFIG: Record<PortfolioStatus, { label: string; color: string }> = {
-  draft:      { label: "Brouillon",          color: "#a09a94" },
-  generating: { label: "Génération…",        color: "#d97706" },
-  deploying:  { label: "Déploiement…",       color: "#0891b2" },
-  live:       { label: "En ligne",           color: "#22a06b" },
-  editing:    { label: "En cours d'édition…", color: "#d97706" },
-  error:      { label: "Erreur",             color: "#dc2626" },
-};
-
-export default function PortfolioCard({ portfolio: p, views }: { portfolio: Portfolio; views?: { total: number; last7d: number } }) {
+export default function PortfolioCard({ portfolio: p, views, locale }: {
+  portfolio: Portfolio; views?: { total: number; last7d: number }; locale: Locale;
+}) {
+  // Les fonctions du dictionnaire (t.views, t.count…) ne sont pas
+  // sérialisables à travers la frontière Server→Client Component — on reçoit
+  // juste `locale` (une string) et on recalcule le dictionnaire ici, côté
+  // client, plutôt que de passer l'objet t.dashboard depuis le Server
+  // Component parent (ça plantait le rendu de /dashboard).
+  const t = getDictionary(locale).dashboard;
   const router = useRouter();
   const [deleting, setDeleting] = useState(false);
   const [confirm, setConfirm] = useState(false);
-  const status = STATUS_CONFIG[p.status] ?? STATUS_CONFIG.generating;
+  const statusColor: Record<PortfolioStatus, string> = {
+    draft: "#a09a94", generating: "#d97706", deploying: "#0891b2",
+    live: "#22a06b", editing: "#d97706", error: "#dc2626",
+  };
+  const statusLabel = t.status[p.status] ?? t.status.generating;
+  const color = statusColor[p.status] ?? statusColor.generating;
   const shortSlug = p.slug ?? p.id.slice(0, 8);
   const isLive = p.status === "live";
 
@@ -38,7 +44,7 @@ export default function PortfolioCard({ portfolio: p, views }: { portfolio: Port
       <button
         onClick={handleDelete}
         disabled={deleting}
-        title={confirm ? "Cliquer encore pour confirmer" : "Supprimer"}
+        title={confirm ? t.deleteConfirmTitle : t.deleteTitle}
         className="absolute top-4 right-4 rounded-lg px-2 py-1 text-xs transition hover:opacity-80 disabled:opacity-40"
         style={{
           background: confirm ? "rgba(220,38,38,0.08)" : "transparent",
@@ -46,7 +52,7 @@ export default function PortfolioCard({ portfolio: p, views }: { portfolio: Port
           border: confirm ? "1px solid rgba(220,38,38,0.15)" : "1px solid transparent",
         }}
         onBlur={() => setConfirm(false)}>
-        {deleting ? "…" : confirm ? "Confirmer ?" : "✕"}
+        {deleting ? "…" : confirm ? t.deleteConfirmLabel : "✕"}
       </button>
 
       {/* Profile + status row */}
@@ -55,9 +61,9 @@ export default function PortfolioCard({ portfolio: p, views }: { portfolio: Port
           style={{ background: "rgba(0,0,0,0.04)", color: "#a09a94" }}>
           {PROFILE_LABEL[p.profile_type] ?? p.profile_type}
         </span>
-        <span className="flex items-center gap-1.5 text-xs font-medium" style={{ color: status.color }}>
-          <span className="h-1.5 w-1.5 rounded-full" style={{ background: status.color }} />
-          {status.label}
+        <span className="flex items-center gap-1.5 text-xs font-medium" style={{ color }}>
+          <span className="h-1.5 w-1.5 rounded-full" style={{ background: color }} />
+          {statusLabel}
         </span>
       </div>
 
@@ -77,11 +83,11 @@ export default function PortfolioCard({ portfolio: p, views }: { portfolio: Port
           <span aria-hidden="true">👁</span>
           {views && views.total > 0 ? (
             <>
-              {views.total} vue{views.total > 1 ? "s" : ""}
-              {views.last7d > 0 && <span style={{ color: "#22a06b" }}>· +{views.last7d} cette semaine</span>}
+              {t.views(views.total)}
+              {views.last7d > 0 && <span style={{ color: "#22a06b" }}>· {t.viewsThisWeek(views.last7d)}</span>}
             </>
           ) : (
-            "Pas encore de vue"
+            t.noViewsYet
           )}
         </p>
       )}
@@ -90,13 +96,13 @@ export default function PortfolioCard({ portfolio: p, views }: { portfolio: Port
         <Link href={`/portfolio/${p.id}`}
           className="flex-1 rounded-xl py-2 text-center text-xs font-medium transition hover:opacity-70"
           style={{ border: "1px solid rgba(0,0,0,0.08)", color: "#78716c" }}>
-          Gérer
+          {t.manage}
         </Link>
         {isLive && (
           <a href={`/${shortSlug}`} target="_blank" rel="noopener noreferrer"
             className="flex-1 rounded-xl py-2 text-center text-xs font-medium transition hover:opacity-70"
             style={{ background: "rgba(201,169,110,0.1)", color: "#c9a96e" }}>
-            Voir le site ↗
+            {t.viewSite}
           </a>
         )}
       </div>

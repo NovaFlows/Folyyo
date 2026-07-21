@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { getPortfolioById } from "@/lib/db/queries";
+import { getPortfolioById, getUserSettings } from "@/lib/db/queries";
 import { callClaude } from "@/lib/anthropic/client";
 import { generateThemeFromUrl } from "@/lib/anthropic/style-from-url";
 import type { ValidatedPortfolioJSON } from "@/lib/anthropic/schema";
+import { hasActiveAccess } from "@/lib/billing/access";
 
 export const maxDuration = 60;
 
@@ -39,6 +40,11 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
 
   const portfolio = await getPortfolioById(params.id, userId);
   if (!portfolio?.site_json) return NextResponse.json({ error: "Portfolio introuvable" }, { status: 404 });
+
+  const settings = await getUserSettings(userId);
+  if (!settings || !hasActiveAccess(settings)) {
+    return NextResponse.json({ error: "Ton essai gratuit est terminé — abonne-toi pour continuer à éditer." }, { status: 403 });
+  }
 
   const siteJson = portfolio.site_json as ValidatedPortfolioJSON;
   const profileType = portfolio.profile_type;

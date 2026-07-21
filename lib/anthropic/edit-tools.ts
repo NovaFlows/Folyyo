@@ -19,7 +19,9 @@ const fontSize = z.number().min(10).max(72).optional().describe("Taille de polic
 const fontFamily = z.string().optional().describe("Nom de police (Google Fonts)");
 
 // Contenu d'un widget — miroir de ContentBlockSchema (lib/anthropic/schema.ts)
-// SANS "section_content" (contenu natif, jamais ajouté/modifié par cet outil).
+// SANS "section_content" ni "section_title" (contenu natif et marqueur de
+// titre, jamais ajoutés/modifiés par cet outil — un seul de chaque par
+// section, gérés par l'app elle-même).
 const blockSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("image"), url: z.string().describe("URL de l'image"), caption: z.string().optional(), size }),
   z.object({ type: z.literal("text"), content: z.string(), style: z.enum(["normal", "lead"]).default("normal"), size, fontSize, fontFamily, align: ALIGN.optional() }),
@@ -27,7 +29,7 @@ const blockSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("stats"), items: z.array(z.object({ label: z.string(), value: z.string() })), size, fontSize, fontFamily }),
   z.object({ type: z.literal("button"), label: z.string(), url: z.string(), variant: z.enum(["primary", "outline"]).default("primary"), size, fontSize, fontFamily }),
   z.object({ type: z.literal("divider"), size }),
-  z.object({ type: z.literal("carousel"), images: z.array(z.object({ url: z.string(), caption: z.string().optional(), linkUrl: z.string().optional() })), size }),
+  z.object({ type: z.literal("carousel"), images: z.array(z.object({ url: z.string(), caption: z.string().optional(), description: z.string().max(500).optional().describe("Texte long affiché à droite de la photo, 500 caractères max (bascule automatiquement le carrousel en mise en page 2 colonnes) — caption sert alors de titre en gras au-dessus"), linkUrl: z.string().optional() })), size, fontSize, fontFamily, descriptionWidth: z.number().min(160).max(480).optional().describe("Largeur en pixels du cadre description (160 à 480, défaut 240) — utile seulement si au moins une photo a une description") }),
   z.object({ type: z.literal("links"), items: z.array(z.object({ label: z.string(), url: z.string() })), size, fontSize, fontFamily }),
 ]).describe("Contenu du widget — le champ \"type\" détermine les autres champs valides.");
 

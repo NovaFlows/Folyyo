@@ -5,6 +5,8 @@ const isProtected = createRouteMatcher([
   "/dashboard(.*)",
   "/onboarding(.*)",
   "/portfolio(.*)",
+  "/settings(.*)",
+  "/billing(.*)",
 ]);
 
 // Identifiant anonyme par appareil (aucune donnée personnelle) utilisé pour

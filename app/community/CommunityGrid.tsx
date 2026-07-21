@@ -2,24 +2,24 @@
 
 import { useState } from "react";
 import TemplateCard, { type TemplateCardData } from "@/components/portfolio/TemplateCard";
+import type { Dictionary } from "@/lib/i18n/dictionaries/fr";
 
-const FILTERS: { value: string; label: string }[] = [
-  { value: "all",       label: "Tous" },
-  { value: "developer", label: "Développeur" },
-  { value: "artist",    label: "Artiste" },
-  { value: "fashion",   label: "Mode" },
-  { value: "musicien",  label: "Musicien" },
-  { value: "other",     label: "Autre" },
-];
-
-export default function CommunityGrid({ items }: { items: TemplateCardData[] }) {
+export default function CommunityGrid({ items, t, templateCardT }: { items: TemplateCardData[]; t: Dictionary["community"]; templateCardT: Dictionary["templateCard"] }) {
   const [filter, setFilter] = useState("all");
+  const FILTERS: { value: string; label: string }[] = [
+    { value: "all",       label: t.filters.all },
+    { value: "developer", label: t.filters.developer },
+    { value: "artist",    label: t.filters.artist },
+    { value: "fashion",   label: t.filters.fashion },
+    { value: "musicien",  label: t.filters.musicien },
+    { value: "other",     label: t.filters.other },
+  ];
   const visible = filter === "all" ? items : items.filter((i) => i.profileType === filter);
 
   if (items.length === 0) {
     return (
       <p className="text-sm" style={{ color: "#78716c" }}>
-        Aucun portfolio mis en avant pour l&apos;instant — reviens bientôt !
+        {t.emptyAll}
       </p>
     );
   }
@@ -41,11 +41,11 @@ export default function CommunityGrid({ items }: { items: TemplateCardData[] }) 
       </div>
 
       {visible.length === 0 ? (
-        <p className="text-sm" style={{ color: "#78716c" }}>Aucun portfolio dans cette catégorie pour l&apos;instant.</p>
+        <p className="text-sm" style={{ color: "#78716c" }}>{t.emptyFiltered}</p>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {visible.map((item) => (
-            <TemplateCard key={item.id} data={item} showPreviewLink />
+            <TemplateCard key={item.id} data={item} showPreviewLink t={templateCardT} />
           ))}
         </div>
       )}

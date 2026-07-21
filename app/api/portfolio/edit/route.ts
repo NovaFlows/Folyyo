@@ -18,7 +18,9 @@ import {
   getRecentAppliedEdits,
   setPortfolioStatus,
   snapshotVersion,
+  getUserSettings,
 } from "@/lib/db/queries";
+import { hasActiveAccess } from "@/lib/billing/access";
 
 export const maxDuration = 120;
 
@@ -71,6 +73,11 @@ export async function POST(request: NextRequest) {
   if (!portfolio) return NextResponse.json({ error: "Portfolio introuvable" }, { status: 404 });
   if (!portfolio.site_json) return NextResponse.json({ error: "Portfolio sans données JSON" }, { status: 400 });
 
+  const settings = await getUserSettings(userId);
+  if (!settings || !hasActiveAccess(settings)) {
+    return NextResponse.json({ error: "Ton essai gratuit est terminé — abonne-toi pour continuer à éditer." }, { status: 403 });
+  }
+
   // État de départ validé + migré (grille libre) AVANT que Claude ne le voie :
   // un vieux portfolio jamais ouvert dans l'éditeur peut ne pas avoir de champ
   // "grid"/"section_content", ce qui rendrait les outils de widgets incapables
@@ -108,20 +115,40 @@ export async function POST(request: NextRequest) {
 
   try {
     const client = getAnthropicClient();
-    const systemPrompt = buildEditSystemPrompt(profileContext);
+    const systemPrompt = buildEditSystemPrompt(profileContext, portfolio.language);
     const imagesNote = images?.length
       ? `\n\nIMAGES JOINTES (${images.length}) : analyse-les pour la palette/l'ambiance si l'instruction le demande. Si l'instruction demande explicitement d'UTILISER une de ces images comme visuel (photo de fond, image d'un widget, avatar…), référence-la EXACTEMENT par la chaîne "attachment:0" (première image jointe), "attachment:1" (deuxième), etc. dans le champ approprié — jamais une URL inventée, et jamais "attachment:N" si l'instruction ne demande qu'une analyse de palette/ambiance.`
       : "";
-    const userText = buildEditUserPrompt(state, instruction, recentEdits) + imagesNote;
+    const { contextBlock, instructionBlock } = buildEditUserPrompt(state, instruction, recentEdits);
 
-    const initialContent: Anthropic.MessageParam["content"] = images?.length
-      ? [
-          ...images.map((img) => ({ type: "image" as const, source: { type: "base64" as const, media_type: img.mediaType, data: img.data } })),
-          { type: "text" as const, text: userText },
-        ]
-      : userText;
+    // Mise en cache (API beta prompt-caching, seule surface qui l'expose dans
+    // cette version du SDK) du system prompt + des outils + du bloc JSON :
+    // ces trois éléments restent identiques d'un tour à l'autre de la boucle
+    // ci-dessous (MAX_TURNS, pour l'auto-correction) — seuls les tool_results
+    // changent. Sans cache, chaque tour de retry refacture le plein tarif de
+    // tout ce contexte ; avec, les tours 2/3 relisent le préfixe caché à
+    // ~10% du prix. Le JSON est aussi son PROPRE bloc, séparé de
+    // l'instruction (qui change à chaque appel et n'est donc jamais mise en
+    // cache) : si une deuxième instruction arrive dans les 5 minutes sans que
+    // l'état du portfolio ait changé entre-temps (ex: une instruction
+    // refusée qui n'a rien modifié), le JSON déjà en cache est réutilisé même
+    // si le texte de l'instruction, lui, diffère. Les images jointes (si il y
+    // en a) viennent APRÈS le bloc JSON caché, jamais avant — sinon leur
+    // contenu, toujours différent d'un appel à l'autre, invaliderait le cache.
+    const ephemeral = { type: "ephemeral" as const };
+    const cachedTools: Anthropic.Beta.PromptCaching.PromptCachingBetaTool[] = EDIT_TOOLS.map((t, i) =>
+      i === EDIT_TOOLS.length - 1 ? { ...t, cache_control: ephemeral } : t
+    );
 
-    const messages: Anthropic.MessageParam[] = [{ role: "user", content: initialContent }];
+    const initialContent: Anthropic.Beta.PromptCaching.PromptCachingBetaMessageParam["content"] = [
+      { type: "text" as const, text: contextBlock, cache_control: ephemeral },
+      ...(images?.length
+        ? images.map((img) => ({ type: "image" as const, source: { type: "base64" as const, media_type: img.mediaType, data: img.data } }))
+        : []),
+      { type: "text" as const, text: instructionBlock + imagesNote },
+    ];
+
+    const messages: Anthropic.Beta.PromptCaching.PromptCachingBetaMessageParam[] = [{ role: "user", content: initialContent }];
 
     const diff: DiffItem[] = [];
     let anySuccess = false;
@@ -129,12 +156,12 @@ export async function POST(request: NextRequest) {
     let turn = 0;
 
     while (turn < MAX_TURNS) {
-      const resp = await client.messages.create({
+      const resp = await client.beta.promptCaching.messages.create({
         model: CLAUDE_MODEL,
         max_tokens: 4096,
-        system: systemPrompt,
+        system: [{ type: "text", text: systemPrompt, cache_control: ephemeral }],
         messages,
-        tools: EDIT_TOOLS,
+        tools: cachedTools,
       });
       messages.push({ role: "assistant", content: resp.content });
 
@@ -144,7 +171,7 @@ export async function POST(request: NextRequest) {
 
       if (toolUses.length === 0) break; // Claude a fini (ou n'a rien eu à faire)
 
-      const toolResults: Anthropic.ToolResultBlockParam[] = [];
+      const toolResults: Anthropic.Beta.PromptCaching.PromptCachingBetaToolResultBlockParam[] = [];
       for (const tu of toolUses) {
         try {
           const input = resolveAttachmentRefs(tu.input, images ?? []);

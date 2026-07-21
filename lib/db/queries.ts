@@ -1,6 +1,7 @@
 import { sql } from "./client";
-import type { Portfolio, PortfolioVersion, PortfolioEdit } from "@/types";
-import { classifyReferrer, SOURCE_LABELS, type ViewSource } from "@/lib/tracking/referrer-source";
+import type { Portfolio, PortfolioVersion, PortfolioEdit, PortfolioWithOwnerAccess, UserSettings, SubscriptionStatus } from "@/types";
+import { classifyReferrer, getSourceLabels, type ViewSource } from "@/lib/tracking/referrer-source";
+import type { Locale } from "@/lib/i18n/types";
 
 // `sql` (Neon) renvoie des lignes génériques — ces deux helpers centralisent
 // le cast vers les types de domaine pour ne plus le répéter à chaque requête
@@ -10,6 +11,27 @@ function many<T>(rows: unknown[]): T[] {
 }
 function one<T>(rows: unknown[]): T | null {
   return many<T>(rows)[0] ?? null;
+}
+
+// ── Préférences de compte (pays/langue — demandés une fois à l'onboarding,
+//    modifiables depuis les paramètres) ─────────────────────────────────────
+
+export async function getUserSettings(userId: string): Promise<UserSettings | null> {
+  const rows = await sql`SELECT * FROM users WHERE user_id = ${userId} LIMIT 1`;
+  return one<UserSettings>(rows);
+}
+
+export async function upsertUserSettings(userId: string, data: { country?: string | null; language?: "fr" | "en" }): Promise<UserSettings> {
+  const rows = await sql`
+    INSERT INTO users (user_id, country, language)
+    VALUES (${userId}, ${data.country ?? null}, ${data.language ?? "fr"})
+    ON CONFLICT (user_id) DO UPDATE SET
+      country    = COALESCE(${data.country ?? null}, users.country),
+      language   = COALESCE(${data.language ?? null}, users.language),
+      updated_at = now()
+    RETURNING *
+  `;
+  return many<UserSettings>(rows)[0];
 }
 
 // ── Teaser CV public (landing page, sans compte) ────────────────────────────
@@ -64,7 +86,7 @@ export interface ViewSourceCount { source: ViewSource; label: string; count: num
 // Répartition des vues par provenance (Instagram, Facebook, LinkedIn,
 // Twitter/X, communauté Folyyo, autre) — classifiée en JS à partir du
 // referrer brut déjà stocké, pas de tracking supplémentaire.
-export async function getViewSourcesForPortfolio(portfolioId: string): Promise<ViewSourceCount[]> {
+export async function getViewSourcesForPortfolio(portfolioId: string, locale: Locale): Promise<ViewSourceCount[]> {
   const rows = await sql`
     SELECT referrer, COUNT(*)::int AS count
     FROM portfolio_views
@@ -76,8 +98,9 @@ export async function getViewSourcesForPortfolio(portfolioId: string): Promise<V
     const source = classifyReferrer(row.referrer);
     totals[source] = (totals[source] ?? 0) + row.count;
   }
+  const labels = getSourceLabels(locale);
   return (Object.entries(totals) as [ViewSource, number][])
-    .map(([source, count]) => ({ source, label: SOURCE_LABELS[source], count }))
+    .map(([source, count]) => ({ source, label: labels[source], count }))
     .sort((a, b) => b.count - a.count);
 }
 
@@ -124,10 +147,12 @@ export async function createPortfolio(data: {
   name: string;
   profile_type: string;
   slug?: string;
+  country?: string;
+  language?: "fr" | "en";
 }): Promise<Portfolio> {
   const rows = await sql`
-    INSERT INTO portfolios (user_id, name, profile_type, status, slug)
-    VALUES (${data.user_id}, ${data.name}, ${data.profile_type}, 'generating', ${data.slug ?? null})
+    INSERT INTO portfolios (user_id, name, profile_type, status, slug, country, language)
+    VALUES (${data.user_id}, ${data.name}, ${data.profile_type}, 'generating', ${data.slug ?? null}, ${data.country ?? null}, ${data.language ?? "fr"})
     RETURNING *
   `;
   return many<Portfolio>(rows)[0];
@@ -142,13 +167,19 @@ export async function getPortfolioBySlugOrId(slugOrId: string, userId: string): 
   return one<Portfolio>(rows);
 }
 
-export async function getPortfolioBySlugPublic(slugOrId: string): Promise<Portfolio | null> {
+// `p.*` (jamais `SELECT *` avec la jointure) : portfolios ET users ont
+// chacune leurs propres colonnes country/language/created_at/updated_at —
+// un `SELECT *` global les rendrait ambiguës et écraserait silencieusement
+// les valeurs du portfolio par celles du compte.
+export async function getPortfolioBySlugPublic(slugOrId: string): Promise<PortfolioWithOwnerAccess | null> {
   const rows = await sql`
-    SELECT * FROM portfolios
-    WHERE slug = ${slugOrId} OR id::text = ${slugOrId}
+    SELECT p.*, u.subscription_status AS owner_subscription_status, u.trial_ends_at AS owner_trial_ends_at
+    FROM portfolios p
+    LEFT JOIN users u ON u.user_id = p.user_id
+    WHERE p.slug = ${slugOrId} OR p.id::text = ${slugOrId}
     LIMIT 1
   `;
-  return one<Portfolio>(rows);
+  return one<PortfolioWithOwnerAccess>(rows);
 }
 
 export async function setPortfolioStatus(id: string, status: string): Promise<void> {
@@ -194,6 +225,57 @@ export async function updatePortfolioJsonAndCode(id: string, siteJson: unknown, 
 
 export async function deletePortfolio(id: string, userId: string): Promise<void> {
   await sql`DELETE FROM portfolios WHERE id = ${id} AND user_id = ${userId}`;
+}
+
+// Suppression de compte : retire tout ce qui appartient à l'utilisateur avant
+// que le compte Clerk lui-même ne soit supprimé, pour ne pas laisser de
+// portfolios orphelins (encore visibles publiquement, plus jamais gérables).
+export async function deleteAllPortfoliosForUser(userId: string): Promise<void> {
+  await sql`DELETE FROM portfolios WHERE user_id = ${userId}`;
+}
+
+export async function deleteUserSettings(userId: string): Promise<void> {
+  await sql`DELETE FROM users WHERE user_id = ${userId}`;
+}
+
+// ── Abonnement (essai 7 jours puis Stripe) — voir lib/billing/access.ts ─────
+
+export async function setSubscriptionActive(userId: string, data: {
+  stripeCustomerId: string; stripeSubscriptionId: string; stripePriceId: string; currentPeriodEnd: Date;
+}): Promise<void> {
+  await sql`
+    UPDATE users SET
+      subscription_status = 'active',
+      stripe_customer_id = ${data.stripeCustomerId},
+      stripe_subscription_id = ${data.stripeSubscriptionId},
+      stripe_price_id = ${data.stripePriceId},
+      subscription_current_period_end = ${data.currentPeriodEnd.toISOString()},
+      updated_at = now()
+    WHERE user_id = ${userId}
+  `;
+}
+
+// Utilisé par les webhooks Stripe (customer.subscription.*), qui ne portent
+// que l'id client Stripe — jamais le user_id Clerk directement.
+export async function setSubscriptionStatusByCustomerId(
+  stripeCustomerId: string,
+  status: SubscriptionStatus,
+  extra?: { stripeSubscriptionId?: string; stripePriceId?: string; currentPeriodEnd?: Date },
+): Promise<void> {
+  await sql`
+    UPDATE users SET
+      subscription_status = ${status},
+      stripe_subscription_id = COALESCE(${extra?.stripeSubscriptionId ?? null}, stripe_subscription_id),
+      stripe_price_id = COALESCE(${extra?.stripePriceId ?? null}, stripe_price_id),
+      subscription_current_period_end = COALESCE(${extra?.currentPeriodEnd?.toISOString() ?? null}, subscription_current_period_end),
+      updated_at = now()
+    WHERE stripe_customer_id = ${stripeCustomerId}
+  `;
+}
+
+export async function getUserSettingsByStripeCustomerId(stripeCustomerId: string): Promise<UserSettings | null> {
+  const rows = await sql`SELECT * FROM users WHERE stripe_customer_id = ${stripeCustomerId} LIMIT 1`;
+  return one<UserSettings>(rows);
 }
 
 // ── Featured / Communauté ────────────────────────────────────────────────────
@@ -345,4 +427,30 @@ export async function getRecentAppliedEdits(portfolioId: string, limit = 4): Pro
       summary: r.diff_applied?.summary ?? r.diff_applied?.diffApplied ?? r.instruction,
     }))
     .reverse();
+}
+
+// ── Support (dashboard → admin, jamais un mailto) ───────────────────────────
+export interface SupportMessage {
+  id: string; user_id: string; email: string; category: string; message: string;
+  status: string; created_at: string;
+}
+
+export async function createSupportMessage(data: {
+  user_id: string; email: string; category: string; message: string;
+}): Promise<SupportMessage> {
+  const rows = await sql`
+    INSERT INTO support_messages (user_id, email, category, message)
+    VALUES (${data.user_id}, ${data.email}, ${data.category}, ${data.message})
+    RETURNING *
+  `;
+  return many<SupportMessage>(rows)[0];
+}
+
+export async function getSupportMessages(): Promise<SupportMessage[]> {
+  const rows = await sql`SELECT * FROM support_messages ORDER BY created_at DESC`;
+  return many<SupportMessage>(rows);
+}
+
+export async function setSupportMessageStatus(id: string, status: "new" | "resolved"): Promise<void> {
+  await sql`UPDATE support_messages SET status = ${status} WHERE id = ${id}`;
 }

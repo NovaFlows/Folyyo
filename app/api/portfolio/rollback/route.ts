@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { getPortfolioById, getVersionById, updatePortfolioJsonAndCode } from "@/lib/db/queries";
+import { getPortfolioById, getVersionById, updatePortfolioJsonAndCode, getUserSettings } from "@/lib/db/queries";
+import { hasActiveAccess } from "@/lib/billing/access";
 import { generateDeveloperCode } from "@/lib/portfolio/code-generator";
 import { writeSourceCode } from "@/lib/dev-storage";
 import { keys } from "@/lib/r2/client";
@@ -31,6 +32,11 @@ export async function POST(request: NextRequest) {
   ]);
   if (!portfolio || !version) {
     return NextResponse.json({ error: "Portfolio ou version introuvable" }, { status: 404 });
+  }
+
+  const settings = await getUserSettings(userId);
+  if (!settings || !hasActiveAccess(settings)) {
+    return NextResponse.json({ error: "Ton essai gratuit est terminé — abonne-toi pour continuer à éditer." }, { status: 403 });
   }
 
   const restoredJson = version.site_json as ValidatedPortfolioJSON | null;

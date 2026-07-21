@@ -6,10 +6,15 @@ import { checkFreshness } from "@/lib/freshness/check";
 import type { Portfolio } from "@/types";
 import PortfolioCard from "./PortfolioCard";
 import FreshnessBanner from "./FreshnessBanner";
+import { getLocale } from "@/lib/i18n/locale";
+import { getDictionary } from "@/lib/i18n/dictionaries";
 
 export default async function DashboardPage() {
   const { userId } = await auth();
   if (!userId) redirect("/login");
+
+  const locale = getLocale();
+  const t = getDictionary(locale);
 
   const [portfolios, viewCounts] = await Promise.all([
     getPortfoliosByUser(userId),
@@ -26,15 +31,15 @@ export default async function DashboardPage() {
     <div>
       <div className="mb-10 flex items-end justify-between">
         <div>
-          <p className="mono text-xs tracking-widest uppercase mb-2" style={{ color: "#a09a94", letterSpacing: "0.12em" }}>portfolios</p>
+          <p className="mono text-xs tracking-widest uppercase mb-2" style={{ color: "#a09a94", letterSpacing: "0.12em" }}>{t.dashboard.kicker}</p>
           <h1 className="text-3xl serif" style={{ fontWeight: 500, color: "#1c1917" }}>
-            {portfolios.length === 0 ? "Aucun portfolio encore" : `${portfolios.length} portfolio${portfolios.length > 1 ? "s" : ""}`}
+            {portfolios.length === 0 ? t.dashboard.noneYet : t.dashboard.count(portfolios.length)}
           </h1>
         </div>
         <Link href="/onboarding"
           className="rounded-full px-6 py-2.5 text-sm font-medium text-white transition hover:opacity-80"
           style={{ background: "#1c1917" }}>
-          + Nouveau
+          {t.dashboardNav.newPortfolioShort}
         </Link>
       </div>
 
@@ -45,10 +50,10 @@ export default async function DashboardPage() {
         ) : null
       ))}
 
-      {!portfolios.length ? <EmptyState /> : (
+      {!portfolios.length ? <EmptyState t={t} /> : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {portfolios.map((p: Portfolio) => (
-            <PortfolioCard key={p.id} portfolio={p} views={viewCounts[p.id]} />
+            <PortfolioCard key={p.id} portfolio={p} views={viewCounts[p.id]} locale={locale} />
           ))}
         </div>
       )}
@@ -56,21 +61,22 @@ export default async function DashboardPage() {
   );
 }
 
-function EmptyState() {
+function EmptyState({ t }: { t: ReturnType<typeof getDictionary> }) {
   return (
     <div className="flex flex-col items-center justify-center py-24 text-center">
-      <div className="mb-8 h-16 w-16 rounded-full flex items-center justify-center"
+      <Link href="/onboarding"
+        className="mb-8 h-16 w-16 rounded-full flex items-center justify-center transition hover:opacity-70"
         style={{ background: "#f0ece6", border: "1px solid rgba(0,0,0,0.06)" }}>
         <span className="mono" style={{ color: "#c9a96e", fontSize: "1.25rem" }}>+</span>
-      </div>
+      </Link>
       <h2 className="mb-3 text-xl serif" style={{ fontWeight: 500, color: "#1c1917" }}>
-        Ton premier portfolio
+        {t.dashboard.emptyTitle}
       </h2>
-      <p className="mb-8 text-sm" style={{ color: "#78716c" }}>Génère un portfolio professionnel en moins de 60 secondes.</p>
+      <p className="mb-8 text-sm" style={{ color: "#78716c" }}>{t.dashboard.emptyDesc}</p>
       <Link href="/onboarding"
         className="rounded-full px-8 py-3 text-sm font-medium text-white transition hover:opacity-80"
         style={{ background: "#1c1917" }}>
-        Créer mon portfolio →
+        {t.dashboard.emptyCta}
       </Link>
     </div>
   );

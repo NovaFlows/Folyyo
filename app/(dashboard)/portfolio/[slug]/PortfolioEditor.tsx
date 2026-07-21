@@ -2,6 +2,8 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { getDictionary } from "@/lib/i18n/dictionaries";
+import type { Locale } from "@/lib/i18n/types";
 
 interface Edit {
   id: string;
@@ -33,46 +35,48 @@ interface Props {
   hasCode: boolean;
   edits: Edit[];
   initialStatus: string;
+  locale: Locale;
 }
-
-const SUGGESTIONS = [
-  "Change la couleur principale en bleu marine",
-  "Ajoute une animation fade-in sur le hero",
-  "Agrandis les titres des sections",
-  "Rends la typographie plus élégante",
-  "Ajoute des icônes aux liens sociaux",
-];
 
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"] as const;
 
-// Étapes affichées pendant le traitement IA (la requête n'est pas streamée —
-// ces libellés reflètent les phases réelles côté serveur).
-const THINKING_STEPS = [
-  "Analyse de ta demande…",
-  "Réflexion sur le design…",
-  "Génération des modifications…",
-  "Application au thème…",
-  "Régénération du code…",
-];
-
-function readImageAsBase64(file: File): Promise<ImagePreview> {
+// Redimensionne côté client avant d'envoyer à l'API (donc à la vision de
+// Claude) — une photo prise directement au téléphone (plusieurs Mo, souvent
+// 3000px+ de large) coûte des dizaines de milliers de tokens de vision pour
+// rien : max 1280px suffit largement pour une analyse de palette/ambiance ou
+// pour identifier un visuel à réutiliser. Même logique que resizeImage dans
+// VisualEditor.tsx pour les images du portfolio lui-même.
+function readImageAsBase64(file: File, maxPx = 1280, quality = 0.8): Promise<ImagePreview> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = (e) => {
-      const dataUrl = e.target?.result as string;
-      // dataUrl = "data:image/jpeg;base64,XXXX"
-      const [prefix, data] = dataUrl.split(",");
-      const mediaType = prefix.split(":")[1].split(";")[0] as ImagePreview["mediaType"];
-      resolve({ previewUrl: dataUrl, data, mediaType });
+      const img = new Image();
+      img.onload = () => {
+        const scale = Math.min(1, maxPx / Math.max(img.width, img.height));
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.round(img.width * scale);
+        canvas.height = Math.round(img.height * scale);
+        const ctx = canvas.getContext("2d");
+        if (!ctx) { reject(new Error("Canvas non supporté")); return; }
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        const dataUrl = canvas.toDataURL("image/jpeg", quality);
+        const [, data] = dataUrl.split(",");
+        resolve({ previewUrl: dataUrl, data, mediaType: "image/jpeg" });
+      };
+      img.onerror = () => reject(new Error("Image invalide"));
+      img.src = e.target?.result as string;
     };
     reader.onerror = reject;
     reader.readAsDataURL(file);
   });
 }
 
-export default function PortfolioEditor({ portfolioId, hasCode, edits: initialEdits, initialStatus }: Props) {
+export default function PortfolioEditor({ portfolioId, hasCode, edits: initialEdits, initialStatus, locale }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const t = getDictionary(locale).portfolioDetail;
+  const SUGGESTIONS = t.suggestions;
+  const THINKING_STEPS = t.thinkingSteps;
   const [edits, setEdits]             = useState<Edit[]>(initialEdits);
   const [instruction, setInstruction] = useState("");
   const [images, setImages]           = useState<ImagePreview[]>([]);
@@ -138,7 +142,7 @@ export default function PortfolioEditor({ portfolioId, hasCode, edits: initialEd
   async function handleImageFiles(files: FileList | null) {
     if (!files) return;
     const valid = Array.from(files).filter((f) => ALLOWED_TYPES.includes(f.type as typeof ALLOWED_TYPES[number]));
-    const previews = await Promise.all(valid.slice(0, 4).map(readImageAsBase64));
+    const previews = await Promise.all(valid.slice(0, 4).map((f) => readImageAsBase64(f)));
     setImages((prev) => [...prev, ...previews].slice(0, 4));
   }
 
@@ -164,7 +168,7 @@ export default function PortfolioEditor({ portfolioId, hasCode, edits: initialEd
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error ?? "Erreur inconnue");
+        setError(data.error ?? t.unknownError);
         setEdits((prev) => prev.map((e) => e.id === tempEdit.id ? { ...e, status: "failed" } : e));
         return;
       }
@@ -173,7 +177,7 @@ export default function PortfolioEditor({ portfolioId, hasCode, edits: initialEd
       // Rafraîchit les server components (statut, URL, historique de versions)
       router.refresh();
     } catch {
-      setError("Erreur réseau");
+      setError(t.networkError);
       setEdits((prev) => prev.map((e) => e.id === tempEdit.id ? { ...e, status: "failed" } : e));
     } finally {
       setLoading(false);
@@ -187,7 +191,7 @@ export default function PortfolioEditor({ portfolioId, hasCode, edits: initialEd
   if (!hasCode) {
     return (
       <div className="rounded-2xl p-8 text-center" style={{ background: "#f0ece6", border: "1px solid rgba(0,0,0,0.06)" }}>
-        <p style={{ color: "#a09a94" }}>Le code n&apos;a pas encore été généré.</p>
+        <p style={{ color: "#a09a94" }}>{t.codeNotGenerated}</p>
       </div>
     );
   }
@@ -196,14 +200,14 @@ export default function PortfolioEditor({ portfolioId, hasCode, edits: initialEd
     <div className="rounded-2xl overflow-hidden" style={{ background: "#f0ece6", border: "1px solid rgba(0,0,0,0.06)" }}>
       {/* Header */}
       <div className="px-6 py-4" style={{ borderBottom: "1px solid rgba(0,0,0,0.06)" }}>
-        <h2 className="text-sm font-semibold" style={{ color: "#1c1917" }}>Éditer par instruction</h2>
-        <p className="text-xs mt-0.5" style={{ color: "#a09a94" }}>Décris la modification en langage naturel. Tu peux joindre des images de référence.</p>
+        <h2 className="text-sm font-semibold" style={{ color: "#1c1917" }}>{t.editByInstructionTitle}</h2>
+        <p className="text-xs mt-0.5" style={{ color: "#a09a94" }}>{t.editByInstructionDesc}</p>
       </div>
 
       {/* Chat history */}
       <div className="max-h-80 overflow-y-auto px-6 py-4 space-y-3">
         {edits.length === 0 && (
-          <p className="text-center text-sm py-4" style={{ color: "#a09a94" }}>Aucune modification encore</p>
+          <p className="text-center text-sm py-4" style={{ color: "#a09a94" }}>{t.noEditsYet}</p>
         )}
         {[...edits].reverse().map((edit) => (
           <div key={edit.id} className="flex gap-3">
@@ -219,7 +223,7 @@ export default function PortfolioEditor({ portfolioId, hasCode, edits: initialEd
               <p className="mt-0.5 text-xs" style={{
                 color: edit.status === "applied" ? "#c9a96e" : edit.status === "failed" ? "#dc2626" : "#a09a94",
               }}>
-                {edit.status === "applied" ? "Appliqué" : edit.status === "failed" ? "Échec" : "En cours…"}
+                {edit.status === "applied" ? t.appliedStatus : edit.status === "failed" ? t.failedStatus : t.pendingStatus}
               </p>
             </div>
           </div>
@@ -328,7 +332,7 @@ export default function PortfolioEditor({ portfolioId, hasCode, edits: initialEd
         <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" multiple className="hidden"
           onChange={(e) => handleImageFiles(e.target.files)} />
         <button type="button" onClick={() => fileInputRef.current?.click()} disabled={loading || images.length >= 4}
-          title="Joindre une image"
+          title={t.attachImageTitle}
           className="shrink-0 rounded-xl flex items-center justify-center transition hover:opacity-70 disabled:opacity-30"
           style={{ width: 42, height: 42, background: "white", border: "1px solid rgba(0,0,0,0.1)", color: "#78716c" }}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -339,7 +343,7 @@ export default function PortfolioEditor({ portfolioId, hasCode, edits: initialEd
         <textarea ref={textareaRef} value={instruction}
           onChange={(e) => setInstruction(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder='Ex : "change la couleur principale en rouge corail" — Entrée pour envoyer'
+          placeholder={t.inputPlaceholder}
           rows={2} disabled={loading}
           className="flex-1 resize-none rounded-xl px-4 py-3 text-sm outline-none transition disabled:opacity-50"
           style={{ background: "white", border: "1px solid rgba(0,0,0,0.1)", color: "#1c1917" }} />

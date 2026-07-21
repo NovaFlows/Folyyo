@@ -1,6 +1,8 @@
 import type { ContentBlock, BlockRow, GridItem } from "@/lib/anthropic/schema";
 import { GRID_COLS, GRID_ROW_HEIGHT, GRID_MARGIN, sortGridItems } from "@/lib/portfolio/grid";
 import Carousel from "./Carousel";
+import RichText from "./RichText";
+import { stripRichTags } from "@/lib/portfolio/rich-text";
 
 export type WidgetStyle = "strict" | "soft" | "glass";
 
@@ -18,6 +20,11 @@ export function nativeZoom(block: { size?: number; fontSize?: number }): number 
 // Pour les images hors grille (aside/legacy) : largeur % et hauteur max par taille
 const IMG_WIDTH  = [50, 70, 100, 100, 100];
 const IMG_HEIGHT = [200, 270, 360, 470, 600];
+// Largeurs (px) proposées pour le cadre description du carrousel (voir
+// Carousel.tsx) — 5 étapes, exportées pour que VisualEditor.tsx affiche le
+// même sélecteur −/points/+ que "Taille de l'image" tout en gardant les deux
+// bouts (rendu + éditeur) synchronisés sur les mêmes valeurs.
+export const DESCRIPTION_WIDTH_STEPS = [180, 220, 260, 320, 400];
 
 // Polices proposées dans le menu déroulant des widgets texte — chaque valeur
 // est la pile CSS complète, prête à poser en `fontFamily`. Toutes chargées via
@@ -44,13 +51,13 @@ export const WIDGET_FONT_SIZES = [10, 12, 14, 16, 18, 20, 24, 28, 32, 36, 40, 48
 export function BlockContent({ block, pri, txt, hFont, editMode = false, fill = false }: {
   block: ContentBlock; pri: string; txt: string; hFont: string; editMode?: boolean; fill?: boolean;
 }) {
-  const s  = Math.min(5, Math.max(1, block.size ?? 3));
+  const s  = Math.min(5, Math.max(1, ("size" in block ? block.size : undefined) ?? 3));
   const sc = SIZE_SCALE[s - 1];
   switch (block.type) {
     case "image": return (
       <div style={fill ? { height: "100%", display: "flex", flexDirection: "column" } : undefined}>
         {block.url
-          ? <img src={block.url} alt={block.caption ?? ""}
+          ? <img src={block.url} alt={block.caption ? stripRichTags(block.caption) : ""}
               style={fill
                 ? { width: "100%", flex: 1, minHeight: 0, objectFit: "cover", display: "block", borderRadius: block.caption ? "0.625rem" : 0 }
                 : { width: `${IMG_WIDTH[s-1]}%`, margin: "0 auto", borderRadius: "0.625rem", display: "block", maxHeight: IMG_HEIGHT[s-1], objectFit: "cover" }} />
@@ -58,12 +65,12 @@ export function BlockContent({ block, pri, txt, hFont, editMode = false, fill = 
             ? <div style={{ width: "100%", height: fill ? "100%" : 100, minHeight: 80, background: `${txt}06`, borderRadius: "0.625rem", display: "flex", alignItems: "center", justifyContent: "center", border: `1px dashed ${txt}20` }}><span style={{ color: `${txt}25`, fontSize: "0.7rem" }}>Image · clic pour ajouter</span></div>
             : null
         }
-        {block.caption && <p style={{ fontSize: "0.8rem", color: `${txt}45`, textAlign: "center", marginTop: "0.4rem", marginBottom: fill ? "0.4rem" : 0, fontStyle: "italic" }}>{block.caption}</p>}
+        {block.caption && <p style={{ fontSize: "0.8rem", color: `${txt}45`, textAlign: "center", marginTop: "0.4rem", marginBottom: fill ? "0.4rem" : 0, fontStyle: "italic" }}><RichText html={block.caption}/></p>}
       </div>
     );
     case "text": {
       const fs = block.fontSize ? `${block.fontSize}px` : `${(block.style === "lead" ? 1.0625 : 0.9375) * sc}rem`;
-      return <p style={{ fontSize: fs, fontFamily: block.fontFamily || undefined, textAlign: block.align || undefined, color: `${txt}cc`, lineHeight: 1.75, margin: 0 }}>{block.content}</p>;
+      return <p style={{ fontSize: fs, fontFamily: block.fontFamily || undefined, textAlign: block.align || undefined, color: `${txt}cc`, lineHeight: 1.75, margin: 0 }}><RichText html={block.content}/></p>;
     }
     case "quote": {
       const fs = block.fontSize ? `${block.fontSize}px` : `${1.0625 * sc}rem`;
@@ -73,8 +80,8 @@ export function BlockContent({ block, pri, txt, hFont, editMode = false, fill = 
       const centered = block.align === "center" || block.align === "right";
       return (
         <blockquote style={{ borderLeft: centered ? "none" : `3px solid ${pri}`, paddingLeft: centered ? 0 : "1.25rem", textAlign: block.align || undefined, margin: 0 }}>
-          <p style={{ fontSize: fs, color: txt, fontStyle: "italic", fontFamily: block.fontFamily || hFont, lineHeight: 1.6, margin: 0 }}>{block.text || "Citation…"}</p>
-          {block.author && <cite style={{ fontSize: authorFs, color: `${txt}50`, fontFamily: block.fontFamily || undefined, display: "block", marginTop: "0.5rem", fontStyle: "normal" }}>— {block.author}</cite>}
+          <p style={{ fontSize: fs, color: txt, fontStyle: "italic", fontFamily: block.fontFamily || hFont, lineHeight: 1.6, margin: 0 }}>{block.text ? <RichText html={block.text}/> : "Citation…"}</p>
+          {block.author && <cite style={{ fontSize: authorFs, color: `${txt}50`, fontFamily: block.fontFamily || undefined, display: "block", marginTop: "0.5rem", fontStyle: "normal" }}>— <RichText html={block.author}/></cite>}
         </blockquote>
       );
     }
@@ -86,7 +93,7 @@ export function BlockContent({ block, pri, txt, hFont, editMode = false, fill = 
           {block.items.map((st, i) => (
             <div key={i} style={{ padding: `${0.875 * sc}rem ${0.5 * sc}rem`, background: `${pri}0a`, borderRadius: "0.75rem", textAlign: "center" }}>
               <p style={{ fontSize: valueFs, fontWeight: 700, color: pri, fontFamily: block.fontFamily || hFont, margin: 0, lineHeight: 1 }}>{st.value || "0"}</p>
-              <p style={{ fontSize: labelFs, color: `${txt}55`, fontFamily: block.fontFamily || undefined, margin: 0, marginTop: "0.3rem" }}>{st.label}</p>
+              <p style={{ fontSize: labelFs, color: `${txt}55`, fontFamily: block.fontFamily || undefined, margin: 0, marginTop: "0.3rem" }}><RichText html={st.label}/></p>
             </div>
           ))}
         </div>
@@ -98,7 +105,7 @@ export function BlockContent({ block, pri, txt, hFont, editMode = false, fill = 
         <span style={fill
           ? { height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }
           : undefined}>
-          <span style={{ display: "inline-block", padding: `${0.75 * sc}rem ${1.75 * sc}rem`, borderRadius: "0.75rem", fontWeight: 600, fontSize: fs, fontFamily: block.fontFamily || undefined, cursor: "pointer", background: block.variant === "outline" ? "transparent" : pri, color: block.variant === "outline" ? pri : "#fff", border: block.variant === "outline" ? `1.5px solid ${pri}` : "none" }}>{block.label || "Bouton"}</span>
+          <span style={{ display: "inline-block", padding: `${0.75 * sc}rem ${1.75 * sc}rem`, borderRadius: "0.75rem", fontWeight: 600, fontSize: fs, fontFamily: block.fontFamily || undefined, cursor: "pointer", background: block.variant === "outline" ? "transparent" : pri, color: block.variant === "outline" ? pri : "#fff", border: block.variant === "outline" ? `1.5px solid ${pri}` : "none" }}>{block.label ? <RichText html={block.label}/> : "Bouton"}</span>
         </span>
       );
     }
@@ -114,7 +121,7 @@ export function BlockContent({ block, pri, txt, hFont, editMode = false, fill = 
           {block.items.map((lk, i) => (
             <a key={i} href={lk.url || "#"} target="_blank" rel="noopener noreferrer"
               style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.75rem", padding: `${0.625 * sc}rem ${0.875 * sc}rem`, borderRadius: "0.625rem", background: `${pri}0d`, border: `1px solid ${pri}22`, color: txt, textDecoration: "none", fontSize: fs, fontFamily: block.fontFamily || undefined, fontWeight: 500 }}>
-              <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{lk.label || lk.url || "Lien"}</span>
+              <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{lk.label ? <RichText html={lk.label}/> : (lk.url || "Lien")}</span>
               <span style={{ color: pri, flexShrink: 0 }}>↗</span>
             </a>
           ))}
@@ -124,12 +131,15 @@ export function BlockContent({ block, pri, txt, hFont, editMode = false, fill = 
     case "divider": return <div style={fill ? { height: "100%", display: "flex", alignItems: "center" } : undefined}><div style={{ height: 1, width: "100%", background: `${txt}10`, borderRadius: 1, margin: fill ? 0 : "0.5rem 0" }} /></div>;
     case "carousel":
       return block.images.length > 0
-        ? <Carousel images={block.images} pri={pri} txt={txt} fill={fill} />
+        ? <Carousel images={block.images} pri={pri} txt={txt} fill={fill}
+            fontFamily={block.fontFamily} fontSize={block.fontSize} descriptionWidth={block.descriptionWidth} />
         : editMode
           ? <div style={{ width: "100%", height: fill ? "100%" : 140, minHeight: 100, background: `${txt}06`, borderRadius: "0.625rem", display: "flex", alignItems: "center", justifyContent: "center", border: `1px dashed ${txt}20` }}><span style={{ color: `${txt}25`, fontSize: "0.7rem" }}>Carrousel · ajoute des photos</span></div>
           : null;
-    // Le contenu natif est rendu par le parent (GridStatic renderNative / éditeur)
+    // Le contenu natif et le titre sont rendus par le parent (GridStatic
+    // renderNative/renderTitle, ou l'éditeur) — jamais via BlockContent.
     case "section_content": return null;
+    case "section_title": return null;
     default: return null;
   }
 }
@@ -180,10 +190,11 @@ export function WidgetFrame({ widgetStyle, block, bg, txt, children }: {
 
 // ── Grille libre — rendu statique public (CSS grid pur, même géométrie que
 // l'éditeur react-grid-layout : 12 colonnes, rowHeight 32, gap 14) ─────────────
-export function GridStatic({ items, widgetStyle, pri, txt, bg, hFont, renderNative }: {
+export function GridStatic({ items, widgetStyle, pri, txt, bg, hFont, renderNative, renderTitle }: {
   items: GridItem[] | undefined; widgetStyle: WidgetStyle;
   pri: string; txt: string; bg: string; hFont: string;
   renderNative?: () => React.ReactNode;
+  renderTitle?: () => React.ReactNode;
 }) {
   if (!items || items.length === 0) return null;
   const sorted = sortGridItems(items);
@@ -203,11 +214,22 @@ export function GridStatic({ items, widgetStyle, pri, txt, bg, hFont, renderNati
           minWidth: 0,
           overflow: "hidden",
         }}>
-          <WidgetFrame widgetStyle={widgetStyle} block={it.block} bg={bg} txt={txt}>
-            {it.block.type === "section_content"
-              ? <div style={{ height: "100%", overflow: "hidden", zoom: nativeZoom(it.block), fontFamily: it.block.fontFamily || undefined }}>{renderNative?.()}</div>
-              : <BlockContent block={it.block} pri={pri} txt={txt} hFont={hFont} fill={framed} />}
-          </WidgetFrame>
+          {it.block.type === "section_title"
+            // Pas de WidgetFrame (pas de carte/cadre) : le titre reste un
+            // simple texte, comme avant son passage en item de grille.
+            ? <div style={{ height: "100%", display: "flex", alignItems: "center" }}>{renderTitle?.()}</div>
+            : (
+              <WidgetFrame widgetStyle={widgetStyle} block={it.block} bg={bg} txt={txt}>
+                {it.block.type === "section_content"
+                  // overflowY auto (pas hidden) : un widget "projets" rétréci fait
+                  // reflow ses colonnes (CSS grid interne, largeur réelle du
+                  // conteneur) mais peut avoir besoin de plus de hauteur que la
+                  // taille du widget — avec hidden, les projets en trop devenaient
+                  // invisibles ; avec auto, ils restent accessibles au scroll.
+                  ? <div style={{ height: "100%", overflowY: "auto", overflowX: "hidden", zoom: nativeZoom(it.block), fontFamily: it.block.fontFamily || undefined }}>{renderNative?.()}</div>
+                  : <BlockContent block={it.block} pri={pri} txt={txt} hFont={hFont} fill={framed} />}
+              </WidgetFrame>
+            )}
         </div>
       ))}
     </div>

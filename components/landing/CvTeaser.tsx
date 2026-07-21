@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import Link from "next/link";
+import type { Locale } from "@/lib/i18n/types";
 
 interface TeaserResult {
   name: string;
@@ -12,7 +13,50 @@ interface TeaserResult {
 
 type Status = "idle" | "dragging" | "analyzing" | "result" | "error";
 
-export default function CvTeaser() {
+const STRINGS = {
+  fr: {
+    pdfRequired: "Format PDF requis.",
+    tooBig: "Fichier trop grand (max 10 MB).",
+    analyzeError: "Analyse impossible, réessaie.",
+    networkError: "Erreur réseau, réessaie.",
+    dropHint: "Glisse ton CV ici, ou clique pour le choisir",
+    dropSub: "PDF uniquement · max 10 MB · aucun compte requis",
+    analyzing: "Analyse de ton CV…",
+    detectedProfile: "Profil détecté",
+    yourProfile: "Ton profil",
+    ctaFull: "Créer mon compte pour voir le résultat complet →",
+    tryAnother: "Essayer un autre CV",
+  },
+  en: {
+    pdfRequired: "PDF format required.",
+    tooBig: "File too large (max 10 MB).",
+    analyzeError: "Couldn't analyze it, try again.",
+    networkError: "Network error, try again.",
+    dropHint: "Drop your resume here, or click to choose it",
+    dropSub: "PDF only · max 10 MB · no account required",
+    analyzing: "Analyzing your resume…",
+    detectedProfile: "Detected profile",
+    yourProfile: "Your profile",
+    ctaFull: "Create my account to see the full result →",
+    tryAnother: "Try another resume",
+  },
+  es: {
+    pdfRequired: "Se requiere formato PDF.",
+    tooBig: "Archivo demasiado grande (máx. 10 MB).",
+    analyzeError: "No se pudo analizar, inténtalo de nuevo.",
+    networkError: "Error de red, inténtalo de nuevo.",
+    dropHint: "Arrastra tu CV aquí, o haz clic para elegirlo",
+    dropSub: "Solo PDF · máx. 10 MB · sin necesidad de cuenta",
+    analyzing: "Analizando tu CV…",
+    detectedProfile: "Perfil detectado",
+    yourProfile: "Tu perfil",
+    ctaFull: "Crear mi cuenta para ver el resultado completo →",
+    tryAnother: "Probar con otro CV",
+  },
+};
+
+export default function CvTeaser({ locale }: { locale: Locale }) {
+  const t = STRINGS[locale];
   const [status, setStatus] = useState<Status>("idle");
   const [result, setResult] = useState<TeaserResult | null>(null);
   const [error, setError] = useState("");
@@ -20,12 +64,12 @@ export default function CvTeaser() {
 
   async function analyze(file: File) {
     if (file.type !== "application/pdf") {
-      setError("Format PDF requis.");
+      setError(t.pdfRequired);
       setStatus("error");
       return;
     }
     if (file.size > 10 * 1024 * 1024) {
-      setError("Fichier trop grand (max 10 MB).");
+      setError(t.tooBig);
       setStatus("error");
       return;
     }
@@ -36,14 +80,14 @@ export default function CvTeaser() {
       const res = await fetch("/api/teaser", { method: "POST", body: formData });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error ?? "Analyse impossible, réessaie.");
+        setError(data.error ?? t.analyzeError);
         setStatus("error");
         return;
       }
       setResult(data);
       setStatus("result");
     } catch {
-      setError("Erreur réseau, réessaie.");
+      setError(t.networkError);
       setStatus("error");
     }
   }
@@ -68,9 +112,9 @@ export default function CvTeaser() {
           }}
         >
           <p className="mb-1 text-sm font-medium" style={{ color: "#1c1917" }}>
-            Glisse ton CV ici, ou clique pour le choisir
+            {t.dropHint}
           </p>
-          <p className="text-xs" style={{ color: "#a09a94" }}>PDF uniquement · max 10 MB · aucun compte requis</p>
+          <p className="text-xs" style={{ color: "#a09a94" }}>{t.dropSub}</p>
           {status === "error" && (
             <p className="mt-3 text-xs font-medium" style={{ color: "#dc2626" }}>{error}</p>
           )}
@@ -84,15 +128,15 @@ export default function CvTeaser() {
       {status === "analyzing" && (
         <div className="rounded-2xl p-10 text-center" style={{ background: "#f0ece6", border: "1px solid rgba(0,0,0,0.06)" }}>
           <span className="inline-flex h-2.5 w-2.5 rounded-full animate-pulse" style={{ background: "#c9a96e" }} />
-          <p className="mt-3 text-sm" style={{ color: "#78716c" }}>Analyse de ton CV…</p>
+          <p className="mt-3 text-sm" style={{ color: "#78716c" }}>{t.analyzing}</p>
         </div>
       )}
 
       {status === "result" && result && (
         <div className="ld-chat-in rounded-2xl p-8" style={{ background: "#f0ece6", border: "1px solid rgba(0,0,0,0.06)" }}>
-          <p className="text-xs font-medium mb-1" style={{ color: "#c9a96e" }}>{result.title || "Profil détecté"}</p>
+          <p className="text-xs font-medium mb-1" style={{ color: "#c9a96e" }}>{result.title || t.detectedProfile}</p>
           <h3 className="mb-2 text-2xl" style={{ fontFamily: "'Playfair Display', Georgia, serif", fontWeight: 500, color: "#1c1917" }}>
-            {result.name || "Ton profil"}
+            {result.name || t.yourProfile}
           </h3>
           <p className="mb-4 text-sm italic leading-relaxed" style={{ color: "#57534e" }}>&ldquo;{result.tagline}&rdquo;</p>
           {result.skills.length > 0 && (
@@ -109,14 +153,14 @@ export default function CvTeaser() {
             className="inline-flex items-center gap-2 rounded-xl px-6 py-3 text-sm font-medium text-white transition hover:opacity-90 hover:-translate-y-0.5"
             style={{ background: "#1c1917" }}
           >
-            Créer mon compte pour voir le résultat complet →
+            {t.ctaFull}
           </Link>
           <button
             onClick={() => { setStatus("idle"); setResult(null); }}
             className="ml-3 text-xs underline"
             style={{ color: "#a09a94" }}
           >
-            Essayer un autre CV
+            {t.tryAnother}
           </button>
         </div>
       )}

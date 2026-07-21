@@ -3,8 +3,13 @@ import { getFeaturedPortfolios } from "@/lib/db/queries";
 import type { ValidatedPortfolioJSON } from "@/lib/anthropic/schema";
 import type { TemplateCardData } from "@/components/portfolio/TemplateCard";
 import CommunityGrid from "./CommunityGrid";
+import { getLocale } from "@/lib/i18n/locale";
+import { getDictionary } from "@/lib/i18n/dictionaries";
+import LanguageToggle from "@/components/i18n/LanguageToggle";
 
 export default async function CommunityPage() {
+  const locale = getLocale();
+  const t = getDictionary(locale);
   const portfolios = await getFeaturedPortfolios();
 
   const items: TemplateCardData[] = portfolios
@@ -35,25 +40,27 @@ export default async function CommunityPage() {
           <a href="/" style={{ fontFamily: "'Playfair Display', Georgia, serif", color: "#1c1917", fontSize: "1.25rem", fontWeight: 500 }}>
             folyyo
           </a>
-          <Link href="/dashboard"
-            className="text-sm font-medium transition hover:opacity-70"
-            style={{ color: "#78716c" }}>
-            ← Dashboard
-          </Link>
+          <div className="flex items-center gap-4">
+            <LanguageToggle locale={locale} />
+            <Link href="/dashboard"
+              className="text-sm font-medium transition hover:opacity-70"
+              style={{ color: "#78716c" }}>
+              {t.community.backDashboard}
+            </Link>
+          </div>
         </div>
       </header>
 
       <div className="mx-auto max-w-6xl px-6 py-14">
-        <p className="mono text-xs tracking-widest uppercase mb-3" style={{ color: "#a09a94", letterSpacing: "0.12em" }}>communauté</p>
+        <p className="mono text-xs tracking-widest uppercase mb-3" style={{ color: "#a09a94", letterSpacing: "0.12em" }}>{t.community.kicker}</p>
         <h1 className="mb-3 text-4xl serif" style={{ fontWeight: 500, color: "#1c1917" }}>
-          Les meilleurs portfolios Folyyo
+          {t.community.title}
         </h1>
         <p className="mb-10 max-w-xl text-sm" style={{ color: "#78716c" }}>
-          Une sélection de portfolios créés avec Folyyo, pour t&apos;inspirer — et pour démarrer
-          le tien avec le même style visuel.
+          {t.community.subtitle}
         </p>
 
-        <CommunityGrid items={items} />
+        <CommunityGrid items={items} t={t.community} templateCardT={t.templateCard} />
       </div>
     </div>
   );
