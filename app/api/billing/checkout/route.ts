@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth, currentUser } from "@clerk/nextjs/server";
-import { stripe } from "@/lib/stripe/client";
+import { getStripe } from "@/lib/stripe/client";
 import { getUserSettings } from "@/lib/db/queries";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://folyyo.vercel.app";
@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
   const user = await currentUser();
   const email = user?.primaryEmailAddress?.emailAddress;
 
-  const session = await stripe.checkout.sessions.create({
+  const session = await getStripe().checkout.sessions.create({
     mode: "subscription",
     line_items: [{ price: priceId, quantity: 1 }],
     // client_reference_id ET metadata sur la subscription : le premier ne

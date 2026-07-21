@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import { deleteAllPortfoliosForUser, deleteUserSettings, getUserSettings } from "@/lib/db/queries";
-import { stripe } from "@/lib/stripe/client";
+import { getStripe } from "@/lib/stripe/client";
 
 // Suppression définitive : nettoie d'abord toutes les données applicatives
 // (portfolios — et par cascade DB leurs vues/versions/éditions — puis les
@@ -18,7 +18,7 @@ export async function POST() {
     // qu'aucune donnée ne permette de relier ça à quoi que ce soit.
     const settings = await getUserSettings(userId);
     if (settings?.stripe_subscription_id) {
-      await stripe.subscriptions.cancel(settings.stripe_subscription_id).catch((err) => {
+      await getStripe().subscriptions.cancel(settings.stripe_subscription_id).catch((err) => {
         console.error("[user/delete] échec annulation Stripe:", err);
       });
     }

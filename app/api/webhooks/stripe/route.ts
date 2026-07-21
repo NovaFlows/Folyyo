@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
-import { stripe } from "@/lib/stripe/client";
+import { getStripe } from "@/lib/stripe/client";
 import { setSubscriptionActive, setSubscriptionStatusByCustomerId, getUserSettingsByStripeCustomerId } from "@/lib/db/queries";
 
 // La vérification de signature Stripe exige le corps BRUT (pas le JSON déjà
 // parsé) — App Router ne parse rien par défaut, `request.text()` suffit
 // (contrairement aux Pages API qui nécessitaient `bodyParser:false`).
 export async function POST(request: NextRequest) {
+  const stripe = getStripe();
   const body = await request.text();
   const signature = request.headers.get("stripe-signature");
   if (!signature) return NextResponse.json({ error: "Signature manquante" }, { status: 400 });
