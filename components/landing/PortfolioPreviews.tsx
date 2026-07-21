@@ -5,22 +5,22 @@ import type { Locale } from "@/lib/i18n/types";
 
 const TABS = {
   fr: [
-    { id: "developer", label: "Développeur", url: "alex-martin.folyyo.app" },
-    { id: "artist",    label: "Artiste",     url: "sophie-noir.folyyo.app" },
-    { id: "fashion",   label: "Mode",        url: "nina-beaumont.folyyo.app" },
-    { id: "musicien",  label: "Musique",     url: "solka.folyyo.app" },
+    { id: "developer", label: "Développeur", url: "alex-martin.folyo.app" },
+    { id: "artist",    label: "Artiste",     url: "sophie-noir.folyo.app" },
+    { id: "fashion",   label: "Mode",        url: "nina-beaumont.folyo.app" },
+    { id: "musicien",  label: "Musique",     url: "solka.folyo.app" },
   ],
   en: [
-    { id: "developer", label: "Developer", url: "alex-martin.folyyo.app" },
-    { id: "artist",    label: "Artist",    url: "sophie-noir.folyyo.app" },
-    { id: "fashion",   label: "Fashion",   url: "nina-beaumont.folyyo.app" },
-    { id: "musicien",  label: "Music",     url: "solka.folyyo.app" },
+    { id: "developer", label: "Developer", url: "alex-martin.folyo.app" },
+    { id: "artist",    label: "Artist",    url: "sophie-noir.folyo.app" },
+    { id: "fashion",   label: "Fashion",   url: "nina-beaumont.folyo.app" },
+    { id: "musicien",  label: "Music",     url: "solka.folyo.app" },
   ],
   es: [
-    { id: "developer", label: "Desarrollador", url: "alex-martin.folyyo.app" },
-    { id: "artist",    label: "Artista",       url: "sophie-noir.folyyo.app" },
-    { id: "fashion",   label: "Moda",          url: "nina-beaumont.folyyo.app" },
-    { id: "musicien",  label: "Música",        url: "solka.folyyo.app" },
+    { id: "developer", label: "Desarrollador", url: "alex-martin.folyo.app" },
+    { id: "artist",    label: "Artista",       url: "sophie-noir.folyo.app" },
+    { id: "fashion",   label: "Moda",          url: "nina-beaumont.folyo.app" },
+    { id: "musicien",  label: "Música",        url: "solka.folyo.app" },
   ],
 } as const;
 

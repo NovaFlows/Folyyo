@@ -9,7 +9,7 @@ import { THEME_PRESETS } from "@/lib/portfolio/themes";
 import { BlockContent, WidgetFrame, nativeZoom, WIDGET_FONT_OPTIONS, WIDGET_FONT_SIZES, DESCRIPTION_WIDTH_STEPS, type WidgetStyle } from "@/components/portfolio/blocks";
 import RichText from "@/components/portfolio/RichText";
 import { RichTextField, RichTextArea } from "@/components/portfolio/RichTextEditable";
-import { stripRichTags } from "@/lib/portfolio/rich-text";
+import { stripRichTags, richOrUndefined } from "@/lib/portfolio/rich-text";
 import { GRID_COLS, GRID_ROW_HEIGHT, GRID_MARGIN, DEFAULT_SIZE, MIN_SIZE, gridUid, sortGridItems, nextY, migrateToGrid, nativeContentH, getGrid, applyGrid, resolveNativeOverlap } from "@/lib/portfolio/grid";
 import { createDefaultBlock, createDefaultSection } from "@/lib/portfolio/section-factory";
 import HeroBackgroundCarousel from "@/components/portfolio/HeroBackgroundCarousel";
@@ -1360,7 +1360,7 @@ function PortfolioPreview({ data, selectedIdx, selectedBlock, profileType, secDr
           {secDragSrc===null&&<SectionGap insertAt={i+1} profileType={profileType} pri={pri} onAdd={onAddSection}/>}
         </div>
       ))}
-      <footer style={{padding:"2rem",textAlign:"center",fontSize:"0.75rem",color:`${txt}30`,background:bg}}>Créé avec <span style={{color:pri}}>Folyyo</span></footer>
+      <footer style={{padding:"2rem",textAlign:"center",fontSize:"0.75rem",color:`${txt}30`,background:bg}}>Créé avec <span style={{color:pri}}>Folyo</span></footer>
       <style>{`@keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}`}</style>
     </div>
   );
@@ -1794,7 +1794,7 @@ function BlockEditor({ block, pri, profileType, meta, onUpdate, onRemove, onBack
           <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" style={{display:"none"}}
             onChange={async e=>{const f=e.target.files?.[0];if(!f)return;const url=await resizeImage(f,1200,0.8);onUpdate({...block,url});e.target.value="";}}/>
           <button onClick={()=>fileRef.current?.click()} style={{width:"100%",padding:"0.4rem 0.625rem",fontSize:"0.7375rem",color:"#1c1917",background:"white",border:"1px solid rgba(0,0,0,0.1)",borderRadius:"0.4rem",cursor:"pointer",textAlign:"center",fontWeight:500,marginBottom:"0.625rem"}}>{block.url?"Changer la photo":"Choisir une photo"}</button>
-          <PanelField label="Légende (optionnel)" value={block.caption??""} onChange={v=>onUpdate({...block,caption:v||undefined})} rich/>
+          <PanelField label="Légende (optionnel)" value={block.caption??""} onChange={v=>onUpdate({...block,caption:richOrUndefined(v)})} rich/>
           <SuggestionChips label="Idées de légende" items={getImageCaptionSuggestions(profileType)} pri={pri}
             onPick={v=>onUpdate({...block,caption:v})}/>
           <IllustrationPicker items={getIllustrations(profileType)} pri={pri}
@@ -1812,10 +1812,10 @@ function BlockEditor({ block, pri, profileType, meta, onUpdate, onRemove, onBack
                   style={{marginLeft:"auto",width:20,height:20,alignSelf:"flex-start",background:"rgba(220,38,38,0.06)",color:"#dc2626",border:"none",borderRadius:"0.3rem",cursor:"pointer",fontSize:9,fontWeight:700}}>✕</button>
               </div>
               <RichTextField value={img.caption??""}
-                onChange={v=>{const imgs=block.images.map((x,j)=>j===i?{...x,caption:v||undefined}:x);onUpdate({...block,images:imgs});}}
+                onChange={v=>{const imgs=block.images.map((x,j)=>j===i?{...x,caption:richOrUndefined(v)}:x);onUpdate({...block,images:imgs});}}
                 placeholder="Légende (optionnel) — sert de titre si une description est ajoutée"/>
               <RichTextArea value={img.description??""} rows={3} maxLength={500}
-                onChange={v=>{const imgs=block.images.map((x,j)=>j===i?{...x,description:v||undefined}:x);onUpdate({...block,images:imgs});}}
+                onChange={v=>{const imgs=block.images.map((x,j)=>j===i?{...x,description:richOrUndefined(v)}:x);onUpdate({...block,images:imgs});}}
                 placeholder="Description (optionnel) — si rempli, la photo passe en 2 colonnes avec ce texte à droite"/>
               <input type="text" value={img.linkUrl??""}
                 onChange={e=>{const imgs=block.images.map((x,j)=>j===i?{...x,linkUrl:e.target.value||undefined}:x);onUpdate({...block,images:imgs});}}
@@ -1849,7 +1849,7 @@ function BlockEditor({ block, pri, profileType, meta, onUpdate, onRemove, onBack
       {block.type==="quote"&&(
         <div>
           <PanelTextarea label="Citation" value={block.text} onChange={v=>onUpdate({...block,text:v})} rows={4} rich/>
-          <PanelField label="Auteur (optionnel)" value={block.author??""} onChange={v=>onUpdate({...block,author:v||undefined})} rich/>
+          <PanelField label="Auteur (optionnel)" value={block.author??""} onChange={v=>onUpdate({...block,author:richOrUndefined(v)})} rich/>
           <SuggestionChips label="Idées de citation" items={getQuoteSuggestions(profileType)} pri={pri}
             onPick={v=>onUpdate({...block,text:v})}/>
         </div>
@@ -2417,7 +2417,7 @@ function SectionEditor({ section, idx, updateSection, removeSection, onClose, me
         <PanelField label={t.section.ctaText} value={section.cta_text} onChange={v=>update({...section,cta_text:v})} rich/>
         <PanelField label={t.section.ctaUrl}  value={section.cta_url}  onChange={v=>update({...section,cta_url:v})}/>
       </>}
-      {section.type!=="hero"&&<PanelField label={t.section.sectionTitle} value={(section as {section_title?:string}).section_title??""} onChange={v=>update({...section,section_title:v||undefined} as VSection)} rich/>}
+      {section.type!=="hero"&&<PanelField label={t.section.sectionTitle} value={(section as {section_title?:string}).section_title??""} onChange={v=>update({...section,section_title:richOrUndefined(v)} as VSection)} rich/>}
       {section.type!=="hero"&&(()=>{
         const curAlign=(section as {title_align?:"left"|"center"|"right"}).title_align??"left";
         return (
@@ -2463,7 +2463,7 @@ function SectionEditor({ section, idx, updateSection, removeSection, onClose, me
       })()}
       {section.type==="about"&&<>
         <PanelTextarea label={t.section.aboutContent} value={section.content}       onChange={v=>update({...section,content:v})} rows={5} rich/>
-        <PanelTextarea label={t.section.aboutQuote}   value={section.highlight??""} onChange={v=>update({...section,highlight:v||undefined})} rich/>
+        <PanelTextarea label={t.section.aboutQuote}   value={section.highlight??""} onChange={v=>update({...section,highlight:richOrUndefined(v)})} rich/>
       </>}
       {section.type==="skills"&&<div>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"0.875rem"}}>

@@ -23,14 +23,17 @@ const PROFILE_LABELS: Record<string, string> = {
 // structurellement par le schéma de chaque outil (lib/anthropic/edit-tools.ts),
 // donc ce prompt ne porte plus que sur le jugement design et les conventions
 // d'usage des outils — plus de section "format de réponse" à maintenir.
-export function buildEditSystemPrompt(ctx?: ProfileContext, language: "fr" | "en" = "fr"): string {
+export function buildEditSystemPrompt(ctx?: ProfileContext, language: "fr" | "en" | "es" = "fr"): string {
   const profileLabel = ctx ? (PROFILE_LABELS[ctx.profileType] ?? "créatif / créative") : "professionnel(le)";
   const profileIntro = ctx
     ? `Ce portfolio appartient à **${ctx.profileName}**, ${profileLabel}${ctx.profileTitle ? ` (${ctx.profileTitle})` : ""}.`
     : "";
   const languageNote = language === "en"
     ? "Ce portfolio est rédigé en ANGLAIS : tout nouveau texte que tu écris (descriptions, accroches, titres…) doit être en anglais, même si cette instruction système est en français."
+    : language === "es"
+    ? "Ce portfolio est rédigé en ESPAGNOL : tout nouveau texte que tu écris (descriptions, accroches, titres…) doit être en espagnol, même si cette instruction système est en français."
     : "Ce portfolio est rédigé en français : tout nouveau texte que tu écris doit rester en français.";
+  const languageWord = language === "en" ? "en anglais" : language === "es" ? "en espagnol" : "en français";
 
   return `Tu es un designer expert qui modifie un portfolio en appelant des outils. Tu penses toujours en termes de rendu visuel final : lisibilité, contraste, cohérence esthétique.
 ${profileIntro ? `\n${profileIntro}\n` : ""}
@@ -54,7 +57,7 @@ RÈGLES DE DESIGN :
 - Ne modifie jamais le nom ni l'email du compte — aucun outil ne le permet, ne cherche pas de contournement.
 - N'invente jamais de contenu factuel (chiffres, expériences, projets) qui n'a pas été demandé ou fourni — pour du texte créatif (accroche, description), reste cohérent avec le profil.
 
-Une fois tous les outils nécessaires appelés, termine TOUJOURS par une courte phrase (~10 mots, ${language === "en" ? "en anglais" : "en français"}) qui résume ce que tu as fait — c'est ce texte qui sera affiché à l'utilisateur. Si l'instruction ne nécessite aucun changement (question, demande hors-sujet, instruction déjà satisfaite), n'appelle aucun outil et explique-le brièvement dans ta réponse (${language === "en" ? "en anglais" : "en français"}).`;
+Une fois tous les outils nécessaires appelés, termine TOUJOURS par une courte phrase (~10 mots, ${languageWord}) qui résume ce que tu as fait — c'est ce texte qui sera affiché à l'utilisateur. Si l'instruction ne nécessite aucun changement (question, demande hors-sujet, instruction déjà satisfaite), n'appelle aucun outil et explique-le brièvement dans ta réponse (${languageWord}).`;
 }
 
 // Toutes les images du portfolio (avatar, fond du hero, photos de projet, de

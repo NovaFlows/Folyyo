@@ -2,10 +2,11 @@
 
 import { COUNTRIES, languageForCountry } from "@/lib/i18n/country-language";
 
-// Détermine la langue du portfolio généré. Pour l'instant seuls le français
-// et l'anglais sont supportés — si le pays choisi ne correspond à aucun des
-// deux, on prévient en anglais (l'utilisateur ne parle probablement pas
-// français) que le portfolio sera généré en anglais, modifiable ensuite.
+// Détermine la langue du portfolio généré. Pour l'instant seuls le français,
+// l'anglais et l'espagnol sont supportés — si le pays choisi ne correspond à
+// aucun des trois, on prévient en anglais (l'utilisateur ne parle
+// probablement pas français) que le portfolio sera généré en anglais,
+// modifiable ensuite.
 // Utilisé à l'inscription (SignupPage) et, en repli (compte GitHub OAuth,
 // ou ancien compte sans pays enregistré), à la première visite de
 // l'onboarding (CountryStep).

@@ -254,7 +254,7 @@ section[id] {
 
 /* ══ Grille publique : pile mobile (l'ordre DOM est trié y,x) ══ */
 @media (max-width: 639px) {
-  .folyyo-grid {
+  .folyo-grid {
     display: flex !important;
     flex-direction: column;
     gap: 14px;
@@ -303,7 +303,7 @@ section[id] {
   .pf-reveal { opacity: 1; transform: none; transition: none; }
 }
 
-/* ══ Landing Folyyo — dynamisme (scroll reveal, tilt, flottement, marquee) ══ */
+/* ══ Landing Folyo — dynamisme (scroll reveal, tilt, flottement, marquee) ══ */
 
 /* Apparition au défilement des sections de la landing (namespace "ld-" distinct
    de "pf-" qui concerne le rendu des portfolios générés pour les clients). */

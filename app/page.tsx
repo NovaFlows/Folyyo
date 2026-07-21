@@ -7,6 +7,7 @@ import TestimonialMarquee from "@/components/landing/TestimonialMarquee";
 import EditChatMock from "@/components/landing/EditChatMock";
 import CvTeaser from "@/components/landing/CvTeaser";
 import SlugChecker from "@/components/landing/SlugChecker";
+import FAQ from "@/components/landing/FAQ";
 import LanguageToggle from "@/components/i18n/LanguageToggle";
 import { getLocale } from "@/lib/i18n/locale";
 import { getDictionary } from "@/lib/i18n/dictionaries";
@@ -69,13 +70,14 @@ export default function LandingPage() {
       >
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <Link href="/" className="text-xl font-semibold tracking-tight" style={{ color: "#1c1917" }}>
-            folyyo
+            folyo
           </Link>
 
           <div className="hidden items-center gap-8 text-sm md:flex" style={{ color: "#78716c" }}>
             <a href="#how"      className="nav-link hover:text-[#1c1917] transition-colors">{t.nav.how}</a>
             <a href="#examples" className="nav-link hover:text-[#1c1917] transition-colors">{t.nav.examples}</a>
             <a href="#features" className="nav-link hover:text-[#1c1917] transition-colors">{t.nav.features}</a>
+            <a href="#faq"      className="nav-link hover:text-[#1c1917] transition-colors">{t.nav.faq}</a>
             <Link href="/contact" className="nav-link hover:text-[#1c1917] transition-colors">{t.nav.contact}</Link>
           </div>
 
@@ -118,11 +120,7 @@ export default function LandingPage() {
               {t.hero.titleLine2}
             </h1>
 
-            <p className="mb-10 max-w-md text-base leading-relaxed" style={{ color: "#78716c" }}>
-              {t.hero.subtitle}
-            </p>
-
-            <div className="flex flex-col items-center lg:items-start gap-4">
+            <div className="mb-6 flex flex-col items-center lg:items-start gap-4">
               <SlugChecker locale={locale} />
               <a
                 href="#examples"
@@ -132,6 +130,14 @@ export default function LandingPage() {
                 {t.hero.ctaSecondary}
               </a>
             </div>
+
+            {/* Sur desktop, cette explication vit à droite sous l'illustration
+                (voir plus bas) pour que la colonne de gauche tienne dans un
+                seul écran sans être coupée — gardée ici pour le mobile/tablette,
+                où la page défile de toute façon normalement. */}
+            <p className="mb-10 max-w-md text-base leading-relaxed lg:hidden" style={{ color: "#78716c" }}>
+              {t.hero.subtitle}
+            </p>
 
             {/* Stats — compact row under CTAs */}
             <div className="mt-14 flex flex-wrap items-center justify-center lg:justify-start gap-8">
@@ -154,9 +160,14 @@ export default function LandingPage() {
             </div>
           </div>
 
-          {/* Right column: decorative visual */}
-          <div className="hidden lg:flex flex-shrink-0 items-center justify-center" style={{ padding: "40px 48px" }}>
+          {/* Right column: decorative visual + explication (desktop uniquement —
+              gardée courte à gauche pour que cette colonne tienne dans un seul
+              écran ; voir le paragraphe équivalent lg:hidden plus haut) */}
+          <div className="hidden lg:flex flex-shrink-0 flex-col items-center justify-center gap-6" style={{ padding: "8px 48px 24px" }}>
             <HeroVisual locale={locale} />
+            <p className="max-w-xs text-center text-sm leading-relaxed" style={{ color: "#78716c" }}>
+              {t.hero.subtitle}
+            </p>
           </div>
 
         </div>
@@ -334,6 +345,9 @@ export default function LandingPage() {
         <TestimonialMarquee locale={locale} />
       </section>
 
+      {/* ── FAQ ────────────────────────────────────── */}
+      <FAQ locale={locale} />
+
       {/* ── CTA ────────────────────────────────────── */}
       <section className="ld-reveal px-6 py-32" style={{ background: "#1c1917" }}>
         <div className="mx-auto max-w-3xl text-center">
@@ -369,7 +383,7 @@ export default function LandingPage() {
       {/* ── FOOTER ─────────────────────────────────── */}
       <footer className="px-6 py-10" style={{ background: "#1c1917", borderTop: "1px solid rgba(255,255,255,0.05)" }}>
         <div className="mx-auto flex max-w-6xl items-center justify-between flex-wrap gap-4">
-          <Link href="/" className="text-base font-semibold" style={{ color: "rgba(248,245,240,0.4)" }}>folyyo</Link>
+          <Link href="/" className="text-base font-semibold" style={{ color: "rgba(248,245,240,0.4)" }}>folyo</Link>
           <div className="flex items-center gap-6">
             <div className="flex gap-8 text-sm" style={{ color: "rgba(248,245,240,0.25)" }}>
               <Link href="/login"  className="hover:text-white/50 transition-colors">{t.nav.login}</Link>

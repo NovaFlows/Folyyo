@@ -119,7 +119,7 @@ export default async function PortfolioPage({ params }: { params: { slug: string
                     <a href={`/${shortSlug}`} target="_blank" rel="noopener noreferrer"
                       className="block truncate text-xs transition hover:opacity-80"
                       style={{ color: "#c9a96e" }}>
-                      folyyo.com/{shortSlug}
+                      folyo.com/{shortSlug}
                     </a>
                   </dd>
                 </div>

@@ -374,7 +374,7 @@ export default async function PublicPortfolioPage({ params }: { params: { slug: 
       })}
 
       <footer style={{ padding: "2rem", textAlign: "center", fontSize: "0.75rem", color: `${txt}30`, background: bg }}>
-        Créé avec <a href="https://folyyo.com" style={{ color: pri, textDecoration: "none" }}>Folyyo</a>
+        Créé avec <a href="https://folyo.com" style={{ color: pri, textDecoration: "none" }}>Folyo</a>
       </footer>
 
       {/* Apparition au défilement : JS pur (pas de composant client requis ici),

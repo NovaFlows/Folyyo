@@ -18,7 +18,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       <header style={{ background: "#f8f5f0", borderBottom: "1px solid rgba(0,0,0,0.07)" }}>
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-3 sm:px-6 sm:py-4">
           <Link href="/dashboard" style={{ fontFamily: "'Playfair Display', Georgia, serif", color: "#1c1917", fontSize: "1.25rem", fontWeight: 500 }}>
-            folyyo
+            folyo
           </Link>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2 sm:gap-5">
             <Link href="/dashboard"

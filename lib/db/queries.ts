@@ -21,7 +21,7 @@ export async function getUserSettings(userId: string): Promise<UserSettings | nu
   return one<UserSettings>(rows);
 }
 
-export async function upsertUserSettings(userId: string, data: { country?: string | null; language?: "fr" | "en" }): Promise<UserSettings> {
+export async function upsertUserSettings(userId: string, data: { country?: string | null; language?: "fr" | "en" | "es" }): Promise<UserSettings> {
   const rows = await sql`
     INSERT INTO users (user_id, country, language)
     VALUES (${userId}, ${data.country ?? null}, ${data.language ?? "fr"})
@@ -84,7 +84,7 @@ export async function getViewCountsForUser(userId: string): Promise<Record<strin
 export interface ViewSourceCount { source: ViewSource; label: string; count: number }
 
 // Répartition des vues par provenance (Instagram, Facebook, LinkedIn,
-// Twitter/X, communauté Folyyo, autre) — classifiée en JS à partir du
+// Twitter/X, communauté Folyo, autre) — classifiée en JS à partir du
 // referrer brut déjà stocké, pas de tracking supplémentaire.
 export async function getViewSourcesForPortfolio(portfolioId: string, locale: Locale): Promise<ViewSourceCount[]> {
   const rows = await sql`
@@ -148,7 +148,7 @@ export async function createPortfolio(data: {
   profile_type: string;
   slug?: string;
   country?: string;
-  language?: "fr" | "en";
+  language?: "fr" | "en" | "es";
 }): Promise<Portfolio> {
   const rows = await sql`
     INSERT INTO portfolios (user_id, name, profile_type, status, slug, country, language)

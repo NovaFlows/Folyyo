@@ -200,7 +200,7 @@ export function GridStatic({ items, widgetStyle, pri, txt, bg, hFont, renderNati
   const sorted = sortGridItems(items);
   const framed = widgetStyle !== "strict";
   return (
-    <div className="folyyo-grid" style={{
+    <div className="folyo-grid" style={{
       marginTop: "1.5rem",
       display: "grid",
       gridTemplateColumns: `repeat(${GRID_COLS}, 1fr)`,
@@ -208,7 +208,7 @@ export function GridStatic({ items, widgetStyle, pri, txt, bg, hFont, renderNati
       gap: GRID_MARGIN,
     }}>
       {sorted.map((it) => (
-        <div key={it.id} className="folyyo-grid-item" style={{
+        <div key={it.id} className="folyo-grid-item" style={{
           gridColumn: `${it.x + 1} / span ${it.w}`,
           gridRow: `${it.y + 1} / span ${it.h}`,
           minWidth: 0,

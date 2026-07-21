@@ -140,7 +140,7 @@ export default function HeroVisual({ locale }: { locale: Locale }) {
           {s.yourUrl}
         </p>
         <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: "0.6875rem", color: "#1c1917", whiteSpace: "nowrap" }}>
-          folyyo.com/<span style={{ color: "#c9a96e" }}>{URL_NAMES[cardIndex].slice(0, urlLen)}</span>
+          folyo.com/<span style={{ color: "#c9a96e" }}>{URL_NAMES[cardIndex].slice(0, urlLen)}</span>
           {!reduced && urlLen < URL_NAMES[cardIndex].length && <span className="cursor-blink" style={{ color: "#c9a96e" }}>▍</span>}
         </p>
       </div>
@@ -216,7 +216,7 @@ function DevCard() {
         <div style={{ height: 6, width: 58, background: "#1c1917", borderRadius: 2, marginBottom: 9, opacity: 0.82 }} />
         {[148, 126, 104].map((w, i) => <div key={i} style={{ height: 4, width: w, background: "#f0ece6", borderRadius: 2, marginBottom: 4 }} />)}
       </div>
-      <FolyyoStamp light={false} />
+      <FolyoStamp light={false} />
       <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 52, background: "linear-gradient(to bottom, transparent, white)", pointerEvents: "none" }} />
     </div>
   );
@@ -241,7 +241,7 @@ function ArtistCard() {
       <div style={{ paddingTop: 12, borderTop: "1px solid rgba(0,0,0,0.06)" }}>
         {[150, 128, 96].map((w, i) => <div key={i} style={{ height: 4, width: w, background: "rgba(0,0,0,0.08)", borderRadius: 2, marginBottom: 5 }} />)}
       </div>
-      <FolyyoStamp light={false} />
+      <FolyoStamp light={false} />
       <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 52, background: "linear-gradient(to bottom, transparent, #f5f3ef)", pointerEvents: "none" }} />
     </div>
   );
@@ -271,13 +271,13 @@ function MusicianCard() {
           <div key={i} style={{ borderRadius: 8, background: "linear-gradient(135deg, rgba(232,121,249,0.18), rgba(10,10,15,0))", height: 40 }} />
         ))}
       </div>
-      <FolyyoStamp light />
+      <FolyoStamp light />
       <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 52, background: "linear-gradient(to bottom, transparent, #0a0a0f)", pointerEvents: "none" }} />
     </div>
   );
 }
 
-function FolyyoStamp({ light }: { light: boolean }) {
+function FolyoStamp({ light }: { light: boolean }) {
   const color = light ? "rgba(255,255,255,0.35)" : "#c9a96e";
   return (
     <div style={{ position: "absolute", bottom: 12, right: 14, transform: "rotate(-2deg)", display: "flex", alignItems: "center", gap: 4, opacity: light ? 1 : 0.3, zIndex: 2 }}>
@@ -286,7 +286,7 @@ function FolyyoStamp({ light }: { light: boolean }) {
         <path d="M2.8 4.5l1.2 1.2 2.2-2.2" stroke={color} strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
       <span style={{ fontSize: "0.5rem", color, fontFamily: "'JetBrains Mono', monospace", letterSpacing: "0.06em" }}>
-        folyyo
+        folyo
       </span>
     </div>
   );

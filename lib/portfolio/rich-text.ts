@@ -93,3 +93,13 @@ export function stripRichTags(input: string): string {
 export function richTextLength(input: string): number {
   return stripRichTags(input).length;
 }
+
+// Pour les champs riches optionnels stockés en `string | undefined` : quand la
+// personne vide le champ, contentEditable laisse parfois des balises
+// résiduelles sans texte visible (ex. "<br>" après un retour à la ligne puis
+// suppression) — un simple `v || undefined` ne les détecte pas (chaîne non
+// vide) et le champ reste considéré comme "rempli" par le reste du code (ex.
+// bascule de mise en page du carrousel qui ne repasse jamais en dessous).
+export function richOrUndefined(input: string): string | undefined {
+  return richTextLength(input) > 0 ? input : undefined;
+}

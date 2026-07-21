@@ -3,7 +3,7 @@ import { ClerkProvider } from "@clerk/nextjs";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Folyyo — Portfolio generator",
+  title: "Folyo — Portfolio generator",
   description: "Génère et déploie ton portfolio professionnel en quelques minutes avec l'IA.",
   icons: { icon: "/favicon.ico" },
 };

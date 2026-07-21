@@ -108,7 +108,7 @@ export default function GeneratingStep({ data, t, onDone }: Props) {
         const isMusicien = data.profileType === "musicien";
         if (cancelled) return;
         // "build source code" — dernière étape affichée ; le portfolio est déjà
-        // en ligne à cet instant (folyyo.com/[slug] lit site_json directement,
+        // en ligne à cet instant (folyo.com/[slug] lit site_json directement,
         // aucun déploiement séparé à attendre).
         setCurrentStep(isMusicien ? 2 : 3);
         await new Promise((r) => setTimeout(r, 500));
@@ -159,7 +159,7 @@ export default function GeneratingStep({ data, t, onDone }: Props) {
           <div className="h-2.5 w-2.5 rounded-full" style={{ background: "rgba(255,95,87,0.5)" }} />
           <div className="h-2.5 w-2.5 rounded-full" style={{ background: "rgba(254,188,46,0.5)" }} />
           <div className="h-2.5 w-2.5 rounded-full" style={{ background: "rgba(40,200,64,0.5)" }} />
-          <span className="ml-auto mono text-xs" style={{ color: "#2d3140" }}>folyyo build</span>
+          <span className="ml-auto mono text-xs" style={{ color: "#2d3140" }}>folyo build</span>
         </div>
 
         {/* Steps */}

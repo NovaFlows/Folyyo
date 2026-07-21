@@ -51,7 +51,7 @@ export default function AdminPortfolioList({ portfolios }: { portfolios: Portfol
               <div className="min-w-0">
                 <p className="font-semibold truncate" style={{ color: "#1c1917" }}>{meta.name ?? p.name}</p>
                 <p className="mono text-xs truncate" style={{ color: "#c8c4bf" }}>
-                  {meta.title ? `${meta.title} · ` : ""}folyyo.com/<span style={{ color: "#a09a94" }}>{shortSlug}</span>
+                  {meta.title ? `${meta.title} · ` : ""}folyo.com/<span style={{ color: "#a09a94" }}>{shortSlug}</span>
                 </p>
               </div>
             </div>

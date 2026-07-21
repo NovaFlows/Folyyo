@@ -29,9 +29,9 @@ const EXCHANGES = {
   ],
 };
 const UI_STRINGS = {
-  fr: { header: "Éditeur Folyyo", thinking: "Analyse en cours…", placeholder: "Décris une modification…" },
-  en: { header: "Folyyo Editor", thinking: "Analyzing…", placeholder: "Describe a change…" },
-  es: { header: "Editor de Folyyo", thinking: "Analizando…", placeholder: "Describe un cambio…" },
+  fr: { header: "Éditeur Folyo", thinking: "Analyse en cours…", placeholder: "Décris une modification…" },
+  en: { header: "Folyo Editor", thinking: "Analyzing…", placeholder: "Describe a change…" },
+  es: { header: "Editor de Folyo", thinking: "Analizando…", placeholder: "Describe un cambio…" },
 };
 
 type Phase = "typing" | "thinking" | "success";

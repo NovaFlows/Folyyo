@@ -1,9 +1,9 @@
 // Liste des pays (code ISO 3166-1 alpha-2) avec noms FR/EN pour le menu
 // déroulant du champ "pays" à l'onboarding, et mapping pays → langue du
-// portfolio généré. Pour l'instant, seuls le français et l'anglais sont
-// supportés (voir languageForCountry ci-dessous) — les autres pays tombent
-// sur "unsupported" : le portfolio est généré en anglais avec un message
-// prévenant l'utilisateur.
+// portfolio généré. Pour l'instant, seuls le français, l'anglais et
+// l'espagnol sont supportés (voir languageForCountry ci-dessous) — les
+// autres pays tombent sur "unsupported" : le portfolio est généré en
+// anglais avec un message prévenant l'utilisateur.
 
 export interface Country {
   code: string;
@@ -199,8 +199,16 @@ const ENGLISH_SPEAKING = new Set([
   "PK", "SG", "PH", "JM", "TT", "GD", "GY", "FJ", "WS", "TO",
 ]);
 
-export function languageForCountry(code: string): "fr" | "en" | null {
+// Pays hispanophones (espagnol langue officielle/majoritaire) — Espagne +
+// Amérique latine hispanophone (Brésil exclu : portugais).
+const SPANISH_SPEAKING = new Set([
+  "ES", "MX", "AR", "CO", "PE", "VE", "CL", "EC", "GT", "CU", "BO", "DO",
+  "HN", "PY", "SV", "NI", "CR", "PA", "UY",
+]);
+
+export function languageForCountry(code: string): "fr" | "en" | "es" | null {
   if (FRENCH_SPEAKING.has(code)) return "fr";
   if (ENGLISH_SPEAKING.has(code)) return "en";
+  if (SPANISH_SPEAKING.has(code)) return "es";
   return null;
 }

@@ -54,7 +54,7 @@ function Section({ title, description, children }: { title: string; description?
 
 // ── Langue des portfolios générés (compte) ──────────────────────────────────
 function PortfolioLanguageSection({ t }: { t: SettingsDict }) {
-  const [language, setLanguage] = useState<"fr" | "en" | null>(null);
+  const [language, setLanguage] = useState<"fr" | "en" | "es" | null>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
@@ -64,7 +64,7 @@ function PortfolioLanguageSection({ t }: { t: SettingsDict }) {
     return () => { cancelled = true; };
   }, []);
 
-  async function update(next: "fr" | "en") {
+  async function update(next: "fr" | "en" | "es") {
     setLanguage(next); setSaving(true); setSaved(false);
     try {
       await fetch("/api/user/settings", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ language: next }) });
@@ -72,10 +72,12 @@ function PortfolioLanguageSection({ t }: { t: SettingsDict }) {
     } finally { setSaving(false); }
   }
 
+  const LABELS = { fr: t.languageFr, en: t.languageEn, es: t.languageEs };
+
   return (
     <Section title={t.languageTitle} description={t.languageDesc}>
       <div className="flex items-center gap-3">
-        {(["fr", "en"] as const).map((l) => (
+        {(["fr", "en", "es"] as const).map((l) => (
           <button key={l} onClick={() => update(l)} disabled={saving || language === null}
             className="rounded-xl px-4 py-2 text-sm font-medium transition"
             style={{
@@ -84,7 +86,7 @@ function PortfolioLanguageSection({ t }: { t: SettingsDict }) {
               border: "1px solid rgba(0,0,0,0.1)",
               cursor: saving ? "default" : "pointer",
             }}>
-            {l === "fr" ? t.languageFr : t.languageEn}
+            {LABELS[l]}
           </button>
         ))}
         {saved && <span className="text-xs" style={{ color: "#22a06b" }}>{t.saved}</span>}

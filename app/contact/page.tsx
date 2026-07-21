@@ -27,7 +27,7 @@ export default function ContactPage() {
       <header style={{ borderBottom: "1px solid rgba(0,0,0,0.07)" }}>
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <Link href="/" style={{ fontFamily: "'Playfair Display', Georgia, serif", color: "#1c1917", fontSize: "1.25rem", fontWeight: 500 }}>
-            folyyo
+            folyo
           </Link>
           <Link href="/" className="text-sm transition hover:opacity-70" style={{ color: "#78716c" }}>
             ← Accueil

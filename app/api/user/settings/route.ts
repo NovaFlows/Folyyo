@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
 
-  const { country, language } = await request.json() as { country?: string; language?: "fr" | "en" };
+  const { country, language } = await request.json() as { country?: string; language?: "fr" | "en" | "es" };
   if (!country && !language) {
     return NextResponse.json({ error: "country ou language requis" }, { status: 400 });
   }

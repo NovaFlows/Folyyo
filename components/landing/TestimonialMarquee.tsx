@@ -1,7 +1,7 @@
 import Image from "next/image";
 import type { Locale } from "@/lib/i18n/types";
 
-// Bandeau défilant de vrais avis clients (fournis par l'équipe Folyyo — noms,
+// Bandeau défilant de vrais avis clients (fournis par l'équipe Folyo — noms,
 // métiers, citations et photos réels, avec l'accord des personnes). Pur CSS
 // (@keyframes ld-marquee dans globals.css), aucun JS : la liste est dupliquée
 // pour boucler sans à-coup, pause au survol. `role`/`quote` traduits pour la
