@@ -48,7 +48,7 @@ export default function SlugChecker({ locale }: { locale: Locale }) {
     <div className="w-full max-w-md">
       <div className="flex items-center rounded-2xl transition"
         style={{ background: "white", border: `1px solid ${borderColor}`, boxShadow: "0 8px 32px rgba(28,25,23,0.08)" }}>
-        <span className="mono pl-5 text-sm shrink-0" style={{ color: "#a09a94" }}>folyo.com/</span>
+        <span className="mono pl-5 text-sm shrink-0" style={{ color: "#a09a94" }}>folyo.page/</span>
         <input
           type="text"
           value={slug}

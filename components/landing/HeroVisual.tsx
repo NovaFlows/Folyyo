@@ -16,6 +16,7 @@ const STRINGS = {
   fr: { generating: "génération", yourUrl: "ton url", portfoliosCreated: "portfolios créés" },
   en: { generating: "generating", yourUrl: "your url", portfoliosCreated: "portfolios created" },
   es: { generating: "generación", yourUrl: "tu url", portfoliosCreated: "portfolios creados" },
+  de: { generating: "Generierung", yourUrl: "deine URL", portfoliosCreated: "erstellte Portfolios" },
 };
 
 export default function HeroVisual({ locale }: { locale: Locale }) {
@@ -140,7 +141,7 @@ export default function HeroVisual({ locale }: { locale: Locale }) {
           {s.yourUrl}
         </p>
         <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: "0.6875rem", color: "#1c1917", whiteSpace: "nowrap" }}>
-          folyo.com/<span style={{ color: "#c9a96e" }}>{URL_NAMES[cardIndex].slice(0, urlLen)}</span>
+          folyo.page/<span style={{ color: "#c9a96e" }}>{URL_NAMES[cardIndex].slice(0, urlLen)}</span>
           {!reduced && urlLen < URL_NAMES[cardIndex].length && <span className="cursor-blink" style={{ color: "#c9a96e" }}>▍</span>}
         </p>
       </div>

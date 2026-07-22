@@ -23,7 +23,7 @@ const PROFILE_LABELS: Record<string, string> = {
 // structurellement par le schéma de chaque outil (lib/anthropic/edit-tools.ts),
 // donc ce prompt ne porte plus que sur le jugement design et les conventions
 // d'usage des outils — plus de section "format de réponse" à maintenir.
-export function buildEditSystemPrompt(ctx?: ProfileContext, language: "fr" | "en" | "es" = "fr"): string {
+export function buildEditSystemPrompt(ctx?: ProfileContext, language: "fr" | "en" | "es" | "de" = "fr"): string {
   const profileLabel = ctx ? (PROFILE_LABELS[ctx.profileType] ?? "créatif / créative") : "professionnel(le)";
   const profileIntro = ctx
     ? `Ce portfolio appartient à **${ctx.profileName}**, ${profileLabel}${ctx.profileTitle ? ` (${ctx.profileTitle})` : ""}.`
@@ -32,8 +32,10 @@ export function buildEditSystemPrompt(ctx?: ProfileContext, language: "fr" | "en
     ? "Ce portfolio est rédigé en ANGLAIS : tout nouveau texte que tu écris (descriptions, accroches, titres…) doit être en anglais, même si cette instruction système est en français."
     : language === "es"
     ? "Ce portfolio est rédigé en ESPAGNOL : tout nouveau texte que tu écris (descriptions, accroches, titres…) doit être en espagnol, même si cette instruction système est en français."
+    : language === "de"
+    ? "Ce portfolio est rédigé en ALLEMAND : tout nouveau texte que tu écris (descriptions, accroches, titres…) doit être en allemand, même si cette instruction système est en français."
     : "Ce portfolio est rédigé en français : tout nouveau texte que tu écris doit rester en français.";
-  const languageWord = language === "en" ? "en anglais" : language === "es" ? "en espagnol" : "en français";
+  const languageWord = language === "en" ? "en anglais" : language === "es" ? "en espagnol" : language === "de" ? "en allemand" : "en français";
 
   return `Tu es un designer expert qui modifie un portfolio en appelant des outils. Tu penses toujours en termes de rendu visuel final : lisibilité, contraste, cohérence esthétique.
 ${profileIntro ? `\n${profileIntro}\n` : ""}

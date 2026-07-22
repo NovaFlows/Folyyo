@@ -83,6 +83,32 @@ const CONTENT: Record<Locale, { kicker: string; title: string; items: { q: strin
       },
     ],
   },
+  de: {
+    kicker: "Häufig gestellte Fragen",
+    title: "Alles, was du wissen musst",
+    items: [
+      {
+        q: "Ist es wirklich kostenlos?",
+        a: "Du bekommst eine vollständige 7-tägige Testphase, keine Kreditkarte nötig — Generierung, KI-Bearbeitung, alles freigeschaltet. Danach kostet das Abo 5,99 €/Monat oder 49,99 €/Jahr.",
+      },
+      {
+        q: "Brauche ich technische Kenntnisse?",
+        a: "Nein. Du lädst deinen Lebenslauf hoch (oder verbindest GitHub/YouTube), die KI generiert dein Portfolio in unter 60 Sekunden, und du passt es danach per Drag & Drop oder im Chat mit der KI an.",
+      },
+      {
+        q: "Was passiert, wenn meine Testphase endet und ich kein Abo abschließe?",
+        a: "Dein Konto und dein Portfolio bleiben erhalten — nichts wird gelöscht. Die öffentliche Seite wird einfach pausiert, bis du abonnierst, unter derselben Adresse.",
+      },
+      {
+        q: "Kann ich das Design nach der Generierung ändern?",
+        a: "Ja, jederzeit — Designs, Farben, Schriftarten, Widget-Layout, und du kannst die KI sogar bitten, den Stil neu zu gestalten, indem du beschreibst, was du willst.",
+      },
+      {
+        q: "Kann ich jederzeit kündigen?",
+        a: "Ja, mit einem Klick auf der Abo-Seite — keine Verpflichtung, keine Rückfragen.",
+      },
+    ],
+  },
 };
 
 function FAQItem({ q, a }: { q: string; a: string }) {

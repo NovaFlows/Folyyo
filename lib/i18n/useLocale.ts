@@ -7,7 +7,7 @@ function readCookieLocale(): Locale {
   if (typeof document === "undefined") return "fr";
   const match = document.cookie.match(new RegExp(`(?:^|; )${LOCALE_COOKIE}=([^;]*)`));
   const v = match?.[1];
-  return v === "en" || v === "es" ? v : "fr";
+  return v === "en" || v === "es" || v === "de" ? v : "fr";
 }
 
 // Pour les pages purement client (login/signup — formulaires interactifs,

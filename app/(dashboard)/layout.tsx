@@ -5,6 +5,7 @@ import { SignOutButton } from "@clerk/nextjs";
 import { getLocale } from "@/lib/i18n/locale";
 import { getDictionary } from "@/lib/i18n/dictionaries";
 import LanguageToggle from "@/components/i18n/LanguageToggle";
+import { getUserSettings, hasAnyPortfolio } from "@/lib/db/queries";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { userId } = await auth();
@@ -12,6 +13,11 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   const locale = getLocale();
   const t = getDictionary(locale).dashboardNav;
+
+  // Un portfolio par compte, sauf les comptes "lifetime" — voir
+  // app/api/portfolio/generate/route.ts pour la garde serveur équivalente.
+  const settings = await getUserSettings(userId);
+  const canCreateMore = settings?.subscription_status === "lifetime" || !(await hasAnyPortfolio(userId));
 
   return (
     <div className="min-h-screen" style={{ background: "#f8f5f0" }}>
@@ -47,12 +53,14 @@ export default async function DashboardLayout({ children }: { children: React.Re
               {t.support}
             </Link>
             <LanguageToggle locale={locale} />
-            <Link href="/onboarding"
-              className="rounded-full px-4 py-2 text-sm font-medium text-white transition hover:opacity-80 sm:px-5"
-              style={{ background: "#1c1917" }}>
-              <span className="sm:hidden">{t.newPortfolioShort}</span>
-              <span className="hidden sm:inline">{t.newPortfolio}</span>
-            </Link>
+            {canCreateMore && (
+              <Link href="/onboarding"
+                className="rounded-full px-4 py-2 text-sm font-medium text-white transition hover:opacity-80 sm:px-5"
+                style={{ background: "#1c1917" }}>
+                <span className="sm:hidden">{t.newPortfolioShort}</span>
+                <span className="hidden sm:inline">{t.newPortfolio}</span>
+              </Link>
+            )}
             <SignOutButton redirectUrl="/">
               <button className="text-sm transition hover:opacity-60" style={{ color: "#a09a94" }}>
                 {t.logout}

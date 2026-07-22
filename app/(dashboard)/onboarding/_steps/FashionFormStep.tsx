@@ -111,7 +111,7 @@ export default function FashionFormStep({ data, t, onChange, onBack, onSubmit }:
               background: "white",
               border: `1px solid ${slugStatus === "taken" ? "#dc2626" : slugStatus === "available" ? "#c9a96e" : "rgba(0,0,0,0.1)"}`,
             }}>
-            <span className="mono pl-4 text-xs shrink-0" style={{ color: "#a09a94" }}>folyo.com/</span>
+            <span className="mono pl-4 text-xs shrink-0" style={{ color: "#a09a94" }}>folyo.page/</span>
             <input type="text" value={data.slug}
               onChange={(e) => onChange({ slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "").slice(0, 30) })}
               required placeholder="lea-dubois"

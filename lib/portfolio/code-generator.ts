@@ -342,7 +342,7 @@ export default function Portfolio() {
 
       {/* ── Footer ── */}
       <footer className="py-8 text-center text-xs" style={{ background: '${theme.background_color}', color: '${theme.text_color}30' }}>
-        Built with <a href="https://folyo.com" style={{ color: '${theme.primary_color}' }}>Folyo</a>
+        Built with <a href="https://folyo.page" style={{ color: '${theme.primary_color}' }}>Folyo</a>
       </footer>
     </main>
   );

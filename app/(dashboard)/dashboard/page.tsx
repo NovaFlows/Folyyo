@@ -1,7 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { getPortfoliosByUser, getViewCountsForUser } from "@/lib/db/queries";
+import { getPortfoliosByUser, getViewCountsForUser, getUserSettings } from "@/lib/db/queries";
 import { checkFreshness } from "@/lib/freshness/check";
 import type { Portfolio } from "@/types";
 import PortfolioCard from "./PortfolioCard";
@@ -16,10 +16,15 @@ export default async function DashboardPage() {
   const locale = getLocale();
   const t = getDictionary(locale);
 
-  const [portfolios, viewCounts] = await Promise.all([
+  const [portfolios, viewCounts, settings] = await Promise.all([
     getPortfoliosByUser(userId),
     getViewCountsForUser(userId),
+    getUserSettings(userId),
   ]);
+
+  // Un portfolio par compte, sauf les comptes "lifetime" — voir
+  // app/api/portfolio/generate/route.ts pour la garde serveur équivalente.
+  const canCreateMore = settings?.subscription_status === "lifetime" || portfolios.length === 0;
 
   // Nudge de fraîcheur GitHub/YouTube — best-effort, ne doit jamais faire
   // planter le dashboard si une API externe est indisponible.
@@ -36,11 +41,13 @@ export default async function DashboardPage() {
             {portfolios.length === 0 ? t.dashboard.noneYet : t.dashboard.count(portfolios.length)}
           </h1>
         </div>
-        <Link href="/onboarding"
-          className="rounded-full px-6 py-2.5 text-sm font-medium text-white transition hover:opacity-80"
-          style={{ background: "#1c1917" }}>
-          {t.dashboardNav.newPortfolioShort}
-        </Link>
+        {canCreateMore && (
+          <Link href="/onboarding"
+            className="rounded-full px-6 py-2.5 text-sm font-medium text-white transition hover:opacity-80"
+            style={{ background: "#1c1917" }}>
+            {t.dashboardNav.newPortfolioShort}
+          </Link>
+        )}
       </div>
 
       {freshness.map(({ portfolio, result }) => (

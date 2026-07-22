@@ -21,7 +21,7 @@ export async function getUserSettings(userId: string): Promise<UserSettings | nu
   return one<UserSettings>(rows);
 }
 
-export async function upsertUserSettings(userId: string, data: { country?: string | null; language?: "fr" | "en" | "es" }): Promise<UserSettings> {
+export async function upsertUserSettings(userId: string, data: { country?: string | null; language?: "fr" | "en" | "es" | "de" }): Promise<UserSettings> {
   const rows = await sql`
     INSERT INTO users (user_id, country, language)
     VALUES (${userId}, ${data.country ?? null}, ${data.language ?? "fr"})
@@ -137,6 +137,15 @@ export async function getPortfoliosByUser(userId: string): Promise<Portfolio[]> 
   return many<Portfolio>(rows);
 }
 
+// Un portfolio par compte, sauf les comptes "lifetime" (comptes de test —
+// voir hasActiveAccess/subscription_status) qui peuvent en créer autant
+// qu'ils veulent. Utilisé à la création (garde serveur) et pour savoir si le
+// bouton "+ Nouveau portfolio" doit s'afficher.
+export async function hasAnyPortfolio(userId: string): Promise<boolean> {
+  const rows = await sql`SELECT 1 FROM portfolios WHERE user_id = ${userId} LIMIT 1`;
+  return rows.length > 0;
+}
+
 export async function getPortfolioById(id: string, userId: string): Promise<Portfolio | null> {
   const rows = await sql`SELECT * FROM portfolios WHERE id = ${id} AND user_id = ${userId} LIMIT 1`;
   return one<Portfolio>(rows);
@@ -148,7 +157,7 @@ export async function createPortfolio(data: {
   profile_type: string;
   slug?: string;
   country?: string;
-  language?: "fr" | "en" | "es";
+  language?: "fr" | "en" | "es" | "de";
 }): Promise<Portfolio> {
   const rows = await sql`
     INSERT INTO portfolios (user_id, name, profile_type, status, slug, country, language)

@@ -54,7 +54,7 @@ function Section({ title, description, children }: { title: string; description?
 
 // ── Langue des portfolios générés (compte) ──────────────────────────────────
 function PortfolioLanguageSection({ t }: { t: SettingsDict }) {
-  const [language, setLanguage] = useState<"fr" | "en" | "es" | null>(null);
+  const [language, setLanguage] = useState<"fr" | "en" | "es" | "de" | null>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
@@ -64,7 +64,7 @@ function PortfolioLanguageSection({ t }: { t: SettingsDict }) {
     return () => { cancelled = true; };
   }, []);
 
-  async function update(next: "fr" | "en" | "es") {
+  async function update(next: "fr" | "en" | "es" | "de") {
     setLanguage(next); setSaving(true); setSaved(false);
     try {
       await fetch("/api/user/settings", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ language: next }) });
@@ -72,12 +72,12 @@ function PortfolioLanguageSection({ t }: { t: SettingsDict }) {
     } finally { setSaving(false); }
   }
 
-  const LABELS = { fr: t.languageFr, en: t.languageEn, es: t.languageEs };
+  const LABELS = { fr: t.languageFr, en: t.languageEn, es: t.languageEs, de: t.languageDe };
 
   return (
     <Section title={t.languageTitle} description={t.languageDesc}>
       <div className="flex items-center gap-3">
-        {(["fr", "en", "es"] as const).map((l) => (
+        {(["fr", "en", "es", "de"] as const).map((l) => (
           <button key={l} onClick={() => update(l)} disabled={saving || language === null}
             className="rounded-xl px-4 py-2 text-sm font-medium transition"
             style={{
@@ -115,6 +115,8 @@ function PasswordSection({ t }: { t: SettingsDict }) {
       await user.updatePassword({ currentPassword: current, newPassword: next, signOutOfOtherSessions: false });
       setCurrent(""); setNext(""); setConfirm(""); setSuccess(true);
     } catch (err) {
+      // eslint-disable-next-line no-console -- utile pour diagnostiquer le code d'erreur Clerk réel si le message générique de secours s'affiche
+      console.error("updatePassword failed:", err);
       setError(clerkErrorMessage(err, t.passwordError));
     } finally { setLoading(false); }
   }
@@ -124,16 +126,16 @@ function PasswordSection({ t }: { t: SettingsDict }) {
       <form onSubmit={handleSubmit} className="space-y-3">
         <div>
           <label style={labelStyle}>{t.passwordCurrent}</label>
-          <PasswordInput value={current} onChange={setCurrent} required style={inputStyle} />
+          <PasswordInput value={current} onChange={setCurrent} required autoComplete="current-password" style={inputStyle} />
         </div>
         <div className="grid gap-3 sm:grid-cols-2">
           <div>
             <label style={labelStyle}>{t.passwordNew}</label>
-            <PasswordInput value={next} onChange={setNext} required minLength={8} style={inputStyle} />
+            <PasswordInput value={next} onChange={setNext} required minLength={8} autoComplete="new-password" style={inputStyle} />
           </div>
           <div>
             <label style={labelStyle}>{t.passwordConfirm}</label>
-            <PasswordInput value={confirm} onChange={setConfirm} required minLength={8} style={inputStyle} />
+            <PasswordInput value={confirm} onChange={setConfirm} required minLength={8} autoComplete="new-password" style={inputStyle} />
           </div>
         </div>
         {error && <p className="text-xs" style={{ color: "#dc2626" }}>{error}</p>}

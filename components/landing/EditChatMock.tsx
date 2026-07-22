@@ -27,11 +27,18 @@ const EXCHANGES = {
     { cmd: "Pon mi foto como fondo del hero", reply: "Foto de fondo actualizada · Sitio republicado" },
     { cmd: "Reescribe mi introducción, quiero algo más contundente", reply: "Introducción reescrita · Sitio republicado" },
   ],
+  de: [
+    { cmd: "Ändere die Hauptfarbe zu Terrakotta", reply: "Farbe aktualisiert · Website neu veröffentlicht" },
+    { cmd: "Füge einen Testimonial-Bereich hinzu", reply: "Bereich hinzugefügt · Website neu veröffentlicht" },
+    { cmd: "Setze mein Foto als Hero-Hintergrund", reply: "Hintergrundfoto aktualisiert · Website neu veröffentlicht" },
+    { cmd: "Schreib meine Einleitung um, ich will etwas Prägnanteres", reply: "Einleitung umgeschrieben · Website neu veröffentlicht" },
+  ],
 };
 const UI_STRINGS = {
   fr: { header: "Éditeur Folyo", thinking: "Analyse en cours…", placeholder: "Décris une modification…" },
   en: { header: "Folyo Editor", thinking: "Analyzing…", placeholder: "Describe a change…" },
   es: { header: "Editor de Folyo", thinking: "Analizando…", placeholder: "Describe un cambio…" },
+  de: { header: "Folyo-Editor", thinking: "Analyse läuft…", placeholder: "Beschreibe eine Änderung…" },
 };
 
 type Phase = "typing" | "thinking" | "success";

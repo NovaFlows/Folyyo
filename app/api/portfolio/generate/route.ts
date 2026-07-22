@@ -9,7 +9,7 @@ import { PortfolioJSONSchema } from "@/lib/anthropic/schema";
 import { generateDeveloperCode } from "@/lib/portfolio/code-generator";
 import { keys } from "@/lib/r2/client";
 import { readCvBuffer, writeSourceCode } from "@/lib/dev-storage";
-import { createPortfolio, setPortfolioReady, setPortfolioError, getFeaturedPortfolioById, getUserSettings, upsertUserSettings } from "@/lib/db/queries";
+import { createPortfolio, setPortfolioReady, setPortfolioError, getFeaturedPortfolioById, getUserSettings, upsertUserSettings, hasAnyPortfolio } from "@/lib/db/queries";
 import { hasActiveAccess } from "@/lib/billing/access";
 import { parsePdfText } from "@/lib/pdf-parse";
 import { isReservedSlug } from "@/lib/portfolio/reserved-slugs";
@@ -44,6 +44,12 @@ export async function POST(request: NextRequest) {
   const existingSettings = await getUserSettings(userId);
   if (existingSettings && !hasActiveAccess(existingSettings)) {
     return NextResponse.json({ error: "Ton essai gratuit est terminé — abonne-toi pour continuer à créer des portfolios." }, { status: 403 });
+  }
+
+  // Un portfolio par compte, sauf les comptes "lifetime" (comptes de test/dev
+  // de l'auteur) qui peuvent en créer autant qu'ils veulent.
+  if (existingSettings?.subscription_status !== "lifetime" && await hasAnyPortfolio(userId)) {
+    return NextResponse.json({ error: "Tu as déjà un portfolio — supprime-le depuis le tableau de bord avant d'en créer un nouveau." }, { status: 403 });
   }
 
   // Langue du portfolio généré — source de vérité : le pays enregistré sur le

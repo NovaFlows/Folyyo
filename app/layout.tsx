@@ -5,7 +5,6 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Folyo — Portfolio generator",
   description: "Génère et déploie ton portfolio professionnel en quelques minutes avec l'IA.",
-  icons: { icon: "/favicon.ico" },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

@@ -18,7 +18,7 @@ export function buildGenerateUserPrompt(
   input: DeveloperInputData,
   profileType = "developer",
   themeOverride?: ValidatedPortfolioJSON["theme"],
-  language: "fr" | "en" | "es" = "fr"
+  language: "fr" | "en" | "es" | "de" = "fr"
 ): string {
   const presets = getPresetsForProfile(profileType);
   // hero_image_url d'un portfolio featuré est SA photo (contenu, pas style) — et peut être
@@ -87,7 +87,15 @@ Redacta TODO el contenido textual generado en español: eslogan, sobre mí,
 descripciones de proyectos/experiencias, mensaje de contacto, títulos de
 sección — excepto los nombres propios (personas, empresas, tecnologías).
 Los nombres de los campos JSON permanecen en inglés tal como se especifica
-más abajo (eso no tiene relación con esta regla).` : `
+más abajo (eso no tiene relación con esta regla).` : language === "de" ? `
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SPRACHE — SCHREIBE AUF DEUTSCH
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Verfasse SÄMTLICHE generierten Textinhalte auf Deutsch: Slogan, Über-mich-
+Text, Projekt- und Erfahrungsbeschreibungen, Kontaktnachricht, Abschnitts-
+titel — außer Eigennamen (Personen, Unternehmen, Technologien). Die
+JSON-Feldnamen selbst bleiben wie unten angegeben auf Englisch (das steht
+in keinem Zusammenhang mit dieser Regel).` : `
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 LANGUE — RÉDIGE EN FRANÇAIS
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

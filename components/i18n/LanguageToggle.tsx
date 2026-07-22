@@ -9,6 +9,7 @@ const LANGUAGES: { code: Locale; label: string }[] = [
   { code: "fr", label: "Français" },
   { code: "en", label: "English" },
   { code: "es", label: "Español" },
+  { code: "de", label: "Deutsch" },
 ];
 
 // Sélecteur de langue — une icône "globe" sobre (lucide-react, pas d'emoji)

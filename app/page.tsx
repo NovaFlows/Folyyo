@@ -389,6 +389,9 @@ export default function LandingPage() {
               <Link href="/login"  className="hover:text-white/50 transition-colors">{t.nav.login}</Link>
               <Link href="/signup" className="hover:text-white/50 transition-colors">{t.nav.signup}</Link>
               <Link href="/contact" className="hover:text-white/50 transition-colors">{t.nav.contact}</Link>
+              <Link href="/mentions-legales" className="hover:text-white/50 transition-colors">{t.nav.legal}</Link>
+              <Link href="/confidentialite" className="hover:text-white/50 transition-colors">{t.nav.privacy}</Link>
+              <Link href="/cgu" className="hover:text-white/50 transition-colors">{t.nav.terms}</Link>
             </div>
             <LanguageToggle locale={locale} dark />
           </div>

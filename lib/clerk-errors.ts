@@ -49,6 +49,20 @@ const MESSAGES: Record<Locale, Record<string, string>> = {
     too_many_requests:             "Demasiados intentos — inténtalo de nuevo en unos minutos.",
     form_param_format_invalid_email: "Introduce una dirección de email válida (ej: tu@ejemplo.com).",
   },
+  de: {
+    form_identifier_not_found:     "Zu dieser E-Mail-Adresse ist kein Konto vorhanden.",
+    form_password_incorrect:       "Falsches Passwort.",
+    form_identifier_exists:        "Es existiert bereits ein Konto mit dieser E-Mail-Adresse.",
+    form_password_pwned:           "Dieses Passwort wurde in einer öffentlichen Datenpanne gefunden — wähle ein anderes.",
+    form_password_length_too_short: "Das Passwort muss mindestens 8 Zeichen lang sein.",
+    form_password_not_strong_enough: "Dieses Passwort ist nicht sicher genug.",
+    form_code_incorrect:           "Der eingegebene Code ist falsch.",
+    form_identifier_missing:       "Bitte gib deine E-Mail-Adresse ein.",
+    verification_expired:         "Dieser Code ist abgelaufen — fordere einen neuen an.",
+    verification_failed:          "Die Überprüfung ist fehlgeschlagen — versuch's erneut.",
+    too_many_requests:             "Zu viele Versuche — versuch es in ein paar Minuten erneut.",
+    form_param_format_invalid_email: "Bitte gib eine gültige E-Mail-Adresse ein (z. B. du@beispiel.com).",
+  },
 };
 
 // Traduit les erreurs Clerk (anglais par défaut) dans la langue de l'UI, avec

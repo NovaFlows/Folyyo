@@ -108,7 +108,7 @@ export default function GeneratingStep({ data, t, onDone }: Props) {
         const isMusicien = data.profileType === "musicien";
         if (cancelled) return;
         // "build source code" — dernière étape affichée ; le portfolio est déjà
-        // en ligne à cet instant (folyo.com/[slug] lit site_json directement,
+        // en ligne à cet instant (folyo.page/[slug] lit site_json directement,
         // aucun déploiement séparé à attendre).
         setCurrentStep(isMusicien ? 2 : 3);
         await new Promise((r) => setTimeout(r, 500));

@@ -72,7 +72,7 @@ export default function PortfolioCard({ portfolio: p, views, locale }: {
 
       {/* Slug URL in mono */}
       <p className={`mono text-xs ${isLive ? "mb-1" : "mb-5"}`} style={{ color: "#c8c4bf" }}>
-        folyo.com/<span style={{ color: "#a09a94" }}>{shortSlug}</span>
+        folyo.page/<span style={{ color: "#a09a94" }}>{shortSlug}</span>
       </p>
 
       {/* Compteur de vues — toujours visible dès que le site est en ligne (même

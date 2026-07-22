@@ -53,6 +53,19 @@ const STRINGS = {
     ctaFull: "Crear mi cuenta para ver el resultado completo →",
     tryAnother: "Probar con otro CV",
   },
+  de: {
+    pdfRequired: "PDF-Format erforderlich.",
+    tooBig: "Datei zu groß (max. 10 MB).",
+    analyzeError: "Analyse nicht möglich, versuch's erneut.",
+    networkError: "Netzwerkfehler, versuch's erneut.",
+    dropHint: "Ziehe deinen Lebenslauf hierher oder klicke, um ihn auszuwählen",
+    dropSub: "Nur PDF · max. 10 MB · kein Konto erforderlich",
+    analyzing: "Dein Lebenslauf wird analysiert…",
+    detectedProfile: "Erkanntes Profil",
+    yourProfile: "Dein Profil",
+    ctaFull: "Konto erstellen, um das vollständige Ergebnis zu sehen →",
+    tryAnother: "Anderen Lebenslauf probieren",
+  },
 };
 
 export default function CvTeaser({ locale }: { locale: Locale }) {

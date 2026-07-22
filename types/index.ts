@@ -7,7 +7,7 @@ export type SubscriptionStatus = "trialing" | "active" | "lifetime" | "canceled"
 export type UserSettings = {
   user_id: string;
   country: string | null;
-  language: "fr" | "en" | "es";
+  language: "fr" | "en" | "es" | "de";
   created_at: string;
   updated_at: string;
   subscription_status: SubscriptionStatus;
@@ -36,7 +36,7 @@ export type Portfolio = {
   custom_domain: string | null;
   error_message: string | null;
   country: string | null;
-  language: "fr" | "en" | "es";
+  language: "fr" | "en" | "es" | "de";
   created_at: string;
   updated_at: string;
 };

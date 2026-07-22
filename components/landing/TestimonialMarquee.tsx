@@ -43,6 +43,18 @@ const TESTIMONIALS = {
     { name: "Adam Diallo",   role: "Data Analyst",               photo: "/testimonials/adam-diallo.png",   quote: "Simplemente añadí mis proyectos y algo de información sobre mi trayectoria. La IA se encargó de la estructura y me propuso textos mucho más profesionales." },
     { name: "Léa Fontaine",  role: "Ilustradora",               photo: "/testimonials/lea-fontaine.png",  quote: "El resultado se ve limpio tanto en ordenador como en móvil. Pude compartir mi portfolio desde el primer día y seguir mejorándolo con el tiempo." },
   ],
+  de: [
+    { name: "Lucas Martin",  role: "Freelance-Webentwickler", photo: "/testimonials/lucas-martin.png",  quote: "Ich habe mein Portfolio in unter einer Stunde erstellt. Die KI hat mir geholfen, meine Projekte richtig zu präsentieren, danach konnte ich jedes Detail selbst anpassen." },
+    { name: "Sarah Benali",  role: "Product Designerin",          photo: "/testimonials/sarah-benali.png",  quote: "Ich wusste nicht, wie ich meine Erfahrungen strukturieren sollte. Die Plattform hat eine klare, professionelle erste Version generiert, die ich danach leicht angepasst habe." },
+    { name: "Thomas Leroy",  role: "Informatikstudent",  photo: "/testimonials/thomas-leroy.png",  quote: "Am meisten gefällt mir, dass die KI die Kreativität nicht einschränkt. Sie liefert eine Grundlage, aber ich behalte die volle Kontrolle über Inhalt und Design." },
+    { name: "Inès Robert",   role: "UX-Design-Studentin",    photo: "/testimonials/ines-robert.png",   quote: "Ich brauchte schnell ein Portfolio für eine Praktikumsbewerbung. In wenigen Minuten hatte ich schon eine saubere, moderne Seite, bereit für Recruiter." },
+    { name: "Mehdi Amari",   role: "Full-Stack-Entwickler",    photo: "/testimonials/mehdi-amari.png",   quote: "Anders als bei anderen Tools, die ich ausprobiert habe, kann ich wirklich alles Generierte bearbeiten. Das Ergebnis wirkt nicht wie eine generische Vorlage." },
+    { name: "Clara Moreau",  role: "Freelance-Grafikdesignerin",       photo: "/testimonials/clara-moreau.png",  quote: "Die KI hat meine sehr einfachen Notizen und Beschreibungen in viel überzeugendere Projektpräsentationen verwandelt, ohne meine Arbeit zu verfälschen." },
+    { name: "Nathan Dubois", role: "Fotograf",                photo: "/testimonials/nathan-dubois.png", quote: "Ich habe die Erstellung meines Portfolios monatelang aufgeschoben. Die automatische Generierung ließ mich sofort loslegen und danach alles anpassen." },
+    { name: "Emma Laurent",  role: "Marketing & Kommunikation", photo: "/testimonials/emma-laurent.png",  quote: "Das Tool findet eine sehr gute Balance zwischen Schnelligkeit und Individualisierung. Ich spare Zeit dank der KI, aber mein Portfolio bleibt wirklich meins." },
+    { name: "Adam Diallo",   role: "Data Analyst",               photo: "/testimonials/adam-diallo.png",   quote: "Ich habe einfach meine Projekte und ein paar Infos zu meinem Werdegang hinzugefügt. Die KI hat sich um die Struktur gekümmert und viel professionellere Texte vorgeschlagen." },
+    { name: "Léa Fontaine",  role: "Illustratorin",               photo: "/testimonials/lea-fontaine.png",  quote: "Das Ergebnis sieht auf dem Computer wie auf dem Handy sauber aus. Ich konnte mein Portfolio vom ersten Tag an teilen und es mit der Zeit weiter verbessern." },
+  ],
 };
 
 export default function TestimonialMarquee({ locale }: { locale: Locale }) {

@@ -206,9 +206,15 @@ const SPANISH_SPEAKING = new Set([
   "HN", "PY", "SV", "NI", "CR", "PA", "UY",
 ]);
 
-export function languageForCountry(code: string): "fr" | "en" | "es" | null {
+// Pays germanophones (allemand langue officielle/majoritaire) — Suisse
+// exclue volontairement, même logique que FRENCH_SPEAKING/ENGLISH_SPEAKING
+// (plurilingue sans majorité claire à l'échelle du pays entier).
+const GERMAN_SPEAKING = new Set(["DE", "AT", "LI"]);
+
+export function languageForCountry(code: string): "fr" | "en" | "es" | "de" | null {
   if (FRENCH_SPEAKING.has(code)) return "fr";
   if (ENGLISH_SPEAKING.has(code)) return "en";
   if (SPANISH_SPEAKING.has(code)) return "es";
+  if (GERMAN_SPEAKING.has(code)) return "de";
   return null;
 }

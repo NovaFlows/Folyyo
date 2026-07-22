@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useSignUp, useAuth } from "@clerk/nextjs";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -32,6 +32,12 @@ export default function SignupPage() {
   const [showApple, setShowApple] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
+  // Passe à `true` juste avant d'activer la session dans handleVerify — évite
+  // que l'effet ci-dessous (pensé pour renvoyer vers /dashboard quelqu'un déjà
+  // connecté qui atterrit sur /signup par erreur) ne gagne la course contre le
+  // router.push("/onboarding") voulu juste après une inscription qui vient de
+  // réussir sur CETTE page (isSignedIn passe à true au même moment).
+  const skipAutoRedirect = useRef(false);
 
   // Detecté côté client uniquement (navigator indisponible en SSR) — le
   // bouton Apple n'apparaît donc qu'après le montage, pas dans le HTML initial.
@@ -51,7 +57,7 @@ export default function SignupPage() {
   }, []);
 
   useEffect(() => {
-    if (isSignedIn) router.replace("/dashboard");
+    if (isSignedIn && !skipAutoRedirect.current) router.replace("/dashboard");
   }, [isSignedIn, router]);
 
   useEffect(() => {
@@ -84,6 +90,7 @@ export default function SignupPage() {
     try {
       const result = await signUp.attemptEmailAddressVerification({ code });
       if (result.status === "complete") {
+        skipAutoRedirect.current = true;
         await setActive({ session: result.createdSessionId });
         // Best-effort : le pays a déjà été choisi dans le formulaire d'inscription
         // (voir plus bas) — enregistré ici, une fois la session active (avant ça,
@@ -242,12 +249,12 @@ export default function SignupPage() {
             <CountrySelect value={country} onChange={setCountry} />
             <div>
               <label className="mb-1.5 block text-sm" style={{ color: "#78716c" }}>{t.auth.password}</label>
-              <PasswordInput value={password} onChange={setPassword} required minLength={8}
+              <PasswordInput value={password} onChange={setPassword} required minLength={8} autoComplete="new-password"
                 className="input-warm" placeholder={t.auth.signup.passwordPlaceholder} />
             </div>
             <div>
               <label className="mb-1.5 block text-sm" style={{ color: "#78716c" }}>{t.auth.signup.confirmPassword}</label>
-              <PasswordInput value={confirmPassword} onChange={setConfirmPassword} required minLength={8}
+              <PasswordInput value={confirmPassword} onChange={setConfirmPassword} required minLength={8} autoComplete="new-password"
                 className="input-warm" placeholder={t.auth.signup.confirmPasswordPlaceholder} />
             </div>
             {error && <p className="rounded-xl px-4 py-2.5 text-sm" style={{ background: "rgba(220,38,38,0.06)", border: "1px solid rgba(220,38,38,0.15)", color: "#dc2626" }}>{error}</p>}

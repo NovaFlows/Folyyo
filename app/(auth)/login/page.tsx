@@ -135,7 +135,7 @@ export default function LoginPage() {
             </div>
             <div>
               <label className="mb-1.5 block text-sm" style={{ color: "#78716c" }}>{t.auth.password}</label>
-              <PasswordInput value={password} onChange={setPassword} required
+              <PasswordInput value={password} onChange={setPassword} required autoComplete="current-password"
                 className="input-warm" placeholder={t.auth.login.passwordPlaceholder} />
             </div>
 

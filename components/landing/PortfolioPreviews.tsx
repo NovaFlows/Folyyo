@@ -5,22 +5,28 @@ import type { Locale } from "@/lib/i18n/types";
 
 const TABS = {
   fr: [
-    { id: "developer", label: "Développeur", url: "alex-martin.folyo.app" },
-    { id: "artist",    label: "Artiste",     url: "sophie-noir.folyo.app" },
-    { id: "fashion",   label: "Mode",        url: "nina-beaumont.folyo.app" },
-    { id: "musicien",  label: "Musique",     url: "solka.folyo.app" },
+    { id: "developer", label: "Développeur", url: "folyo.page/alex-martin" },
+    { id: "artist",    label: "Artiste",     url: "folyo.page/sophie-noir" },
+    { id: "fashion",   label: "Mode",        url: "folyo.page/nina-beaumont" },
+    { id: "musicien",  label: "Musique",     url: "folyo.page/solka" },
   ],
   en: [
-    { id: "developer", label: "Developer", url: "alex-martin.folyo.app" },
-    { id: "artist",    label: "Artist",    url: "sophie-noir.folyo.app" },
-    { id: "fashion",   label: "Fashion",   url: "nina-beaumont.folyo.app" },
-    { id: "musicien",  label: "Music",     url: "solka.folyo.app" },
+    { id: "developer", label: "Developer", url: "folyo.page/alex-martin" },
+    { id: "artist",    label: "Artist",    url: "folyo.page/sophie-noir" },
+    { id: "fashion",   label: "Fashion",   url: "folyo.page/nina-beaumont" },
+    { id: "musicien",  label: "Music",     url: "folyo.page/solka" },
   ],
   es: [
-    { id: "developer", label: "Desarrollador", url: "alex-martin.folyo.app" },
-    { id: "artist",    label: "Artista",       url: "sophie-noir.folyo.app" },
-    { id: "fashion",   label: "Moda",          url: "nina-beaumont.folyo.app" },
-    { id: "musicien",  label: "Música",        url: "solka.folyo.app" },
+    { id: "developer", label: "Desarrollador", url: "folyo.page/alex-martin" },
+    { id: "artist",    label: "Artista",       url: "folyo.page/sophie-noir" },
+    { id: "fashion",   label: "Moda",          url: "folyo.page/nina-beaumont" },
+    { id: "musicien",  label: "Música",        url: "folyo.page/solka" },
+  ],
+  de: [
+    { id: "developer", label: "Entwickler", url: "folyo.page/alex-martin" },
+    { id: "artist",    label: "Künstler",   url: "folyo.page/sophie-noir" },
+    { id: "fashion",   label: "Mode",       url: "folyo.page/nina-beaumont" },
+    { id: "musicien",  label: "Musik",      url: "folyo.page/solka" },
   ],
 } as const;
 
@@ -28,6 +34,7 @@ const STRINGS = {
   fr: { prev: "Exemple précédent", next: "Exemple suivant", goTo: (label: string) => `Aller à ${label}`, footer: "Généré et déployé automatiquement · Éditable à tout moment" },
   en: { prev: "Previous example", next: "Next example", goTo: (label: string) => `Go to ${label}`, footer: "Generated and deployed automatically · Editable anytime" },
   es: { prev: "Ejemplo anterior", next: "Ejemplo siguiente", goTo: (label: string) => `Ir a ${label}`, footer: "Generado y publicado automáticamente · Editable en cualquier momento" },
+  de: { prev: "Vorheriges Beispiel", next: "Nächstes Beispiel", goTo: (label: string) => `Zu ${label} wechseln`, footer: "Automatisch generiert und veröffentlicht · Jederzeit bearbeitbar" },
 };
 
 const AUTOPLAY_MS = 6000;
@@ -155,6 +162,17 @@ const DEVELOPER_CONTENT = {
       { name: "reactable", desc: "Tablas reactivas sin dependencias", stars: 892 },
     ],
   },
+  de: {
+    nav: ["über mich", "projekte", "kontakt"],
+    role: "Fullstack-Entwickler",
+    bio: "Ich baue schnelle APIs und klare Interfaces. 5 Jahre Erfahrung. Open-Source-Enthusiast.",
+    projects: [
+      { name: "fastq", desc: "Ultraschnelle Message Queue", stars: 1247 },
+      { name: "pgmigrate", desc: "Datenbankmigrationen", stars: 384 },
+      { name: "opentype-rs", desc: "Parser für Schriftdateien", stars: 217 },
+      { name: "reactable", desc: "Reaktive Tabellen ohne Abhängigkeiten", stars: 892 },
+    ],
+  },
 };
 
 function DeveloperPreview({ locale }: { locale: Locale }) {
@@ -198,6 +216,7 @@ const ARTIST_CONTENT = {
   fr: { category: "Peinture · Illustration · Paris", heading: "Œuvres récentes", bio: "Mon travail explore la tension entre l'organique et le géométrique. Expositions à Paris, Berlin et Tokyo." },
   en: { category: "Painting · Illustration · Paris", heading: "Recent works", bio: "My work explores the tension between the organic and the geometric. Exhibitions in Paris, Berlin and Tokyo." },
   es: { category: "Pintura · Ilustración · París", heading: "Obras recientes", bio: "Mi trabajo explora la tensión entre lo orgánico y lo geométrico. Exposiciones en París, Berlín y Tokio." },
+  de: { category: "Malerei · Illustration · Paris", heading: "Neueste Werke", bio: "Meine Arbeit erkundet die Spannung zwischen dem Organischen und dem Geometrischen. Ausstellungen in Paris, Berlin und Tokio." },
 };
 
 function ArtistPreview({ locale }: { locale: Locale }) {
@@ -306,6 +325,18 @@ const MUSICIAN_CONTENT = {
     stats: [{ v: "1,3k", l: "Seguidores" }, { v: "14", l: "Temas" }, { v: "8,4k", l: "Visitas" }],
     tracks: [
       { name: "Marty Bird",   tag: "Vídeo oficial" },
+      { name: "Hermès",       tag: "Single" },
+      { name: "Tunnel",       tag: "Freestyle" },
+      { name: "Nuit blanche", tag: "Feat." },
+    ],
+  },
+  de: {
+    nav: ["Diskografie", "Live", "Kontakt"],
+    role: "Rapper",
+    bio: "Authentischer Rap, Texte, die treffen. Eine Welt im Aufbau — und sie wächst schnell.",
+    stats: [{ v: "1,3k", l: "Follower" }, { v: "14", l: "Titel" }, { v: "8,4k", l: "Aufrufe" }],
+    tracks: [
+      { name: "Marty Bird",   tag: "Offizielles Video" },
       { name: "Hermès",       tag: "Single" },
       { name: "Tunnel",       tag: "Freestyle" },
       { name: "Nuit blanche", tag: "Feat." },
