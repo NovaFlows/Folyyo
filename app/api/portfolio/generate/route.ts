@@ -14,6 +14,7 @@ import { hasActiveAccess } from "@/lib/billing/access";
 import { parsePdfText } from "@/lib/pdf-parse";
 import { isReservedSlug } from "@/lib/portfolio/reserved-slugs";
 import { languageForCountry } from "@/lib/i18n/country-language";
+import { contrastRatio, luminance } from "@/lib/portfolio/contrast";
 import type { DeveloperInputData } from "@/types/portfolio";
 import type { ValidatedPortfolioJSON } from "@/lib/anthropic/schema";
 
@@ -122,7 +123,8 @@ export async function POST(request: NextRequest) {
       themeOverride = templateJson?.theme;
     }
 
-    const rawJson = await callClaude(buildGenerateSystemPrompt(), buildGenerateUserPrompt(inputData, profileType, themeOverride, language), 8192);
+    const { prompt: userPrompt, heroCredit } = await buildGenerateUserPrompt(inputData, profileType, themeOverride, language);
+    const rawJson = await callClaude(buildGenerateSystemPrompt(), userPrompt, 8192);
     const cleaned = rawJson.replace(/^```json\s*/i, "").replace(/\s*```$/, "").trim();
 
     let siteJson;
@@ -133,6 +135,17 @@ export async function POST(request: NextRequest) {
       console.error("[generate] raw Claude response (first 500 chars):", cleaned.slice(0, 500));
       await setPortfolioError(portfolio.id, "Réponse Claude invalide");
       return NextResponse.json({ error: "Erreur parsing réponse Claude" }, { status: 500 });
+    }
+
+    // Crédit de la photo Unsplash — jamais généré par Claude, attaché ici.
+    if (heroCredit) siteJson.theme.hero_image_credit = heroCredit;
+
+    // Filet de sécurité contraste : Claude choisit maintenant librement sa
+    // palette (voir generate-portfolio.ts) — si le résultat est illisible
+    // malgré la consigne du prompt, on corrige plutôt que de publier un
+    // portfolio au texte invisible (même logique que apply-edit-tool.ts).
+    if (contrastRatio(siteJson.theme.background_color, siteJson.theme.text_color) < 4.5) {
+      siteJson.theme.text_color = luminance(siteJson.theme.background_color) > 0.5 ? "#111111" : "#f5f5f5";
     }
 
     // Photo de profil : priorité à une vraie source déjà vérifiée plutôt qu'à ce que Claude devine —

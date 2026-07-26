@@ -13,6 +13,7 @@ import { stripRichTags, richOrUndefined } from "@/lib/portfolio/rich-text";
 import { GRID_COLS, GRID_ROW_HEIGHT, GRID_MARGIN, DEFAULT_SIZE, MIN_SIZE, gridUid, sortGridItems, nextY, migrateToGrid, nativeContentH, getGrid, applyGrid, resolveNativeOverlap } from "@/lib/portfolio/grid";
 import { createDefaultBlock, createDefaultSection } from "@/lib/portfolio/section-factory";
 import HeroBackgroundCarousel from "@/components/portfolio/HeroBackgroundCarousel";
+import HeroDecoration from "@/components/portfolio/HeroDecoration";
 import { useLocale } from "@/lib/i18n/useLocale";
 import { getDictionary } from "@/lib/i18n/dictionaries";
 import LanguageToggle from "@/components/i18n/LanguageToggle";
@@ -1323,7 +1324,10 @@ function PortfolioPreview({ data, selectedIdx, selectedBlock, profileType, secDr
         <div style={{maxWidth:960,margin:"0 auto",padding:"0.875rem 1.5rem",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
           <span style={{fontWeight:700,color:pri,fontFamily:hFont,fontSize:"1rem"}}>{meta.name}</span>
           <div style={{display:"flex",gap:"1.25rem",fontSize:"0.8125rem",color:`${txt}70`}}>
-            {sections.filter(s=>s.type!=="hero").map(s=><span key={s.type}>{(s as {section_title?:string}).section_title??sectionLabel(sectionLabels,s.type)}</span>)}
+            {sections.filter(s=>s.type!=="hero").map(s=>{
+              const customTitle=(s as {section_title?:string}).section_title;
+              return <span key={s.type}>{customTitle?<RichText html={customTitle}/>:sectionLabel(sectionLabels,s.type)}</span>;
+            })}
           </div>
         </div>
       </nav>
@@ -1520,6 +1524,7 @@ function SectionRender({ section, meta, theme, bg, txt, pri, acc, hFont, section
         <section draggable={false} onMouseDown={onSectionMouseDown} onClick={e=>e.stopPropagation()} style={{position:"relative",minHeight:"90vh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"6rem 1.5rem 3rem",textAlign:"center",backgroundImage:!hasCarousel&&heroImg?`url(${heroImg})`:undefined,backgroundSize:"cover",backgroundPosition:"center"}}>
           {hasCarousel&&<HeroBackgroundCarousel images={heroImages} intervalSeconds={theme.hero_interval??5}/>}
           {(hasCarousel||heroImg)&&<div style={{position:"absolute",inset:0,background:bg,opacity:overlay}}/>}
+          <HeroDecoration variant={theme.hero_decoration} color={acc}/>
           <div style={{position:"relative",zIndex:1,display:"flex",flexDirection:"column",alignItems:"center",maxWidth:640,width:"100%"}}>
             {meta.avatar_url&&<img src={meta.avatar_url} alt={stripRichTags(meta.name)} width={88} height={88} style={{borderRadius:"50%",marginBottom:"1.5rem",border:`2px solid ${pri}`,objectFit:"cover"}}/>}
             <h1 style={{fontSize:"clamp(2rem,5vw,3.5rem)",fontWeight:700,fontFamily:hFont,color:txt,marginBottom:"0.75rem",lineHeight:1.1}}><RichText html={section.title||meta.name}/></h1>
@@ -2098,6 +2103,17 @@ function ThemeEditor({ meta, theme, updateMeta, updateTheme, profileType, portfo
             );
           })}
         </div>
+      </PanelSection>
+      <PanelSection title={t.heroDecorationTitle}>
+        <label style={{display:"flex",gap:"0.625rem",alignItems:"flex-start",padding:"0.5rem 0",cursor:"pointer"}}>
+          <input type="checkbox" checked={(theme.hero_decoration??"none")!=="none"}
+            onChange={e=>updateTheme({hero_decoration:e.target.checked?"waves":"none"} as Partial<VTheme>)}
+            style={{marginTop:2,accentColor:"#c9a96e",width:15,height:15,cursor:"pointer",flexShrink:0}}/>
+          <span>
+            <span style={{display:"block",fontSize:"0.775rem",fontWeight:600,color:"#1c1917"}}>{t.heroDecorationLabel}</span>
+            <span style={{display:"block",fontSize:"0.675rem",color:"#a09a94",marginTop:"0.125rem",lineHeight:1.4}}>{t.heroDecorationHint}</span>
+          </span>
+        </label>
       </PanelSection>
       <PanelSection title={t.effectsTitle}>
         {([

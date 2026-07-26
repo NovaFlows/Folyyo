@@ -1,6 +1,8 @@
 import type { DeveloperInputData } from "@/types/portfolio";
 import { getPresetsForProfile } from "@/lib/portfolio/themes";
 import type { ValidatedPortfolioJSON } from "@/lib/anthropic/schema";
+import { fetchRandomPhoto } from "@/lib/unsplash/fetch";
+import { luminance } from "@/lib/portfolio/contrast";
 
 export function buildGenerateSystemPrompt(): string {
   return `Tu es un expert en création de portfolios professionnels. Tu analyses le profil d'une personne et tu génères un portfolio JSON parfaitement adapté à son métier, ses objectifs et son secteur d'activité.
@@ -14,12 +16,17 @@ RÈGLES ABSOLUES :
 - ADAPTE le portfolio au vrai métier de la personne — ne génère pas 6 sections génériques.`;
 }
 
-export function buildGenerateUserPrompt(
+export interface GeneratePromptResult {
+  prompt: string;
+  heroCredit: { name: string; profileUrl: string; photoUrl: string } | null;
+}
+
+export async function buildGenerateUserPrompt(
   input: DeveloperInputData,
   profileType = "developer",
   themeOverride?: ValidatedPortfolioJSON["theme"],
   language: "fr" | "en" | "es" | "de" = "fr"
-): string {
+): Promise<GeneratePromptResult> {
   const presets = getPresetsForProfile(profileType);
   // hero_image_url d'un portfolio featuré est SA photo (contenu, pas style) — et peut être
   // une image uploadée dans l'éditeur visuel, stockée en base64 inline (des dizaines de Ko
@@ -33,6 +40,22 @@ export function buildGenerateUserPrompt(
     : (preset as { id: string }).id;
   const backgroundPattern = themeOverride?.background_pattern
     ?? ["none", "none", "none", "dots", "lines"][Math.floor(Math.random() * 5)];
+
+  // Photo de fond piochée dynamiquement via Unsplash (mots-clés propres au
+  // preset tiré au sort) — pour que deux personnes du même métier n'aient
+  // jamais la même image. Seulement sur le tirage au hasard : un thème copié
+  // depuis un template/site externe (themeOverride) garde sa propre image
+  // (déjà forcée à null ci-dessus, voir commentaire).
+  let heroImageUrl = preset.hero_image_url;
+  let heroCredit: GeneratePromptResult["heroCredit"] = null;
+  const heroQuery = !themeOverride ? (preset as { hero_query?: string }).hero_query : undefined;
+  if (heroQuery) {
+    const photo = await fetchRandomPhoto(heroQuery);
+    if (photo) {
+      heroImageUrl = photo.url;
+      heroCredit = photo.credit;
+    }
+  }
 
   const githubBlock = input.github_data ? `
 DONNÉES GITHUB (${input.github_username}) :
@@ -104,7 +127,72 @@ descriptions de projets/expériences, message de contact, titres de
 sections — à l'exception des noms propres (personnes, entreprises,
 technologies).`;
 
-  return `PROFIL À GÉNÉRER
+  // Un thème copié (template communauté / style d'un site externe) reste une
+  // reproduction EXACTE et volontaire — seul le tirage au hasard d'un preset
+  // laisse Claude inventer sa propre palette/police (c'est là qu'il faut
+  // varier pour que deux personnes du même métier ne se ressemblent pas).
+  const themeBlock = themeOverride ? `
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+THÈME (utilise EXACTEMENT ces valeurs)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+{
+  "primary_color":    "${preset.primary_color}",
+  "background_color": "${preset.background_color}",
+  "text_color":       "${preset.text_color}",
+  "accent_color":     "${preset.accent_color}",
+  "font_heading":     "${preset.font_heading}",
+  "font_body":        "${preset.font_body}",
+  "style":            "${preset.style}",
+  "hero_image_url":   ${heroImageUrl ? `"${heroImageUrl}"` : "null"},
+  "overlay_opacity":  ${preset.overlay_opacity},
+  "theme_preset_id":  "${presetId}",
+  "background_pattern": "${backgroundPattern}"
+}
+
+En plus de ces valeurs fixes, choisis ces 5 réglages selon ton jugement (pas de
+valeur imposée — adapte au profil/style demandé) :
+  "widget_style"            : "strict" | "soft" | "glass" — rendu des widgets (plat / cartes arrondies / verre dépoli). "strict" par défaut sauf ambiance qui appelle explicitement l'un des deux autres.
+  "smooth_scroll"           : bool — défilement fluide au clic sur la nav. true par défaut, sobre et sans risque.
+  "scroll_reveal"           : bool — chaque section apparaît en fondu à l'arrivée à l'écran. true si l'ambiance demandée est dynamique/moderne, sinon false.
+  "scroll_reveal_intensity" : 0-100 — amplitude du glissement de cette apparition (ignoré si scroll_reveal=false). 50 par défaut.
+  "hero_parallax"           : bool — la photo de fond du hero défile plus lentement que le contenu. true seulement s'il y a une hero_image_url/hero_images.` : `
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+THÈME
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Ces valeurs sont FIXES, ne les change pas :
+{
+  "style":            "${preset.style}",
+  "hero_image_url":   ${heroImageUrl ? `"${heroImageUrl}"` : "null"},
+  "overlay_opacity":  ${preset.overlay_opacity},
+  "theme_preset_id":  "${presetId}",
+  "background_pattern": "${backgroundPattern}"
+}
+
+En revanche, INVENTE toi-même la palette de couleurs (primary_color,
+background_color, text_color, accent_color) et la paire de polices
+(font_heading, font_body) — ne recopie JAMAIS mécaniquement une combinaison
+déjà vue ailleurs. Chaque portfolio doit avoir sa propre identité visuelle,
+cohérente avec le métier/ton/secteur de CETTE personne précise. L'exemple
+ci-dessous n'est qu'une INSPIRATION de départ, ne le copie PAS tel quel :
+  primary: ${preset.primary_color}, background: ${preset.background_color}, text: ${preset.text_color}, accent: ${preset.accent_color}
+  fonts: ${preset.font_heading} / ${preset.font_body}
+
+Contraintes obligatoires :
+- Reste dans la même famille ${luminance(preset.background_color) > 0.5 ? "CLAIRE (fond clair, texte foncé)" : "SOMBRE (fond sombre, texte clair)"} que l'exemple ci-dessus — le style "${preset.style}" et l'opacité du filtre sur la photo de fond sont calibrés pour cette ambiance précise.
+- Contraste texte/fond suffisant pour rester lisible (ratio WCAG AA, au moins 4.5:1).
+- Polices UNIQUEMENT parmi cette liste (déjà chargées sur le site, toute autre police ne s'afficherait pas) : Inter, Playfair Display, Space Grotesk, Poppins, Merriweather, Fira Code, JetBrains Mono, Bebas Neue, Caveat, Kalam, Yellowtail. font_heading et font_body peuvent différer.
+
+En plus de la palette et des polices, choisis aussi ces 5 réglages selon ton
+jugement (pas de valeur imposée — adapte au profil/style demandé) :
+  "widget_style"            : "strict" | "soft" | "glass" — rendu des widgets (plat / cartes arrondies / verre dépoli). "strict" par défaut sauf ambiance qui appelle explicitement l'un des deux autres.
+  "smooth_scroll"           : bool — défilement fluide au clic sur la nav. true par défaut, sobre et sans risque.
+  "scroll_reveal"           : bool — chaque section apparaît en fondu à l'arrivée à l'écran. true si l'ambiance demandée est dynamique/moderne, sinon false.
+  "scroll_reveal_intensity" : 0-100 — amplitude du glissement de cette apparition (ignoré si scroll_reveal=false). 50 par défaut.
+  "hero_parallax"           : bool — la photo de fond du hero défile plus lentement que le contenu. true seulement s'il y a une hero_image_url/hero_images.`;
+
+  const prompt = `PROFIL À GÉNÉRER
 ${languageRule}
 
 Type : ${profileType}
@@ -183,32 +271,7 @@ AUTRE / POLYVALENT :
   Déduis la configuration la plus proche depuis les exemples ci-dessus.
   Priorité : bien nommer les sections + mettre image_url : "" là où des visuels sont attendus.
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-THÈME (utilise EXACTEMENT ces valeurs)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-{
-  "primary_color":    "${preset.primary_color}",
-  "background_color": "${preset.background_color}",
-  "text_color":       "${preset.text_color}",
-  "accent_color":     "${preset.accent_color}",
-  "font_heading":     "${preset.font_heading}",
-  "font_body":        "${preset.font_body}",
-  "style":            "${preset.style}",
-  "hero_image_url":   ${preset.hero_image_url ? `"${preset.hero_image_url}"` : "null"},
-  "overlay_opacity":  ${preset.overlay_opacity},
-  "theme_preset_id":  "${presetId}",
-  "background_pattern": "${backgroundPattern}"
-}
-
-En plus de ces valeurs fixes, choisis ces 5 réglages selon ton jugement (pas de
-valeur imposée — adapte au profil/style demandé) :
-  "widget_style"            : "strict" | "soft" | "glass" — rendu des widgets (plat / cartes arrondies / verre dépoli). "strict" par défaut sauf ambiance qui appelle explicitement l'un des deux autres.
-  "smooth_scroll"           : bool — défilement fluide au clic sur la nav. true par défaut, sobre et sans risque.
-  "scroll_reveal"           : bool — chaque section apparaît en fondu à l'arrivée à l'écran. true si l'ambiance demandée est dynamique/moderne, sinon false.
-  "scroll_reveal_intensity" : 0-100 — amplitude du glissement de cette apparition (ignoré si scroll_reveal=false). 50 par défaut.
-  "hero_parallax"           : bool — la photo de fond du hero défile plus lentement que le contenu. true seulement s'il y a une hero_image_url/hero_images.
-
+${themeBlock}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 SCHÉMA JSON ATTENDU
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -226,7 +289,7 @@ SCHÉMA JSON ATTENDU
     "twitter_url":   "string (URL ou vide)",
     "avatar_url":    "string (avatar GitHub si disponible, sinon vide)"
   },
-  "theme": { ... (valeurs fixes du bloc THÈME ci-dessus + les 5 réglages widget_style/smooth_scroll/scroll_reveal/scroll_reveal_intensity/hero_parallax choisis selon ton jugement) },
+  "theme": { ... (toutes les valeurs du bloc THÈME ci-dessus — fixes, choisies par toi, et les 5 réglages widget_style/smooth_scroll/scroll_reveal/scroll_reveal_intensity/hero_parallax) },
   "sections": [
     {
       "type": "hero",
@@ -277,4 +340,6 @@ SCHÉMA JSON ATTENDU
 }
 
 Produis uniquement le JSON, rien d'autre.`;
+
+  return { prompt, heroCredit };
 }

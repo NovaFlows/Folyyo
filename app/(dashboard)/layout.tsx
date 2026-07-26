@@ -5,7 +5,7 @@ import { SignOutButton } from "@clerk/nextjs";
 import { getLocale } from "@/lib/i18n/locale";
 import { getDictionary } from "@/lib/i18n/dictionaries";
 import LanguageToggle from "@/components/i18n/LanguageToggle";
-import { getUserSettings, hasAnyPortfolio } from "@/lib/db/queries";
+import { getUserSettings, countPortfoliosByUser } from "@/lib/db/queries";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { userId } = await auth();
@@ -16,8 +16,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   // Un portfolio par compte, sauf les comptes "lifetime" — voir
   // app/api/portfolio/generate/route.ts pour la garde serveur équivalente.
-  const settings = await getUserSettings(userId);
-  const canCreateMore = settings?.subscription_status === "lifetime" || !(await hasAnyPortfolio(userId));
+  const [settings, portfolioCount] = await Promise.all([getUserSettings(userId), countPortfoliosByUser(userId)]);
+  const canCreateMore = settings?.subscription_status === "lifetime" || portfolioCount === 0;
+  const myPortfoliosLabel = portfolioCount === 1 ? t.myPortfolio : t.myPortfolios;
 
   return (
     <div className="min-h-screen" style={{ background: "#f8f5f0" }}>
@@ -30,7 +31,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
             <Link href="/dashboard"
               className="nav-link text-sm font-medium transition hover:opacity-70"
               style={{ color: "#78716c" }}>
-              {t.myPortfolios}
+              {myPortfoliosLabel}
             </Link>
             <Link href="/community"
               className="nav-link text-sm font-medium transition hover:opacity-70"

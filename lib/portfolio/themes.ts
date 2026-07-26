@@ -11,6 +11,12 @@ export interface ThemePreset {
   style: "dark-code" | "minimal-gallery" | "fullscreen-hero";
   hero_image_url: string | null;
   overlay_opacity: number; // 0-1, over hero image
+  // Mots-clés Unsplash pour piocher une photo fraîche à chaque génération
+  // (voir lib/unsplash/fetch.ts) — hero_image_url reste le repli si l'appel
+  // échoue ou si la clé API n'est pas configurée, et la valeur utilisée telle
+  // quelle par le sélecteur manuel de thème de l'éditeur (choix volontaire,
+  // pas concerné par la variation). Absent sur les presets sans hero_image_url.
+  hero_query?: string;
 }
 
 export const THEME_PRESETS: ThemePreset[] = [
@@ -28,6 +34,7 @@ export const THEME_PRESETS: ThemePreset[] = [
     style: "dark-code",
     hero_image_url: "https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=1920&q=80",
     overlay_opacity: 0.82,
+    hero_query: "programming code dark screen",
   },
   {
     id: "ocean-night",
@@ -42,6 +49,7 @@ export const THEME_PRESETS: ThemePreset[] = [
     style: "dark-code",
     hero_image_url: "https://images.unsplash.com/photo-1518432031352-d6fc5c10da5a?auto=format&fit=crop&w=1920&q=80",
     overlay_opacity: 0.85,
+    hero_query: "blue night city dark",
   },
   {
     id: "synthwave",
@@ -56,6 +64,7 @@ export const THEME_PRESETS: ThemePreset[] = [
     style: "dark-code",
     hero_image_url: "https://images.unsplash.com/photo-1534972195531-d236914979bd?auto=format&fit=crop&w=1920&q=80",
     overlay_opacity: 0.80,
+    hero_query: "synthwave neon retro",
   },
   {
     id: "minimal-pro",
@@ -84,6 +93,7 @@ export const THEME_PRESETS: ThemePreset[] = [
     style: "dark-code",
     hero_image_url: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=1920&q=80",
     overlay_opacity: 0.88,
+    hero_query: "dark technology abstract",
   },
 
   // ── Artist ────────────────────────────────────────────────────────────────
@@ -100,6 +110,7 @@ export const THEME_PRESETS: ThemePreset[] = [
     style: "fullscreen-hero",
     hero_image_url: "https://images.unsplash.com/photo-1541961017774-22349e4a1262?auto=format&fit=crop&w=1920&q=80",
     overlay_opacity: 0.78,
+    hero_query: "art studio dark painting",
   },
   {
     id: "gallery-blanc",
@@ -128,6 +139,7 @@ export const THEME_PRESETS: ThemePreset[] = [
     style: "fullscreen-hero",
     hero_image_url: "https://images.unsplash.com/photo-1578662996442-48f60103fc96?auto=format&fit=crop&w=1920&q=80",
     overlay_opacity: 0.75,
+    hero_query: "art gallery bold red",
   },
 
   // ── Fashion ───────────────────────────────────────────────────────────────
@@ -144,6 +156,7 @@ export const THEME_PRESETS: ThemePreset[] = [
     style: "minimal-gallery",
     hero_image_url: "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=1920&q=80",
     overlay_opacity: 0.15,
+    hero_query: "fashion editorial luxury",
   },
   {
     id: "noir-mode",
@@ -158,6 +171,7 @@ export const THEME_PRESETS: ThemePreset[] = [
     style: "fullscreen-hero",
     hero_image_url: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?auto=format&fit=crop&w=1920&q=80",
     overlay_opacity: 0.65,
+    hero_query: "fashion black white model",
   },
   {
     id: "rose-editorial",
@@ -172,6 +186,7 @@ export const THEME_PRESETS: ThemePreset[] = [
     style: "minimal-gallery",
     hero_image_url: "https://images.unsplash.com/photo-1469334031218-e382a71b716b?auto=format&fit=crop&w=1920&q=80",
     overlay_opacity: 0.12,
+    hero_query: "fashion pink pastel editorial",
   },
 
   // ── Musicien / Chanteur / Youtubeur ──────────────────────────────────────
@@ -188,6 +203,7 @@ export const THEME_PRESETS: ThemePreset[] = [
     style: "fullscreen-hero",
     hero_image_url: "https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?auto=format&fit=crop&w=1920&q=80",
     overlay_opacity: 0.78,
+    hero_query: "urban night city neon",
   },
   {
     id: "trap-gold",
@@ -202,6 +218,7 @@ export const THEME_PRESETS: ThemePreset[] = [
     style: "fullscreen-hero",
     hero_image_url: "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?auto=format&fit=crop&w=1920&q=80",
     overlay_opacity: 0.72,
+    hero_query: "gold luxury dark aesthetic",
   },
   {
     id: "neon-stage",
@@ -216,6 +233,7 @@ export const THEME_PRESETS: ThemePreset[] = [
     style: "dark-code",
     hero_image_url: "https://images.unsplash.com/photo-1501612780327-45045538702b?auto=format&fit=crop&w=1920&q=80",
     overlay_opacity: 0.80,
+    hero_query: "concert stage neon lights",
   },
 
   // ── Other / Polyvalent ────────────────────────────────────────────────────
@@ -232,6 +250,7 @@ export const THEME_PRESETS: ThemePreset[] = [
     style: "dark-code",
     hero_image_url: "https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=1920&q=80",
     overlay_opacity: 0.80,
+    hero_query: "forest deep green nature",
   },
   {
     id: "warm-editorial",
@@ -246,6 +265,7 @@ export const THEME_PRESETS: ThemePreset[] = [
     style: "fullscreen-hero",
     hero_image_url: "https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1920&q=80",
     overlay_opacity: 0.82,
+    hero_query: "warm cozy editorial aesthetic",
   },
 ];
 

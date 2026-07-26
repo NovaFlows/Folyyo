@@ -2,6 +2,7 @@ import type { ValidatedPortfolioJSON, GridItem, ContentBlock } from "@/lib/anthr
 import { EDIT_TOOL_SCHEMAS } from "@/lib/anthropic/edit-tools";
 import { gridUid, getGrid, applyGrid, resolveNativeOverlap, validateGridBounds, DEFAULT_SIZE, nextY } from "@/lib/portfolio/grid";
 import { createDefaultSection } from "@/lib/portfolio/section-factory";
+import { luminance, contrastRatio } from "@/lib/portfolio/contrast";
 
 type VSection = ValidatedPortfolioJSON["sections"][number];
 
@@ -55,20 +56,6 @@ function replaceSection(state: ValidatedPortfolioJSON, idx: number, next: VSecti
   return { ...state, sections };
 }
 
-// Contraste WCAG (luminance relative) — filet de sécurité pour set_theme_colors :
-// si background_color change sans text_color fourni, on garantit un contraste
-// minimal plutôt que de laisser Claude oublier (reprend en code la règle du
-// prompt d'origine, plus fiable qu'une instruction en prose).
-function luminance(hex: string): number {
-  const c = hex.replace("#", "");
-  const r = parseInt(c.slice(0, 2), 16) / 255, g = parseInt(c.slice(2, 4), 16) / 255, b = parseInt(c.slice(4, 6), 16) / 255;
-  const lin = (v: number) => (v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4));
-  return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
-}
-function contrastRatio(a: string, b: string): number {
-  const l1 = luminance(a) + 0.05, l2 = luminance(b) + 0.05;
-  return l1 > l2 ? l1 / l2 : l2 / l1;
-}
 
 // ── Thème ────────────────────────────────────────────────────────────────────
 

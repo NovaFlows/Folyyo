@@ -264,7 +264,13 @@ section[id] {
 /* ══ Portfolio public — adaptations smartphone (styles inline pilotés par le
    thème → on complète avec quelques classes responsive) ══ */
 .pf-nav-inner { padding: 1rem 1.5rem; }
+/* white-space: nowrap sur les liens dans toutes les tailles (pas seulement
+   mobile) — sans ça, un nom de propriétaire long + plusieurs sections fait
+   passer un libellé de lien ("À propos") à la ligne au lieu de rester sur
+   une seule ligne, provoquant un chevauchement visuel avec le nom à côté dès
+   qu'on est un peu à l'étroit (tablette, fenêtre desktop pas maximisée…). */
 .pf-nav-links { display: flex; gap: 1.5rem; }
+.pf-nav-links a { white-space: nowrap; }
 .pf-section   { padding: 5rem 1.5rem; }
 .pf-hero      { padding: 6rem 1.5rem 3rem; }
 
@@ -281,7 +287,6 @@ section[id] {
     min-width: 0;
   }
   .pf-nav-links::-webkit-scrollbar { display: none; }
-  .pf-nav-links a { white-space: nowrap; }
   .pf-section { padding: 3rem 1.25rem; }
   .pf-hero    { padding: 5rem 1.25rem 2.5rem; }
 }

@@ -11,7 +11,7 @@ const CONTENT: Record<Locale, { kicker: string; title: string; items: { q: strin
     items: [
       {
         q: "Est-ce vraiment gratuit ?",
-        a: "Tu as un essai complet de 7 jours, sans carte bancaire — génération, édition par IA, tout est débloqué. Ensuite, l'abonnement est à 5,99€/mois ou 49,99€/an.",
+        a: "Tu as un essai complet de 3 jours, sans carte bancaire — génération, édition par IA, tout est débloqué. Ensuite, l'abonnement est à 5,99€/mois ou 49,99€/an.",
       },
       {
         q: "Ai-je besoin de compétences techniques ?",
@@ -37,7 +37,7 @@ const CONTENT: Record<Locale, { kicker: string; title: string; items: { q: strin
     items: [
       {
         q: "Is it really free?",
-        a: "You get a full 7-day trial, no credit card needed — generation, AI editing, everything unlocked. After that, it's €5.99/month or €49.99/year.",
+        a: "You get a full 3-day trial, no credit card needed — generation, AI editing, everything unlocked. After that, it's €5.99/month or €49.99/year.",
       },
       {
         q: "Do I need technical skills?",
@@ -63,7 +63,7 @@ const CONTENT: Record<Locale, { kicker: string; title: string; items: { q: strin
     items: [
       {
         q: "¿Es realmente gratis?",
-        a: "Tienes una prueba completa de 7 días, sin tarjeta de crédito — generación, edición por IA, todo desbloqueado. Después, la suscripción cuesta 5,99€/mes o 49,99€/año.",
+        a: "Tienes una prueba completa de 3 días, sin tarjeta de crédito — generación, edición por IA, todo desbloqueado. Después, la suscripción cuesta 5,99€/mes o 49,99€/año.",
       },
       {
         q: "¿Necesito conocimientos técnicos?",
@@ -89,7 +89,7 @@ const CONTENT: Record<Locale, { kicker: string; title: string; items: { q: strin
     items: [
       {
         q: "Ist es wirklich kostenlos?",
-        a: "Du bekommst eine vollständige 7-tägige Testphase, keine Kreditkarte nötig — Generierung, KI-Bearbeitung, alles freigeschaltet. Danach kostet das Abo 5,99 €/Monat oder 49,99 €/Jahr.",
+        a: "Du bekommst eine vollständige 3-tägige Testphase, keine Kreditkarte nötig — Generierung, KI-Bearbeitung, alles freigeschaltet. Danach kostet das Abo 5,99 €/Monat oder 49,99 €/Jahr.",
       },
       {
         q: "Brauche ich technische Kenntnisse?",

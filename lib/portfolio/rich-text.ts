@@ -14,6 +14,12 @@
 // style="background-color:…"> (couleur/surlignage, produits par
 // document.execCommand après styleWithCSS) n'acceptent QUE une valeur de
 // couleur bien formée (hex ou rgb/rgba) — jamais une déclaration CSS libre.
+// Un seul pattern générique pour le style du span (pas un par propriété) :
+// appliquer couleur ET surlignage à la même sélection fait parfois produire
+// par le navigateur UN SEUL span combinant "color:…;background-color:…" —
+// un pattern par propriété isolée ne matchait jamais ce cas, et le span
+// entier tombait dans l'échappement générique (balise affichée en texte
+// brut). Le contenu du style est reparsé propriété par propriété ci-dessous.
 // <font color="…"> (ancien format que certains navigateurs utilisent encore
 // pour foreColor) est normalisé vers le même <span style="color:…">.
 const COLOR_RE = /^(#[0-9a-fA-F]{3,8}|rgba?\(\s*\d{1,3}%?\s*,\s*\d{1,3}%?\s*,\s*\d{1,3}%?\s*(,\s*[\d.]+\s*)?\))$/;
@@ -25,11 +31,25 @@ const TAG_RE = new RegExp(
     String.raw`<br\s*\/?>`,
     String.raw`<a\s+href="(?<href>[^"]*)"[^>]*>`,
     String.raw`<font[^>]*color="(?<fontColor>[^"]+)"[^>]*>`,
-    String.raw`<span\s+style="\s*color:\s*(?<textColor>[^;"]+?)\s*;?\s*"[^>]*>`,
-    String.raw`<span\s+style="\s*background-color:\s*(?<bgColor>[^;"]+?)\s*;?\s*"[^>]*>`,
+    String.raw`<span\s+style="(?<spanStyle>[^"]*)"[^>]*>`,
   ].join("|"),
   "gi"
 );
+
+// Extrait color/background-color d'un style de span, dans n'importe quel
+// ordre et combinaison — reconstruit un style sûr ne gardant que ces deux
+// propriétés avec une valeur couleur valide (hex/rgb/rgba), tout le reste
+// (déclaration CSS libre, valeur non reconnue) est silencieusement ignoré.
+function safeSpanStyle(style: string): string {
+  const props: string[] = [];
+  for (const decl of style.split(";")) {
+    const m = /^\s*(color|background-color)\s*:\s*(.+?)\s*$/.exec(decl);
+    if (!m) continue;
+    const value = m[2].trim();
+    if (COLOR_RE.test(value)) props.push(`${m[1]}:${value}`);
+  }
+  return props.length ? `<span style="${props.join(";")}">` : "<span>";
+}
 
 function escapeText(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -67,12 +87,8 @@ export function sanitizeRichText(input: string): string {
     } else if (g.fontColor !== undefined) {
       const c = g.fontColor.trim();
       result += COLOR_RE.test(c) ? `<span style="color:${c}">` : "<span>";
-    } else if (g.textColor !== undefined) {
-      const c = g.textColor.trim();
-      result += COLOR_RE.test(c) ? `<span style="color:${c}">` : "<span>";
-    } else if (g.bgColor !== undefined) {
-      const c = g.bgColor.trim();
-      result += COLOR_RE.test(c) ? `<span style="background-color:${c}">` : "<span>";
+    } else if (g.spanStyle !== undefined) {
+      result += safeSpanStyle(g.spanStyle);
     }
     last = TAG_RE.lastIndex;
   }

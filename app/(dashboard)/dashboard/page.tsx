@@ -38,7 +38,7 @@ export default async function DashboardPage() {
         <div>
           <p className="mono text-xs tracking-widest uppercase mb-2" style={{ color: "#a09a94", letterSpacing: "0.12em" }}>{t.dashboard.kicker}</p>
           <h1 className="text-3xl serif" style={{ fontWeight: 500, color: "#1c1917" }}>
-            {portfolios.length === 0 ? t.dashboard.noneYet : t.dashboard.count(portfolios.length)}
+            {portfolios.length === 0 ? t.dashboard.noneYet : portfolios.length === 1 ? t.dashboard.myPortfolioTitle : t.dashboard.count(portfolios.length)}
           </h1>
         </div>
         {canCreateMore && (
@@ -57,13 +57,53 @@ export default async function DashboardPage() {
         ) : null
       ))}
 
-      {!portfolios.length ? <EmptyState t={t} /> : (
+      {!portfolios.length ? <EmptyState t={t} /> : portfolios.length === 1 ? (
+        // Un seul portfolio (le cas courant, hors comptes lifetime) : la grille
+        // de cartes n'a plus de sens à un seul élément — on montre la carte de
+        // gestion à gauche et un vrai aperçu du site à droite sur grand écran.
+        <div className="flex flex-col gap-6 lg:flex-row" style={{ alignItems: "flex-start" }}>
+          <div className="w-full lg:max-w-sm lg:shrink-0" style={{ alignSelf: "flex-start", marginTop: 0 }}>
+            <PortfolioCard portfolio={portfolios[0]} views={viewCounts[portfolios[0].id]} locale={locale} />
+          </div>
+          {portfolios[0].status === "live" && portfolios[0].slug && (
+            <PortfolioPreviewPanel slug={portfolios[0].slug} />
+          )}
+        </div>
+      ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {portfolios.map((p: Portfolio) => (
             <PortfolioCard key={p.id} portfolio={p} views={viewCounts[p.id]} locale={locale} />
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+// Aperçu en direct du site public (iframe, pas une reconstruction séparée —
+// garantit que c'est exactement ce que voient les visiteurs) — masqué en
+// dessous de lg, où il n'y a pas la place de le montrer sans écraser le reste.
+function PortfolioPreviewPanel({ slug }: { slug: string }) {
+  return (
+    <div className="hidden min-w-0 flex-1 lg:block" style={{ alignSelf: "flex-start", marginTop: 0 }}>
+      {/* Hauteur calée sur le viewport (pas une valeur fixe) : le cadre entier
+          — barre "navigateur" comprise — doit tenir dans l'écran visible sans
+          forcer un défilement de la page du dashboard elle-même. */}
+      <div className="overflow-hidden rounded-2xl border flex flex-col"
+        style={{ borderColor: "rgba(0,0,0,0.08)", height: "calc(100vh - 15rem)", minHeight: 320, maxHeight: 640 }}>
+        <div className="flex shrink-0 items-center gap-3 border-b px-4 py-3" style={{ borderColor: "rgba(0,0,0,0.06)", background: "#f0ece6" }}>
+          <div className="flex gap-1.5">
+            <div className="h-3 w-3 rounded-full" style={{ background: "rgba(0,0,0,0.1)" }} />
+            <div className="h-3 w-3 rounded-full" style={{ background: "rgba(0,0,0,0.1)" }} />
+            <div className="h-3 w-3 rounded-full" style={{ background: "rgba(0,0,0,0.1)" }} />
+          </div>
+          <div className="flex-1 rounded-md px-3 py-1 text-center text-xs" style={{ background: "rgba(255,255,255,0.7)", color: "#78716c", fontFamily: "monospace" }}>
+            folyo.page/{slug}
+          </div>
+        </div>
+        <iframe src={`/${slug}`} title={`Aperçu de folyo.page/${slug}`}
+          style={{ width: "100%", flex: 1, minHeight: 0, border: "none", display: "block" }} />
+      </div>
     </div>
   );
 }

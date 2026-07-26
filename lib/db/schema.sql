@@ -11,12 +11,12 @@ CREATE TABLE IF NOT EXISTS users (
   language    TEXT        NOT NULL DEFAULT 'fr',
   created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
-  -- Abonnement (essai 7 jours puis Stripe) — voir lib/billing/access.ts.
+  -- Abonnement (essai 3 jours puis Stripe) — voir lib/billing/access.ts.
   -- 'lifetime' = accès permanent gratuit accordé manuellement (comptes
   -- historiques au moment du lancement de cette fonctionnalité), jamais posé
   -- par le code applicatif lui-même.
   subscription_status TEXT NOT NULL DEFAULT 'trialing', -- trialing | active | lifetime | canceled | past_due
-  trial_ends_at TIMESTAMPTZ NOT NULL DEFAULT (now() + interval '7 days'),
+  trial_ends_at TIMESTAMPTZ NOT NULL DEFAULT (now() + interval '3 days'),
   stripe_customer_id TEXT,
   stripe_subscription_id TEXT,
   stripe_price_id TEXT,

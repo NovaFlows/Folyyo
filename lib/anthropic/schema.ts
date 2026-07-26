@@ -98,6 +98,15 @@ const ThemeSchema = z.object({
   hero_image_url:     optionalUrl,
   hero_images:        z.array(z.string()).optional(),
   hero_interval:      z.number().min(2).max(15).optional().default(5),
+  // Jamais rempli par Claude (absent des instructions du prompt) — attaché
+  // programmatiquement après validation quand la photo vient d'un appel
+  // Unsplash réussi (voir lib/unsplash/fetch.ts), pour l'attribution requise
+  // par les Unsplash API Guidelines.
+  hero_image_credit: z.object({
+    name: z.string(),
+    profileUrl: z.string(),
+    photoUrl: z.string(),
+  }).optional(),
   overlay_opacity:    z.number().min(0).max(1).optional().default(0.8),
   theme_preset_id:    z.string().optional(),
   background_pattern: z.enum(["none", "lines", "dots", "grid", "crosshatch"]).optional().default("none"),
@@ -108,6 +117,10 @@ const ThemeSchema = z.object({
   scroll_reveal: z.boolean().optional().default(false), // sections qui apparaissent en fondu au défilement
   scroll_reveal_intensity: z.number().min(0).max(100).optional().default(50), // amplitude du glissement de l'apparition (0 = fondu seul, 100 = glissement prononcé)
   hero_parallax: z.boolean().optional().default(false), // fond du hero qui défile plus lentement que le contenu
+  // Ruban de lignes fines qui ondulent dans un coin du hero — jamais choisi
+  // par Claude, purement manuel depuis l'éditeur (case à cocher dédiée dans
+  // VisualEditor.tsx).
+  hero_decoration: z.enum(["none", "waves"]).optional().default("none"),
 });
 
 const blocks        = z.array(BlockRowSchema).optional(); // legacy (lecture seule, migré vers grid)

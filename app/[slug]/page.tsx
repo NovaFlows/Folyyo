@@ -6,6 +6,7 @@ import type { ValidatedPortfolioJSON, ContentAside, BlockRow, GridItem } from "@
 import Image from "next/image";
 import { BlockContent, BlockRowsStatic, GridStatic, WidgetFrame, type WidgetStyle } from "@/components/portfolio/blocks";
 import HeroBackgroundCarousel from "@/components/portfolio/HeroBackgroundCarousel";
+import HeroDecoration from "@/components/portfolio/HeroDecoration";
 import RichText from "@/components/portfolio/RichText";
 import { stripRichTags } from "@/lib/portfolio/rich-text";
 import { hasActiveAccess } from "@/lib/billing/access";
@@ -188,6 +189,7 @@ export default async function PublicPortfolioPage({ params }: { params: { slug: 
             <section key={i} className="pf-hero" style={{ position: "relative", minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", backgroundImage: !hasCarousel && theme.hero_image_url ? `url(${theme.hero_image_url})` : undefined, backgroundSize: "cover", backgroundPosition: "center", backgroundAttachment: heroParallax && !hasCarousel && theme.hero_image_url ? "fixed" : undefined }}>
               {hasCarousel && <HeroBackgroundCarousel images={heroImages} intervalSeconds={theme.hero_interval ?? 5} />}
               {(hasCarousel || theme.hero_image_url) && <div style={{ position: "absolute", inset: 0, background: bg, opacity: theme.overlay_opacity ?? 0.8 }} />}
+              <HeroDecoration variant={theme.hero_decoration} color={acc} />
               <div style={{ position: "relative", zIndex: 1, display: "flex", flexDirection: "column", alignItems: "center" }}>
               {meta.avatar_url && (
                 <Image src={meta.avatar_url} alt={stripRichTags(meta.name)} width={96} height={96}
@@ -215,6 +217,18 @@ export default async function PublicPortfolioPage({ params }: { params: { slug: 
                 {widgetsOf(section)}
               </div>
               </div>
+              {!hasCarousel && theme.hero_image_credit && (
+                <p style={{ position: "absolute", bottom: "0.75rem", right: "0.75rem", zIndex: 2, fontSize: "0.6875rem", color: `${txt}60`, margin: 0 }}>
+                  Photo :{" "}
+                  <a href={`${theme.hero_image_credit.profileUrl}?utm_source=folyo&utm_medium=referral`} target="_blank" rel="noopener noreferrer" style={{ color: `${txt}60` }}>
+                    {theme.hero_image_credit.name}
+                  </a>
+                  {" / "}
+                  <a href="https://unsplash.com/?utm_source=folyo&utm_medium=referral" target="_blank" rel="noopener noreferrer" style={{ color: `${txt}60` }}>
+                    Unsplash
+                  </a>
+                </p>
+              )}
             </section>
           );
           }

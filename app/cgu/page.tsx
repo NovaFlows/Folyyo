@@ -25,7 +25,7 @@ export default function CguPage() {
       <section>
         <H2>3. Essai gratuit et abonnement</H2>
         <p>
-          Chaque compte bénéficie d&apos;un essai gratuit de 7 jours, sans carte bancaire requise, donnant accès à l&apos;ensemble des fonctionnalités (génération IA, édition, hébergement du portfolio).
+          Chaque compte bénéficie d&apos;un essai gratuit de 3 jours, sans carte bancaire requise, donnant accès à l&apos;ensemble des fonctionnalités (génération IA, édition, hébergement du portfolio).
         </p>
         <p>
           À l&apos;issue de l&apos;essai, l&apos;accès à la génération et à l&apos;édition par IA est suspendu tant qu&apos;aucun abonnement n&apos;est actif ; le portfolio déjà publié n&apos;est ni supprimé ni modifié, mais son adresse publique affiche un message d&apos;indisponibilité temporaire. Souscrire à un abonnement restaure l&apos;accès instantanément, sur la même adresse.
@@ -45,7 +45,7 @@ export default function CguPage() {
       <section>
         <H2>5. Droit de rétractation</H2>
         <p>
-          Conformément à l&apos;article L221-28 du Code de la consommation, le droit de rétractation ne s&apos;applique pas à un contenu numérique fourni immédiatement après accord exprès du consommateur à son exécution immédiate, avec renoncement au droit de rétractation. En pratique, aucun paiement n&apos;intervient avant la fin de l&apos;essai gratuit de 7 jours, ce qui te laisse le temps d&apos;évaluer le service avant tout engagement financier.
+          Conformément à l&apos;article L221-28 du Code de la consommation, le droit de rétractation ne s&apos;applique pas à un contenu numérique fourni immédiatement après accord exprès du consommateur à son exécution immédiate, avec renoncement au droit de rétractation. En pratique, aucun paiement n&apos;intervient avant la fin de l&apos;essai gratuit de 3 jours, ce qui te laisse le temps d&apos;évaluer le service avant tout engagement financier.
         </p>
       </section>
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { Eraser } from "lucide-react";
 import { sanitizeRichText, richTextLength, isSafeRichTextUrl } from "@/lib/portfolio/rich-text";
 
 // Champs texte "riches" (gras/italique/souligné/surligné/couleur/lien) pour
@@ -183,8 +184,8 @@ function useRichEditable({ value, onChange, maxLength }: { value: string; onChan
   return { ref, commit, exec, onPaste, openLinkPopover, linkPopoverNode, openColorPicker, colorInputNode };
 }
 
-function Toolbar({ onBold, onItalic, onUnderline, onLink, onTextColor, onHighlight }: {
-  onBold: () => void; onItalic: () => void; onUnderline: () => void; onLink: () => void; onTextColor: () => void; onHighlight: () => void;
+function Toolbar({ onBold, onItalic, onUnderline, onLink, onTextColor, onHighlight, onClearFormat }: {
+  onBold: () => void; onItalic: () => void; onUnderline: () => void; onLink: () => void; onTextColor: () => void; onHighlight: () => void; onClearFormat: () => void;
 }) {
   return (
     <div style={{ display: "flex", gap: 3 }}>
@@ -194,6 +195,9 @@ function Toolbar({ onBold, onItalic, onUnderline, onLink, onTextColor, onHighlig
       <ToolbarButton onClick={onTextColor} title="Couleur du texte" style={{ borderBottom: "2px solid #c9a96e" }}>A</ToolbarButton>
       <ToolbarButton onClick={onHighlight} title="Surligner">🖍</ToolbarButton>
       <ToolbarButton onClick={onLink} title="Transformer la sélection en lien">🔗</ToolbarButton>
+      <ToolbarButton onClick={onClearFormat} title="Effacer la mise en forme (gras, couleur, surlignage…)">
+        <Eraser size={11} strokeWidth={2} />
+      </ToolbarButton>
     </div>
   );
 }
@@ -207,7 +211,8 @@ export function RichTextField({ label, value, onChange, placeholder, maxLength }
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.2rem", minHeight: label ? undefined : 20 }}>
         {label ? <label style={{ fontSize: "0.7rem", color: "#78716c" }}>{label}</label> : <span />}
         <Toolbar onBold={() => exec("bold")} onItalic={() => exec("italic")} onUnderline={() => exec("underline")}
-          onLink={openLinkPopover} onTextColor={() => openColorPicker("foreColor")} onHighlight={() => openColorPicker("hiliteColor")} />
+          onLink={openLinkPopover} onTextColor={() => openColorPicker("foreColor")} onHighlight={() => openColorPicker("hiliteColor")}
+          onClearFormat={() => exec("removeFormat")} />
       </div>
       <div ref={ref} contentEditable suppressContentEditableWarning
         onInput={commit} onPaste={onPaste}
@@ -237,7 +242,8 @@ export function RichTextArea({ label, value, onChange, placeholder, maxLength, r
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.2rem", minHeight: label ? undefined : 20 }}>
         {label ? <label style={{ fontSize: "0.7rem", color: "#78716c" }}>{label}</label> : <span />}
         <Toolbar onBold={() => exec("bold")} onItalic={() => exec("italic")} onUnderline={() => exec("underline")}
-          onLink={openLinkPopover} onTextColor={() => openColorPicker("foreColor")} onHighlight={() => openColorPicker("hiliteColor")} />
+          onLink={openLinkPopover} onTextColor={() => openColorPicker("foreColor")} onHighlight={() => openColorPicker("hiliteColor")}
+          onClearFormat={() => exec("removeFormat")} />
       </div>
       <div ref={ref} contentEditable suppressContentEditableWarning
         onInput={commit} onPaste={onPaste} onKeyDown={onKeyDown}

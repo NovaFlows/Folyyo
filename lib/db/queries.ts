@@ -146,6 +146,14 @@ export async function hasAnyPortfolio(userId: string): Promise<boolean> {
   return rows.length > 0;
 }
 
+// Compte exact (pas juste "au moins un") — utilisé dans le layout dashboard
+// pour choisir le libellé singulier/pluriel ("Mon portfolio" vs "Mes
+// portfolios") sans devoir recharger la liste complète des portfolios.
+export async function countPortfoliosByUser(userId: string): Promise<number> {
+  const rows = await sql`SELECT COUNT(*)::int AS count FROM portfolios WHERE user_id = ${userId}`;
+  return one<{ count: number }>(rows)?.count ?? 0;
+}
+
 export async function getPortfolioById(id: string, userId: string): Promise<Portfolio | null> {
   const rows = await sql`SELECT * FROM portfolios WHERE id = ${id} AND user_id = ${userId} LIMIT 1`;
   return one<Portfolio>(rows);
@@ -247,7 +255,7 @@ export async function deleteUserSettings(userId: string): Promise<void> {
   await sql`DELETE FROM users WHERE user_id = ${userId}`;
 }
 
-// ── Abonnement (essai 7 jours puis Stripe) — voir lib/billing/access.ts ─────
+// ── Abonnement (essai 3 jours puis Stripe) — voir lib/billing/access.ts ─────
 
 export async function setSubscriptionActive(userId: string, data: {
   stripeCustomerId: string; stripeSubscriptionId: string; stripePriceId: string; currentPeriodEnd: Date;
