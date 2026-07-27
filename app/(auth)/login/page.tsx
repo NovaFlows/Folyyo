@@ -28,48 +28,24 @@ export default function LoginPage() {
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
-    // ─── DEBUG TEMPORAIRE (à retirer une fois le souci de connexion élucidé) ───
-    /* eslint-disable @typescript-eslint/no-explicit-any */
-    const clerkInfo = (window as any)?.Clerk;
-    console.log("[LOGIN DEBUG] submit", {
-      email: JSON.stringify(email),
-      passwordLength: password.length,
-      isLoaded,
-      publishableKey: clerkInfo?.publishableKey,
-      frontendApi: clerkInfo?.frontendApi,
-      domain: clerkInfo?.domain,
-    });
-    if (!isLoaded) { console.log("[LOGIN DEBUG] abort: !isLoaded"); return; }
+    if (!isLoaded) return;
     if (!email.includes("@")) { setError(t.auth.login.invalidEmail); return; }
     setLoading(true); setError(null);
     try {
       const result = await signIn.create({ identifier: email.trim(), password });
-      console.log("[LOGIN DEBUG] create OK", {
-        status: result.status,
-        createdSessionId: result.createdSessionId,
-        supportedFirstFactors: (result as any).supportedFirstFactors,
-      });
       if (result.status === "complete") {
         await setActive({ session: result.createdSessionId });
         router.push("/dashboard");
       } else {
-        console.warn("[LOGIN DEBUG] statut inattendu:", result.status, result);
-        setError(`${t.auth.login.genericError} [DEBUG status: ${result.status}]`);
+        // Statut inattendu (ex. étape supplémentaire requise) — ne pas laisser
+        // le bouton bloqué indéfiniment sur « Connexion… ».
+        setError(t.auth.login.genericError);
         setLoading(false);
       }
     } catch (err: unknown) {
-      const anyErr = err as any;
-      const clerkErrors = anyErr?.errors as Array<{ code?: string; message?: string; longMessage?: string }> | undefined;
-      console.error("[LOGIN DEBUG] échec — objet brut:", err);
-      console.error("[LOGIN DEBUG] clerkError:", anyErr?.clerkError, "status:", anyErr?.status);
-      console.error("[LOGIN DEBUG] errors[]:", clerkErrors);
-      try { console.error("[LOGIN DEBUG] JSON:", JSON.stringify(anyErr, Object.getOwnPropertyNames(anyErr ?? {}))); } catch {}
-      const first = clerkErrors?.[0];
-      const dbg = first?.code ?? anyErr?.message ?? "inconnu";
-      setError(`${clerkErrorMessage(err, t.auth.login.genericError, locale)} [DEBUG code: ${dbg}]`);
+      setError(clerkErrorMessage(err, t.auth.login.genericError, locale));
       setLoading(false);
     }
-    /* eslint-enable @typescript-eslint/no-explicit-any */
   }
 
   async function handleOAuth(strategy: "oauth_github" | "oauth_google" | "oauth_linkedin_oidc") {
