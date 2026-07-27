@@ -22,7 +22,7 @@ export type Portfolio = {
   id: string;
   user_id: string;
   name: string;
-  profile_type: "developer" | "artist" | "fashion" | "musicien" | "other";
+  profile_type: "developer" | "designer" | "photographe" | "artist" | "fashion" | "musicien" | "other";
   status: PortfolioStatus;
   site_json: unknown;
   input_data: unknown;

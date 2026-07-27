@@ -372,6 +372,30 @@ const es = {
     unknownError: "Error desconocido",
     networkError: "Error de red",
   },
+  tour: {
+    skip: "Saltar",
+    prev: "Atrás",
+    next: "Siguiente",
+    done: "¡Vamos!",
+    steps: [
+      {
+        title: "Tu portfolio está listo",
+        body: "Ya está en línea. Así lo personalizas en segundos — solo tres cosas que saber.",
+      },
+      {
+        title: "Personaliza todo aquí",
+        body: "El editor visual te permite cambiar textos, fotos, colores y disposición, con una vista previa en directo.",
+      },
+      {
+        title: "O pídeselo a la IA",
+        body: "Describe un cambio en una frase («pon el fondo azul noche») y el asistente se encarga.",
+      },
+      {
+        title: "Comparte tu sitio",
+        body: "Tu portfolio ya es accesible en esta dirección. Copia el enlace y compártelo — está listo.",
+      },
+    ],
+  },
   templateCard: {
     font: "fuente",
     selected: "✓ Seleccionado",
@@ -448,7 +472,9 @@ const es = {
       title: "¿Cuál es tu profesión?",
       subtitle: "Adaptamos el diseño y las secciones a tu perfil.",
       profiles: [
-        { label: "Desarrollador", description: "CV + GitHub → portfolio estilo código con proyectos y habilidades" },
+        { label: "IT", description: "Dev, data, DevOps, ciber… CV + GitHub → portfolio tech con proyectos y habilidades" },
+        { label: "Diseñador", description: "Gráfico, UI/UX, dirección artística → portfolio de proyectos y casos" },
+        { label: "Fotógrafo", description: "Portfolio de galería visual para tus mejores fotos" },
         { label: "Artista / Creativo", description: "CV + galería de imágenes → portfolio minimalista con tus obras" },
         { label: "Moda / Modelo", description: "CV + fotos → portfolio visual a pantalla completa" },
         { label: "Músico / Youtuber", description: "YouTube + Instagram → discografía, vídeos, escenario — tema oscuro y atrevido" },
@@ -493,7 +519,7 @@ const es = {
     developer: {
       title: "Tu perfil de desarrollador",
       titleLabel: "Título / Puesto *",
-      githubLabel: "Usuario de GitHub *",
+      githubLabel: "Usuario de GitHub (opcional)",
     },
     artist: {
       titleOther: "Tu perfil",

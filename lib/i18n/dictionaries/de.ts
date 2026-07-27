@@ -372,6 +372,30 @@ const de = {
     unknownError: "Unbekannter Fehler",
     networkError: "Netzwerkfehler",
   },
+  tour: {
+    skip: "Überspringen",
+    prev: "Zurück",
+    next: "Weiter",
+    done: "Los geht's",
+    steps: [
+      {
+        title: "Dein Portfolio ist fertig",
+        body: "Es ist bereits online. So machst du es in Sekunden zu deinem — nur drei Dinge zu wissen.",
+      },
+      {
+        title: "Hier passt du alles an",
+        body: "Im visuellen Editor änderst du Texte, Fotos, Farben und Layout — mit Live-Vorschau.",
+      },
+      {
+        title: "Oder frag die KI",
+        body: "Beschreibe eine Änderung in einem Satz („mach den Hintergrund mitternachtsblau“), die KI erledigt es.",
+      },
+      {
+        title: "Teile deine Website",
+        body: "Dein Portfolio ist ab sofort unter dieser Adresse erreichbar. Kopiere den Link und teile ihn — fertig.",
+      },
+    ],
+  },
   templateCard: {
     font: "Schriftart",
     selected: "✓ Ausgewählt",
@@ -448,7 +472,9 @@ const de = {
       title: "Was ist dein Beruf?",
       subtitle: "Wir passen Design und Abschnitte an dein Profil an.",
       profiles: [
-        { label: "Entwickler", description: "Lebenslauf + GitHub → code-artiges Portfolio mit Projekten und Fähigkeiten" },
+        { label: "IT", description: "Dev, Data, DevOps, Cyber… Lebenslauf + GitHub → Tech-Portfolio mit Projekten und Fähigkeiten" },
+        { label: "Designer", description: "Grafik, UI/UX, Art Direction → Portfolio mit Projekten & Case Studies" },
+        { label: "Fotograf", description: "Großes visuelles Galerie-Portfolio für deine besten Aufnahmen" },
         { label: "Künstler / Kreativ", description: "Lebenslauf + Bildergalerie → minimalistisches Portfolio mit deinen Werken" },
         { label: "Mode / Model", description: "Lebenslauf + Fotos → großformatiges Vollbild-Portfolio" },
         { label: "Musiker / YouTuber", description: "YouTube + Instagram → Diskografie, Clips, Bühne — dunkles, mutiges Design" },
@@ -493,7 +519,7 @@ const de = {
     developer: {
       title: "Dein Entwickler-Profil",
       titleLabel: "Titel / Position *",
-      githubLabel: "GitHub-Nutzername *",
+      githubLabel: "GitHub-Nutzername (optional)",
     },
     artist: {
       titleOther: "Dein Profil",

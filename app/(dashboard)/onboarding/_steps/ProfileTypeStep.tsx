@@ -1,8 +1,8 @@
 import type { OnboardingData } from "../page";
 import type { Dictionary } from "@/lib/i18n/dictionaries/fr";
 
-const VALUES: NonNullable<OnboardingData["profileType"]>[] = ["developer", "artist", "fashion", "musicien", "other"];
-const MARKS = ["{ }", "◇", "—", "♪", "·"];
+const VALUES: NonNullable<OnboardingData["profileType"]>[] = ["developer", "designer", "photographe", "artist", "fashion", "musicien", "other"];
+const MARKS = ["{ }", "◈", "◉", "◇", "—", "♪", "·"];
 
 interface Props {
   selected: OnboardingData["profileType"];

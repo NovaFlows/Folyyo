@@ -4,6 +4,7 @@ import Link from "next/link";
 import { getPortfolioBySlugOrId, getVersionsByPortfolio, getEditsByPortfolio, getViewCountsForUser, getViewSourcesForPortfolio } from "@/lib/db/queries";
 import PortfolioEditor from "./PortfolioEditor";
 import ViewsBreakdown from "./ViewsBreakdown";
+import ProductTour from "@/components/onboarding/ProductTour";
 import { PROFILE_LABEL_FULL } from "@/lib/profile-labels";
 import type { PortfolioStatus } from "@/types";
 import { getLocale } from "@/lib/i18n/locale";
@@ -45,6 +46,10 @@ export default async function PortfolioPage({ params }: { params: { slug: string
 
   return (
     <div>
+      {/* Tuto de première visite — s'auto-affiche une seule fois (localStorage),
+          seulement quand le site est en ligne (toutes les cibles présentes). */}
+      {isLive && <ProductTour locale={locale} />}
+
       <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
         <div>
           <Link href="/dashboard" className="mb-1 block text-sm transition hover:opacity-60"
@@ -62,6 +67,7 @@ export default async function PortfolioPage({ params }: { params: { slug: string
         <div className="flex gap-3 flex-wrap">
           {Boolean(portfolio.site_json) && (
             <a href={`/preview/${portfolio.slug ?? portfolio.id}?mode=edit`}
+              data-tour="edit-visual"
               className="rounded-full px-5 py-2.5 text-sm font-medium transition hover:opacity-80"
               style={{ background: "#1c1917", color: "white" }}>
               {t.portfolioDetail.editVisually}
@@ -69,6 +75,7 @@ export default async function PortfolioPage({ params }: { params: { slug: string
           )}
           {isLive && (
             <a href={`/${shortSlug}`} target="_blank" rel="noopener noreferrer"
+              data-tour="view-site"
               className="rounded-full px-5 py-2.5 text-sm font-medium transition hover:opacity-80"
               style={{ background: "rgba(201,169,110,0.12)", color: "#c9a96e" }}>
               {t.portfolioDetail.viewSite}
@@ -78,7 +85,7 @@ export default async function PortfolioPage({ params }: { params: { slug: string
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2">
+        <div className="lg:col-span-2" data-tour="ai-editor">
           <PortfolioEditor portfolioId={portfolio.id} hasCode={!!portfolio.source_code_key} edits={edits} initialStatus={portfolio.status} locale={locale} />
         </div>
 

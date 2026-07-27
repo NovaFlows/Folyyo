@@ -87,7 +87,7 @@ export default function DeveloperFormStep({ data, t, onChange, onBack, onSubmit 
         </div>
 
         <Field label={t.form.emailLabel} type="email" value={data.email} onChange={(v) => onChange({ email: v })} placeholder="ada@exemple.com" required />
-        <Field label={t.developer.githubLabel} value={data.githubUsername} onChange={(v) => onChange({ githubUsername: v })} placeholder="adalovelace" prefix="github.com/" required />
+        <Field label={t.developer.githubLabel} value={data.githubUsername} onChange={(v) => onChange({ githubUsername: v })} placeholder="adalovelace" prefix="github.com/" />
 
         <div>
           <label className="mb-1.5 block text-sm font-medium" style={{ color: "#78716c" }}>{t.form.slugLabel}</label>

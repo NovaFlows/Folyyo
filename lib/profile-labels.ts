@@ -6,8 +6,10 @@
 
 // Labels courts pour les puces compactes (cartes dashboard, admin, templates)
 export const PROFILE_LABEL: Record<string, string> = {
-  developer: "dev",
-  artist:    "artiste",
+  developer:   "IT",
+  designer:    "designer",
+  photographe: "photo",
+  artist:      "artiste",
   fashion:   "mode",
   musicien:  "musicien",
   other:     "autre",
@@ -17,8 +19,10 @@ export const PROFILE_LABEL: Record<string, string> = {
 // (ex. panneau "Infos" de la page portfolio) — une seule source pour les deux
 // formats évite qu'ils divergent quand un profil est ajouté/renommé.
 export const PROFILE_LABEL_FULL: Record<string, string> = {
-  developer: "Développeur",
-  artist:    "Artiste",
+  developer:   "IT",
+  designer:    "Designer",
+  photographe: "Photographe",
+  artist:      "Artiste",
   fashion:   "Mode",
   musicien:  "Musicien",
   other:     "Autre",

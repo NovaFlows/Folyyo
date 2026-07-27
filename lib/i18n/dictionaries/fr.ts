@@ -370,6 +370,30 @@ const fr = {
     unknownError: "Erreur inconnue",
     networkError: "Erreur réseau",
   },
+  tour: {
+    skip: "Passer",
+    prev: "Précédent",
+    next: "Suivant",
+    done: "C'est parti",
+    steps: [
+      {
+        title: "Ton portfolio est prêt",
+        body: "Il est déjà en ligne. Voici comment le personnaliser en quelques secondes — trois choses à connaître, c'est tout.",
+      },
+      {
+        title: "Personnalise tout ici",
+        body: "L'éditeur visuel te laisse changer textes, photos, couleurs et agencement, avec un aperçu en direct.",
+      },
+      {
+        title: "Ou demande à l'IA",
+        body: "Décris la modification en une phrase (« mets le fond en bleu nuit ») et l'assistant s'en occupe.",
+      },
+      {
+        title: "Partage ton site",
+        body: "Ton portfolio est accessible à cette adresse dès maintenant. Copie le lien et diffuse-le, c'est prêt.",
+      },
+    ],
+  },
   templateCard: {
     font: "police",
     selected: "✓ Sélectionné",
@@ -446,7 +470,9 @@ const fr = {
       title: "Quel est ton métier ?",
       subtitle: "On adapte le design et les sections à ton profil.",
       profiles: [
-        { label: "Développeur", description: "CV + GitHub → portfolio code-like avec projets et compétences" },
+        { label: "IT", description: "Dev, data, DevOps, cyber… CV + GitHub → portfolio tech avec projets et compétences" },
+        { label: "Designer", description: "Graphiste, UI/UX, direction artistique → portfolio projets & études de cas" },
+        { label: "Photographe", description: "Portfolio grande galerie visuelle pour tes plus belles photos" },
         { label: "Artiste / Créatif", description: "CV + galerie d'images → portfolio minimaliste avec tes œuvres" },
         { label: "Mode / Mannequin", description: "CV + photos → portfolio grand visuel plein écran" },
         { label: "Musicien / Youtubeur", description: "YouTube + Instagram → discographie, clips, scène — thème sombre & bold" },
@@ -491,7 +517,7 @@ const fr = {
     developer: {
       title: "Ton profil développeur",
       titleLabel: "Titre / Poste *",
-      githubLabel: "Pseudo GitHub *",
+      githubLabel: "Pseudo GitHub (optionnel)",
     },
     artist: {
       titleOther: "Ton profil",

@@ -48,7 +48,16 @@ export async function buildGenerateUserPrompt(
   // (déjà forcée à null ci-dessus, voir commentaire).
   let heroImageUrl = preset.hero_image_url;
   let heroCredit: GeneratePromptResult["heroCredit"] = null;
-  const heroQuery = !themeOverride ? (preset as { hero_query?: string }).hero_query : undefined;
+  let heroQuery = !themeOverride ? (preset as { hero_query?: string }).hero_query : undefined;
+  // Profils « Autre » et « IT » : la personne décrit elle-même son métier dans
+  // son titre (« Coach sportif », « Data Scientist », « Ingénieur DevOps »…).
+  // On cherche donc les images de fond sur CE titre plutôt que sur les mots-clés
+  // génériques du preset — mais uniquement si le preset tiré au sort utilise
+  // bien une photo de fond (heroQuery présent) ; un preset minimal sans photo
+  // le reste. Repli automatique sur le heroQuery du preset si le titre est vide.
+  if (heroQuery && (profileType === "other" || profileType === "developer") && input.title?.trim()) {
+    heroQuery = input.title.trim();
+  }
   if (heroQuery) {
     const photo = await fetchRandomPhoto(heroQuery);
     if (photo) {

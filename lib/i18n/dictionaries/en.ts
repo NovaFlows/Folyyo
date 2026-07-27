@@ -372,6 +372,30 @@ const en = {
     unknownError: "Unknown error",
     networkError: "Network error",
   },
+  tour: {
+    skip: "Skip",
+    prev: "Back",
+    next: "Next",
+    done: "Let's go",
+    steps: [
+      {
+        title: "Your portfolio is ready",
+        body: "It's already live. Here's how to make it yours in seconds — just three things to know.",
+      },
+      {
+        title: "Customize everything here",
+        body: "The visual editor lets you change text, photos, colors and layout, with a live preview.",
+      },
+      {
+        title: "Or ask the AI",
+        body: "Describe a change in one sentence (“make the background midnight blue”) and the assistant handles it.",
+      },
+      {
+        title: "Share your site",
+        body: "Your portfolio is reachable at this address right now. Copy the link and share it — it's ready.",
+      },
+    ],
+  },
   templateCard: {
     font: "font",
     selected: "✓ Selected",
@@ -448,7 +472,9 @@ const en = {
       title: "What's your line of work?",
       subtitle: "We adapt the design and sections to your profile.",
       profiles: [
-        { label: "Developer", description: "Resume + GitHub → code-like portfolio with projects and skills" },
+        { label: "IT", description: "Dev, data, DevOps, cyber… resume + GitHub → tech portfolio with projects and skills" },
+        { label: "Designer", description: "Graphic, UI/UX, art direction → projects & case-study portfolio" },
+        { label: "Photographer", description: "Large visual gallery portfolio for your best shots" },
         { label: "Artist / Creative", description: "Resume + image gallery → minimalist portfolio with your work" },
         { label: "Fashion / Model", description: "Resume + photos → large full-screen visual portfolio" },
         { label: "Musician / YouTuber", description: "YouTube + Instagram → discography, videos, live shows — dark, bold theme" },
@@ -493,7 +519,7 @@ const en = {
     developer: {
       title: "Your developer profile",
       titleLabel: "Title / Role *",
-      githubLabel: "GitHub username *",
+      githubLabel: "GitHub username (optional)",
     },
     artist: {
       titleOther: "Your profile",

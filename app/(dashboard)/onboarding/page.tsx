@@ -15,7 +15,7 @@ import MusicianFormStep from "./_steps/MusicianFormStep";
 import GeneratingStep from "./_steps/GeneratingStep";
 
 export type OnboardingData = {
-  profileType: "developer" | "artist" | "fashion" | "other" | "musicien" | null;
+  profileType: "developer" | "designer" | "photographe" | "artist" | "fashion" | "other" | "musicien" | null;
   templateId: string | null;
   styleUrl: string;
   slug: string;
@@ -177,7 +177,7 @@ export default function OnboardingPage() {
             onBack={() => setStep("template")} onSubmit={() => setStep("generating")} />
         )}
 
-        {step === "form" && data.profileType === "other" && (
+        {step === "form" && (data.profileType === "other" || data.profileType === "designer" || data.profileType === "photographe") && (
           <ArtistFormStep data={data} onChange={updateData} t={t.onboarding}
             onBack={() => setStep("template")} onSubmit={() => setStep("generating")} />
         )}

@@ -10,8 +10,7 @@ import { getDictionary } from "@/lib/i18n/dictionaries";
 import LanguageToggle from "@/components/i18n/LanguageToggle";
 import PasswordInput from "@/components/auth/PasswordInput";
 import CountrySelect from "@/components/auth/CountrySelect";
-import { GitHubIcon, GoogleIcon, AppleIcon, LinkedInIcon } from "@/components/auth/OAuthIcons";
-import { isApplePlatform } from "@/lib/auth/platform";
+import { GitHubIcon, GoogleIcon, LinkedInIcon } from "@/components/auth/OAuthIcons";
 
 export default function SignupPage() {
   const [locale, setLocale] = useLocale();
@@ -29,7 +28,6 @@ export default function SignupPage() {
   const [resending, setResending] = useState(false);
   const [resendMsg, setResendMsg] = useState<string | null>(null);
   const [cooldown, setCooldown]   = useState(0);
-  const [showApple, setShowApple] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
   // Passe à `true` juste avant d'activer la session dans handleVerify — évite
@@ -38,12 +36,6 @@ export default function SignupPage() {
   // router.push("/onboarding") voulu juste après une inscription qui vient de
   // réussir sur CETTE page (isSignedIn passe à true au même moment).
   const skipAutoRedirect = useRef(false);
-
-  // Detecté côté client uniquement (navigator indisponible en SSR) — le
-  // bouton Apple n'apparaît donc qu'après le montage, pas dans le HTML initial.
-  useEffect(() => {
-    setShowApple(isApplePlatform());
-  }, []);
 
   // Slug déjà choisi via le vérificateur de disponibilité du hero de la
   // landing (?slug=...) — repris ici sans le faire retaper, mémorisé en
@@ -121,7 +113,7 @@ export default function SignupPage() {
     } finally { setResending(false); }
   }
 
-  async function handleOAuth(strategy: "oauth_github" | "oauth_google" | "oauth_apple" | "oauth_linkedin_oidc") {
+  async function handleOAuth(strategy: "oauth_github" | "oauth_google" | "oauth_linkedin_oidc") {
     if (!isLoaded) return;
     try {
       await signUp.authenticateWithRedirect({
@@ -215,14 +207,6 @@ export default function SignupPage() {
               <GoogleIcon />
               {t.auth.continueWithGoogle}
             </button>
-            {showApple && (
-              <button onClick={() => handleOAuth("oauth_apple")}
-                className="flex w-full items-center justify-center gap-3 rounded-xl py-3 text-sm font-medium transition hover:opacity-80"
-                style={{ background: "white", border: "1px solid rgba(0,0,0,0.1)", color: "#1c1917" }}>
-                <AppleIcon />
-                {t.auth.continueWithApple}
-              </button>
-            )}
             <button onClick={() => handleOAuth("oauth_linkedin_oidc")}
               className="flex w-full items-center justify-center gap-3 rounded-xl py-3 text-sm font-medium transition hover:opacity-80"
               style={{ background: "white", border: "1px solid rgba(0,0,0,0.1)", color: "#1c1917" }}>

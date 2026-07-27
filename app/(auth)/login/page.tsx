@@ -9,8 +9,7 @@ import { useLocale } from "@/lib/i18n/useLocale";
 import { getDictionary } from "@/lib/i18n/dictionaries";
 import LanguageToggle from "@/components/i18n/LanguageToggle";
 import PasswordInput from "@/components/auth/PasswordInput";
-import { GitHubIcon, GoogleIcon, AppleIcon, LinkedInIcon } from "@/components/auth/OAuthIcons";
-import { isApplePlatform } from "@/lib/auth/platform";
+import { GitHubIcon, GoogleIcon, LinkedInIcon } from "@/components/auth/OAuthIcons";
 
 export default function LoginPage() {
   const [locale, setLocale] = useLocale();
@@ -21,18 +20,11 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError]       = useState<string | null>(null);
   const [loading, setLoading]   = useState(false);
-  const [showApple, setShowApple] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
     if (isSignedIn) router.replace("/dashboard");
   }, [isSignedIn, router]);
-
-  // Detecté côté client uniquement (navigator indisponible en SSR) — le
-  // bouton Apple n'apparaît donc qu'après le montage, pas dans le HTML initial.
-  useEffect(() => {
-    setShowApple(isApplePlatform());
-  }, []);
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
@@ -44,6 +36,11 @@ export default function LoginPage() {
       if (result.status === "complete") {
         await setActive({ session: result.createdSessionId });
         router.push("/dashboard");
+      } else {
+        // Statut inattendu (ex. étape supplémentaire requise) — ne pas laisser
+        // le bouton bloqué indéfiniment sur « Connexion… ».
+        setError(t.auth.login.genericError);
+        setLoading(false);
       }
     } catch (err: unknown) {
       setError(clerkErrorMessage(err, t.auth.login.genericError, locale));
@@ -51,7 +48,7 @@ export default function LoginPage() {
     }
   }
 
-  async function handleOAuth(strategy: "oauth_github" | "oauth_google" | "oauth_apple" | "oauth_linkedin_oidc") {
+  async function handleOAuth(strategy: "oauth_github" | "oauth_google" | "oauth_linkedin_oidc") {
     if (!isLoaded) return;
     try {
       await signIn.authenticateWithRedirect({
@@ -98,16 +95,6 @@ export default function LoginPage() {
               <GoogleIcon />
               {t.auth.continueWithGoogle}
             </button>
-            {showApple && (
-              <button
-                onClick={() => handleOAuth("oauth_apple")}
-                className="flex w-full items-center justify-center gap-3 rounded-xl py-3 text-sm font-medium transition hover:opacity-80"
-                style={{ background: "white", border: "1px solid rgba(0,0,0,0.1)", color: "#1c1917" }}
-              >
-                <AppleIcon />
-                {t.auth.continueWithApple}
-              </button>
-            )}
             <button
               onClick={() => handleOAuth("oauth_linkedin_oidc")}
               className="flex w-full items-center justify-center gap-3 rounded-xl py-3 text-sm font-medium transition hover:opacity-80"
