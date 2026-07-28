@@ -5,6 +5,18 @@ import type { Dictionary } from "./fr";
 // vérifiant à la compilation que toutes les clés de fr.ts sont couvertes.
 const es = {
   editor: {
+    tour: {
+      skip: "Saltar",
+      prev: "Atrás",
+      next: "Siguiente",
+      done: "¡Vamos!",
+      steps: [
+        { title: "Bienvenido al editor", body: "Personaliza tu portfolio en directo. Solo tres zonas que conocer." },
+        { title: "Tu sitio, editable en directo", body: "Haz clic en cualquier texto, título o imagen para editarlo. Arrastra las secciones para reordenarlas." },
+        { title: "El panel de ajustes", body: "Cambia el tema, los colores, las tipografías y el fondo. Selecciona un elemento → sus opciones aparecen aquí." },
+        { title: "Guarda tu trabajo", body: "No olvides guardar tus cambios aquí. «Vista previa» abre el sitio público en cualquier momento." },
+      ],
+    },
     topbar: {
       back: "← Volver",
       hintPrefix: "Arrastra y redimensiona los widgets · ",
@@ -504,6 +516,7 @@ const es = {
       nameLabel: "Nombre / Apellidos *",
       emailLabel: "Email de contacto *",
       linkedinLabel: "LinkedIn (opcional)",
+      websiteLabel: "Sitio web (opcional) — lo analizamos para un mejor portfolio",
       twitterLabel: "Twitter/X (opcional)",
       instagramRecommended: "Instagram (recomendado)",
       instagramOptional: "Instagram (opcional)",

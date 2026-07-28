@@ -2,26 +2,24 @@
 
 import { useState, useEffect, useLayoutEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
-import { getDictionary } from "@/lib/i18n/dictionaries";
-import type { Locale } from "@/lib/i18n/types";
 
-// Tuto de première visite affiché une seule fois, au premier atterrissage sur
-// la page de gestion d'un portfolio (juste après l'inscription + génération).
-// Purement client, sans backend : un drapeau localStorage suffit — le seul
-// enjeu est de ne pas le remontrer, pas une donnée à synchroniser entre
-// appareils. Se dégrade proprement si une cible est absente (carte centrée
-// sans spotlight) plutôt que de casser le parcours.
-const STORAGE_KEY = "folyo_tour_portfolio_v1";
+// Tuto générique (spotlight + flèche) affiché une seule fois par `storageKey`.
+// Réutilisé pour la page de gestion du portfolio ET pour l'éditeur visuel : les
+// étapes (cible + texte) et les libellés sont fournis par l'appelant. Purement
+// client, sans backend — un drapeau localStorage suffit à ne pas le remontrer.
+// Se dégrade proprement si une cible est absente (carte centrée sans spotlight).
 
-// Sélecteurs des éléments réels de la page mis en surbrillance, dans l'ordre.
-// `null` = étape d'intro centrée, sans cible. L'ordre et la longueur doivent
-// correspondre à `t.tour.steps`.
-const TARGETS: (string | null)[] = [
-  null,
-  '[data-tour="edit-visual"]',
-  '[data-tour="ai-editor"]',
-  '[data-tour="view-site"]',
-];
+export interface TourStep {
+  target: string | null; // sélecteur CSS de l'élément à surligner ; null = carte centrée (intro)
+  title: string;
+  body: string;
+}
+export interface TourUI {
+  skip: string;
+  prev: string;
+  next: string;
+  done: string;
+}
 
 interface Spot {
   top: number;
@@ -41,9 +39,7 @@ interface CardPos {
 
 const PAD = 8; // marge du spotlight autour de la cible
 
-export default function ProductTour({ locale }: { locale: Locale }) {
-  const t = getDictionary(locale).tour;
-  const steps = t.steps;
+export default function ProductTour({ storageKey, steps, ui }: { storageKey: string; steps: TourStep[]; ui: TourUI }) {
   const total = steps.length;
 
   const [mounted, setMounted] = useState(false);
@@ -59,19 +55,19 @@ export default function ProductTour({ locale }: { locale: Locale }) {
   useEffect(() => {
     setMounted(true);
     try {
-      if (!localStorage.getItem(STORAGE_KEY)) setVisible(true);
+      if (!localStorage.getItem(storageKey)) setVisible(true);
     } catch { /* stockage indisponible — on n'affiche simplement pas le tuto */ }
-  }, []);
+  }, [storageKey]);
 
   const finish = useCallback(() => {
-    try { localStorage.setItem(STORAGE_KEY, "1"); } catch { /* ignore */ }
+    try { localStorage.setItem(storageKey, "1"); } catch { /* ignore */ }
     setVisible(false);
-  }, []);
+  }, [storageKey]);
 
   // Mesure la cible de l'étape courante. Cible absente → spot null (carte
   // centrée). Recalculé au changement d'étape et au scroll/resize.
   const measure = useCallback(() => {
-    const sel = TARGETS[step];
+    const sel = steps[step]?.target;
     if (!sel) { setSpot(null); return; }
     const el = document.querySelector(sel);
     if (!el) { setSpot(null); return; }
@@ -84,17 +80,17 @@ export default function ProductTour({ locale }: { locale: Locale }) {
       cx: r.left + r.width / 2,
       bottom: r.bottom + PAD,
     });
-  }, [step]);
+  }, [step, steps]);
 
   // Amène la cible à l'écran puis mesure (après stabilisation du scroll).
   useEffect(() => {
     if (!visible) return;
-    const sel = TARGETS[step];
+    const sel = steps[step]?.target;
     const el = sel ? document.querySelector(sel) : null;
     if (el) el.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "center" });
     const id = setTimeout(measure, el && !reduce ? 320 : 0);
     return () => clearTimeout(id);
-  }, [step, visible, measure, reduce]);
+  }, [step, visible, measure, reduce, steps]);
 
   useEffect(() => {
     if (!visible) return;
@@ -129,7 +125,6 @@ export default function ProductTour({ locale }: { locale: Locale }) {
     let left = spot.cx - cw / 2;
     left = Math.max(12, Math.min(left, vw - cw - 12));
     top = Math.max(12, Math.min(top, vh - ch - 12));
-    // Flèche alignée sur le centre de la cible, bornée aux bords de la carte.
     const arrow = Math.max(18, Math.min(spot.cx - left, cw - 18));
     setCardPos({ top, left, arrow, placement });
   }, [spot, step, visible]);
@@ -145,7 +140,7 @@ export default function ProductTour({ locale }: { locale: Locale }) {
     return () => window.removeEventListener("keydown", onKey);
   }, [visible, total, finish]);
 
-  if (!mounted || !visible) return null;
+  if (!mounted || !visible || total === 0) return null;
 
   const s = steps[step];
   const isLast = step === total - 1;
@@ -223,7 +218,7 @@ export default function ProductTour({ locale }: { locale: Locale }) {
             className="transition hover:opacity-70"
             style={{ fontSize: "0.75rem", color: "#a09a94", background: "none", border: "none", cursor: "pointer" }}
           >
-            {t.skip}
+            {ui.skip}
           </button>
         </div>
 
@@ -256,7 +251,7 @@ export default function ProductTour({ locale }: { locale: Locale }) {
                 className="transition hover:opacity-70"
                 style={{ fontSize: "0.8rem", color: "#78716c", background: "none", border: "none", cursor: "pointer", padding: "8px 6px" }}
               >
-                {t.prev}
+                {ui.prev}
               </button>
             )}
             <button
@@ -264,7 +259,7 @@ export default function ProductTour({ locale }: { locale: Locale }) {
               className="transition hover:opacity-85"
               style={{ fontSize: "0.8rem", fontWeight: 600, color: "white", background: "#1c1917", border: "none", cursor: "pointer", borderRadius: 999, padding: "9px 18px" }}
             >
-              {isLast ? t.done : t.next}
+              {isLast ? ui.done : ui.next}
             </button>
           </div>
         </div>

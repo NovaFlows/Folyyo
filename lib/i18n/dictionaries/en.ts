@@ -5,6 +5,18 @@ import type { Dictionary } from "./fr";
 // vérifiant à la compilation que toutes les clés de fr.ts sont couvertes.
 const en = {
   editor: {
+    tour: {
+      skip: "Skip",
+      prev: "Back",
+      next: "Next",
+      done: "Let's go",
+      steps: [
+        { title: "Welcome to the editor", body: "Customize your portfolio live. Just three areas to know." },
+        { title: "Your site, editable live", body: "Click any text, heading or image to edit it. Drag sections to reorder them." },
+        { title: "The settings panel", body: "Change the theme, colors, fonts and background. Select an element → its options appear here." },
+        { title: "Save your work", body: "Don't forget to save your changes here. “Preview” opens the public site anytime." },
+      ],
+    },
     topbar: {
       back: "← Back",
       hintPrefix: "Drag and resize widgets · ",
@@ -504,6 +516,7 @@ const en = {
       nameLabel: "First / Last name *",
       emailLabel: "Contact email *",
       linkedinLabel: "LinkedIn (optional)",
+      websiteLabel: "Website (optional) — we analyze it for a better portfolio",
       twitterLabel: "Twitter/X (optional)",
       instagramRecommended: "Instagram (recommended)",
       instagramOptional: "Instagram (optional)",

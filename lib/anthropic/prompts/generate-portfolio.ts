@@ -87,6 +87,7 @@ ${input.youtube_data.videos.map((v, i) =>
 ).join("\n")}` : "";
 
   const cvBlock   = input.cv_text ? `\nCONTENU DU CV :\n${input.cv_text.slice(0, 3500)}` : "";
+  const websiteBlock = input.website_text ? `\nCONTENU DU SITE WEB PERSONNEL (données à exploiter — bio, services, projets, ton) :\n${input.website_text.slice(0, 3500)}` : "";
   const igLine    = input.instagram_url ? `- Instagram : ${input.instagram_url}` : "";
   const ghLine    = input.github_username ? `- GitHub : https://github.com/${input.github_username}` : "";
   const ytLine    = input.youtube_url ? `- YouTube : ${input.youtube_url}` : "";
@@ -209,7 +210,7 @@ Nom : ${input.name}
 Titre / Poste : ${input.title}
 Email : ${input.email}
 ${ghLine}${ytLine ? "\n" + ytLine : ""}${igLine ? "\n" + igLine : ""}${liLine ? "\n" + liLine : ""}${twLine ? "\n" + twLine : ""}
-${githubBlock}${youtubeBlock}${cvBlock}${musicienRule}
+${githubBlock}${youtubeBlock}${cvBlock}${websiteBlock}${musicienRule}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 INTELLIGENCE DE SÉLECTION DES SECTIONS

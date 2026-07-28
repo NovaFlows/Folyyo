@@ -48,7 +48,18 @@ export default async function PortfolioPage({ params }: { params: { slug: string
     <div>
       {/* Tuto de première visite — s'auto-affiche une seule fois (localStorage),
           seulement quand le site est en ligne (toutes les cibles présentes). */}
-      {isLive && <ProductTour locale={locale} />}
+      {isLive && (
+        <ProductTour
+          storageKey="folyo_tour_portfolio_v1"
+          ui={{ skip: t.tour.skip, prev: t.tour.prev, next: t.tour.next, done: t.tour.done }}
+          steps={[
+            { target: null, ...t.tour.steps[0] },
+            { target: '[data-tour="edit-visual"]', ...t.tour.steps[1] },
+            { target: '[data-tour="ai-editor"]', ...t.tour.steps[2] },
+            { target: '[data-tour="view-site"]', ...t.tour.steps[3] },
+          ]}
+        />
+      )}
 
       <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
         <div>

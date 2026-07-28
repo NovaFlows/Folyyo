@@ -94,6 +94,7 @@ export default function GeneratingStep({ data, t, onDone }: Props) {
             instagramHandle: data.instagramHandle || undefined,
             youtubeHandle: data.youtubeHandle || undefined,
             linkedinUrl: data.linkedinUrl, twitterUrl: data.twitterUrl,
+            websiteUrl: data.websiteUrl || undefined,
             cvStoragePath, githubData, youtubeData,
             templateId: data.templateId || undefined,
             styleUrl: data.styleUrl || undefined,

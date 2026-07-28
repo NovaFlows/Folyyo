@@ -30,6 +30,7 @@ export interface DeveloperInputData {
   twitter_url?: string;
   cv_storage_path: string;
   cv_text?: string;
+  website_text?: string;
   github_data?: GitHubData;
   youtube_data?: YouTubeData;
 }

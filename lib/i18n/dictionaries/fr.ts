@@ -3,6 +3,18 @@
 // compilation que les deux dictionnaires ont exactement les mêmes clés).
 const fr = {
   editor: {
+    tour: {
+      skip: "Passer",
+      prev: "Précédent",
+      next: "Suivant",
+      done: "C'est parti",
+      steps: [
+        { title: "Bienvenue dans l'éditeur", body: "Tu personnalises ton portfolio en direct. Trois zones à connaître, c'est tout." },
+        { title: "Ton site, modifiable en direct", body: "Clique sur n'importe quel texte, titre ou image pour le modifier. Glisse les sections pour les réordonner." },
+        { title: "Le panneau de réglages", body: "Change le thème, les couleurs, les polices et le fond. Sélectionne un élément → ses options apparaissent ici." },
+        { title: "Enregistre ton travail", body: "N'oublie pas d'enregistrer tes changements ici. « Aperçu » ouvre le rendu public à tout moment." },
+      ],
+    },
     topbar: {
       back: "← Retour",
       hintPrefix: "Glisse et redimensionne les widgets · ",
@@ -502,6 +514,7 @@ const fr = {
       nameLabel: "Prénom / Nom *",
       emailLabel: "Email de contact *",
       linkedinLabel: "LinkedIn (optionnel)",
+      websiteLabel: "Site web (optionnel) — on l'analyse pour un meilleur portfolio",
       twitterLabel: "Twitter/X (optionnel)",
       instagramRecommended: "Instagram (recommandé)",
       instagramOptional: "Instagram (optionnel)",

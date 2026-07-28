@@ -103,6 +103,9 @@ export default function ArtistFormStep({ data, t, onChange, onBack, onSubmit }: 
 
         <Field label={t.form.linkedinLabel} value={data.linkedinUrl} onChange={(v) => onChange({ linkedinUrl: v })} placeholder="linkedin.com/in/sophie" />
 
+        {/* Site web perso — données supplémentaires pour enrichir la génération IA */}
+        <Field label={t.form.websiteLabel} value={data.websiteUrl} onChange={(v) => onChange({ websiteUrl: v })} placeholder="monsite.com" />
+
         {/* GitHub — profil "autre" (dev, maker, technique…) */}
         {data.profileType === "other" && (
           <div>

@@ -17,6 +17,7 @@ import HeroDecoration from "@/components/portfolio/HeroDecoration";
 import { useLocale } from "@/lib/i18n/useLocale";
 import { getDictionary } from "@/lib/i18n/dictionaries";
 import LanguageToggle from "@/components/i18n/LanguageToggle";
+import ProductTour from "@/components/onboarding/ProductTour";
 
 const ReactGridLayout = RGL.WidthProvider(RGL);
 type Layout = RGL.Layout;
@@ -567,8 +568,20 @@ export default function VisualEditor({ initialData, portfolioId, slug, profileTy
 
   return (
     <div style={{ display:"flex", height:"100vh", overflow:"hidden", fontFamily:"system-ui,sans-serif" }}>
+      {/* Tuto de première ouverture de l'éditeur — s'auto-affiche une seule fois
+          (clé localStorage distincte de celle de la page de gestion). */}
+      <ProductTour
+        storageKey="folyo_tour_editor_v1"
+        ui={{ skip: t.tour.skip, prev: t.tour.prev, next: t.tour.next, done: t.tour.done }}
+        steps={[
+          { target: null, ...t.tour.steps[0] },
+          { target: '[data-tour="editor-canvas"]', ...t.tour.steps[1] },
+          { target: '[data-tour="editor-panel"]', ...t.tour.steps[2] },
+          { target: '[data-tour="editor-save"]', ...t.tour.steps[3] },
+        ]}
+      />
       {/* ── LEFT ── */}
-      <div ref={previewScrollRef} style={{ flex:1, overflowY:"auto", minWidth:0 }}
+      <div ref={previewScrollRef} data-tour="editor-canvas" style={{ flex:1, overflowY:"auto", minWidth:0 }}
         onDragOver={e => { if (secDragSrc !== null) dragYRef.current = e.clientY; }}
         onDragEnd={() => { dragYRef.current = null; }}>
         <div style={{ position:"sticky", top:0, zIndex:100, background:"#1c1917", height:52, display:"flex", alignItems:"center", padding:"0 1.25rem", gap:"0.75rem" }}>
@@ -583,7 +596,7 @@ export default function VisualEditor({ initialData, portfolioId, slug, profileTy
           </button>
           <a href={`/${slug}`} target="_blank" rel="noopener noreferrer"
             style={{ fontSize:"0.75rem", color:"#9ca3af", border:"1px solid rgba(255,255,255,0.12)", padding:"0.35rem 0.75rem", borderRadius:"0.5rem", textDecoration:"none", whiteSpace:"nowrap" }}>{t.topbar.preview}</a>
-          <button onClick={save} disabled={saveStatus==="saving"}
+          <button onClick={save} disabled={saveStatus==="saving"} data-tour="editor-save"
             style={{ background:btnBg, color:"#1c1917", border:"none", padding:"0.45rem 1.1rem", borderRadius:"0.6rem", fontSize:"0.8125rem", fontWeight:700, cursor:"pointer", whiteSpace:"nowrap" }}>
             {btnLabel}
           </button>
@@ -615,7 +628,7 @@ export default function VisualEditor({ initialData, portfolioId, slug, profileTy
       </div>
 
       {/* ── RIGHT ── */}
-      <div style={{ width:320, flexShrink:0, borderLeft:"1px solid rgba(0,0,0,0.08)", background:"#fafaf9", overflowY:"auto" }}>
+      <div data-tour="editor-panel" style={{ width:320, flexShrink:0, borderLeft:"1px solid rgba(0,0,0,0.08)", background:"#fafaf9", overflowY:"auto" }}>
         {showBlockEditor ? (
           (() => {
             const item = getGrid(data.sections[selectedIdx!]).find(it => it.id === selectedBlock);

@@ -28,12 +28,13 @@ export type OnboardingData = {
   youtubeHandle: string;
   linkedinUrl: string;
   twitterUrl: string;
+  websiteUrl: string;
   cvFile: File | null;
 };
 
 const INITIAL_DATA: OnboardingData = {
   profileType: null, templateId: null, styleUrl: "", slug: "", name: "", title: "", email: "", country: "",
-  githubUsername: "", instagramHandle: "", youtubeHandle: "", linkedinUrl: "", twitterUrl: "", cvFile: null,
+  githubUsername: "", instagramHandle: "", youtubeHandle: "", linkedinUrl: "", twitterUrl: "", websiteUrl: "", cvFile: null,
 };
 
 export default function OnboardingPage() {

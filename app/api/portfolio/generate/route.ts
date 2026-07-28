@@ -5,6 +5,7 @@ import { auth } from "@clerk/nextjs/server";
 import { callClaude } from "@/lib/anthropic/client";
 import { buildGenerateSystemPrompt, buildGenerateUserPrompt } from "@/lib/anthropic/prompts/generate-portfolio";
 import { generateThemeFromUrl } from "@/lib/anthropic/style-from-url";
+import { fetchWebsiteText } from "@/lib/portfolio/website-text";
 import { PortfolioJSONSchema } from "@/lib/anthropic/schema";
 import { generateDeveloperCode } from "@/lib/portfolio/code-generator";
 import { keys } from "@/lib/r2/client";
@@ -29,7 +30,7 @@ export async function POST(request: NextRequest) {
   if (!userId) return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
 
   const body = await request.json();
-  const { profileType, slug, name, title, email, country, githubUsername, instagramHandle, youtubeHandle, linkedinUrl, twitterUrl, cvStoragePath, githubData, youtubeData, templateId, styleUrl } = body;
+  const { profileType, slug, name, title, email, country, githubUsername, instagramHandle, youtubeHandle, linkedinUrl, twitterUrl, websiteUrl, cvStoragePath, githubData, youtubeData, templateId, styleUrl } = body;
 
   const requiresCv = profileType === "developer";
   if (!profileType || !name || !email || (requiresCv && !cvStoragePath)) {
@@ -84,8 +85,14 @@ export async function POST(request: NextRequest) {
       if (cvBuffer) cvText = await parsePdfText(cvBuffer, 4000);
     } catch { /* CV parsing optional */ }
 
+    // Site web perso fourni à l'onboarding (« Autre » surtout) : on en extrait le
+    // texte comme données d'analyse supplémentaires pour l'IA. Best-effort — un
+    // site inaccessible ne bloque jamais la génération.
+    const websiteText = websiteUrl ? await fetchWebsiteText(websiteUrl).catch(() => null) : null;
+
     const inputData: DeveloperInputData = {
       name, title, email,
+      website_text:    websiteText || undefined,
       github_username: githubUsername || undefined,
       instagram_url:   instagramHandle ? `https://instagram.com/${instagramHandle}` : undefined,
       youtube_url:     youtubeHandle  ? `https://youtube.com/@${youtubeHandle}` : undefined,
