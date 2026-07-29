@@ -1,6 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { getUserSettings, countPortfoliosByUser } from "@/lib/db/queries";
+import { isAdmin } from "@/lib/auth/admin";
 
 // Garde serveur de la route /onboarding : empêche de lancer la création d'un
 // nouveau portfolio quand le compte n'y a pas droit (déjà un portfolio, hors
@@ -17,7 +18,7 @@ export default async function OnboardingLayout({ children }: { children: React.R
     getUserSettings(userId),
     countPortfoliosByUser(userId),
   ]);
-  const canCreate = settings?.subscription_status === "lifetime" || portfolioCount === 0;
+  const canCreate = isAdmin(userId) || settings?.subscription_status === "lifetime" || portfolioCount === 0;
   if (!canCreate) redirect("/dashboard");
 
   return <>{children}</>;

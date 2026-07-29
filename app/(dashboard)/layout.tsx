@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getLocale } from "@/lib/i18n/locale";
 import { getDictionary } from "@/lib/i18n/dictionaries";
 import { getUserSettings, countPortfoliosByUser } from "@/lib/db/queries";
+import { isAdmin } from "@/lib/auth/admin";
 import DashboardNav from "./DashboardNav";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -15,7 +16,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   // Un portfolio par compte, sauf les comptes "lifetime" — voir
   // app/api/portfolio/generate/route.ts pour la garde serveur équivalente.
   const [settings, portfolioCount] = await Promise.all([getUserSettings(userId), countPortfoliosByUser(userId)]);
-  const canCreateMore = settings?.subscription_status === "lifetime" || portfolioCount === 0;
+  const canCreateMore = isAdmin(userId) || settings?.subscription_status === "lifetime" || portfolioCount === 0;
   const myPortfoliosLabel = portfolioCount === 1 ? t.myPortfolio : t.myPortfolios;
 
   return (

@@ -218,3 +218,22 @@ export function languageForCountry(code: string): "fr" | "en" | "es" | "de" | nu
   if (GERMAN_SPEAKING.has(code)) return "de";
   return null;
 }
+
+// Langue de l'interface déduite du header Accept-Language du navigateur —
+// signal bien plus fiable que la géoloc IP (data mobile / VPN peuvent
+// géolocaliser un Français hors zone francophone, d'où une interface en
+// anglais à tort). Renvoie la 1re langue supportée par ordre de préférence
+// (q=), ou null si aucune ne l'est. Ex. "fr-FR,fr;q=0.9,en;q=0.8" → "fr".
+export function localeFromAcceptLanguage(header: string | null | undefined): "fr" | "en" | "es" | "de" | null {
+  if (!header) return null;
+  const supported = new Set(["fr", "en", "es", "de"]);
+  const ranked = header
+    .split(",")
+    .map((part) => {
+      const [tag, q] = part.trim().split(";q=");
+      return { lang: (tag ?? "").split("-")[0].toLowerCase(), q: q ? parseFloat(q) : 1 };
+    })
+    .filter((x) => supported.has(x.lang))
+    .sort((a, b) => b.q - a.q);
+  return (ranked[0]?.lang as "fr" | "en" | "es" | "de" | undefined) ?? null;
+}

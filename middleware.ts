@@ -1,7 +1,7 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { LOCALE_COOKIE } from "@/lib/i18n/types";
-import { languageForCountry } from "@/lib/i18n/country-language";
+import { languageForCountry, localeFromAcceptLanguage } from "@/lib/i18n/country-language";
 
 const isProtected = createRouteMatcher([
   "/dashboard(.*)",
@@ -19,23 +19,23 @@ const VISITOR_COOKIE = "pf_vid";
 export default clerkMiddleware((auth, req) => {
   if (isProtected(req)) auth().protect();
 
-  // Langue de l'interface : respecte le cookie déjà posé par le sélecteur
-  // FR/EN/ES/DE s'il existe (choix explicite de la personne) ; sinon la
-  // déduit du pays du visiteur — header "x-vercel-ip-country" posé
-  // automatiquement par la géolocalisation IP de Vercel en production
-  // (absent en local dev, d'où le repli sur "fr"). Espagne → espagnol,
-  // Allemagne/Autriche → allemand, France/francophones → français, le reste
-  // → anglais (même mapping que la langue de génération, voir
-  // lib/i18n/country-language.ts). Transmise via un header à la requête (pas
-  // seulement le cookie de réponse, qui ne serait visible qu'à la requête
-  // suivante) pour que CE chargement de page en profite déjà.
+  // Langue de l'interface, par ordre de priorité :
+  //  1. le cookie déjà posé par le sélecteur FR/EN/ES/DE (choix explicite) ;
+  //  2. la langue du navigateur (header Accept-Language) — signal le plus
+  //     fiable de la préférence réelle de la personne ;
+  //  3. en dernier recours, le pays géolocalisé par IP ("x-vercel-ip-country",
+  //     posé par Vercel en prod) — peu fiable (data mobile / VPN peuvent
+  //     géolocaliser un Français hors zone francophone), d'où sa relégation ;
+  //  4. repli final sur le français.
+  // Transmise via un header à CETTE requête (le cookie de réponse ne serait
+  // visible qu'à la requête suivante).
   const existingLocale = req.cookies.get(LOCALE_COOKIE)?.value;
+  const country = req.headers.get("x-vercel-ip-country") ?? undefined;
   const locale = existingLocale === "en" || existingLocale === "es" || existingLocale === "de" || existingLocale === "fr"
     ? existingLocale
-    : (() => {
-        const country = req.headers.get("x-vercel-ip-country") ?? undefined;
-        return country ? (languageForCountry(country) ?? "en") : "fr";
-      })();
+    : (localeFromAcceptLanguage(req.headers.get("accept-language"))
+        ?? (country ? languageForCountry(country) : null)
+        ?? "fr");
 
   const requestHeaders = new Headers(req.headers);
   requestHeaders.set("x-locale", locale);

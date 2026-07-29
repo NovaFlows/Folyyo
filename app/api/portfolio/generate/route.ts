@@ -6,6 +6,7 @@ import { callClaude } from "@/lib/anthropic/client";
 import { buildGenerateSystemPrompt, buildGenerateUserPrompt } from "@/lib/anthropic/prompts/generate-portfolio";
 import { generateThemeFromUrl } from "@/lib/anthropic/style-from-url";
 import { fetchWebsiteText } from "@/lib/portfolio/website-text";
+import { isAdmin } from "@/lib/auth/admin";
 import { PortfolioJSONSchema } from "@/lib/anthropic/schema";
 import { generateDeveloperCode } from "@/lib/portfolio/code-generator";
 import { keys } from "@/lib/r2/client";
@@ -48,9 +49,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Ton essai gratuit est terminé — abonne-toi pour continuer à créer des portfolios." }, { status: 403 });
   }
 
-  // Un portfolio par compte, sauf les comptes "lifetime" (comptes de test/dev
-  // de l'auteur) qui peuvent en créer autant qu'ils veulent.
-  if (existingSettings?.subscription_status !== "lifetime" && await hasAnyPortfolio(userId)) {
+  // Un portfolio par compte, sauf les comptes "lifetime" (test/dev de l'auteur)
+  // et les admins (qui peuplent la galerie communauté) — illimités.
+  if (!isAdmin(userId) && existingSettings?.subscription_status !== "lifetime" && await hasAnyPortfolio(userId)) {
     return NextResponse.json({ error: "Tu as déjà un portfolio — supprime-le depuis le tableau de bord avant d'en créer un nouveau." }, { status: 403 });
   }
 

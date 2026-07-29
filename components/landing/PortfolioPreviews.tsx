@@ -5,28 +5,36 @@ import type { Locale } from "@/lib/i18n/types";
 
 const TABS = {
   fr: [
-    { id: "developer", label: "Développeur", url: "folyo.page/alex-martin" },
-    { id: "artist",    label: "Artiste",     url: "folyo.page/sophie-noir" },
-    { id: "fashion",   label: "Mode",        url: "folyo.page/nina-beaumont" },
-    { id: "musicien",  label: "Musique",     url: "folyo.page/solka" },
+    { id: "developer",   label: "IT",          url: "folyo.page/alex-martin" },
+    { id: "designer",    label: "Designer",    url: "folyo.page/clara-moreau" },
+    { id: "photographe", label: "Photographe", url: "folyo.page/nathan-dubois" },
+    { id: "artist",      label: "Artiste",     url: "folyo.page/sophie-noir" },
+    { id: "fashion",     label: "Mode",        url: "folyo.page/nina-beaumont" },
+    { id: "musicien",    label: "Musique",     url: "folyo.page/solka" },
   ],
   en: [
-    { id: "developer", label: "Developer", url: "folyo.page/alex-martin" },
-    { id: "artist",    label: "Artist",    url: "folyo.page/sophie-noir" },
-    { id: "fashion",   label: "Fashion",   url: "folyo.page/nina-beaumont" },
-    { id: "musicien",  label: "Music",     url: "folyo.page/solka" },
+    { id: "developer",   label: "IT",           url: "folyo.page/alex-martin" },
+    { id: "designer",    label: "Designer",     url: "folyo.page/clara-moreau" },
+    { id: "photographe", label: "Photographer", url: "folyo.page/nathan-dubois" },
+    { id: "artist",      label: "Artist",       url: "folyo.page/sophie-noir" },
+    { id: "fashion",     label: "Fashion",      url: "folyo.page/nina-beaumont" },
+    { id: "musicien",    label: "Music",        url: "folyo.page/solka" },
   ],
   es: [
-    { id: "developer", label: "Desarrollador", url: "folyo.page/alex-martin" },
-    { id: "artist",    label: "Artista",       url: "folyo.page/sophie-noir" },
-    { id: "fashion",   label: "Moda",          url: "folyo.page/nina-beaumont" },
-    { id: "musicien",  label: "Música",        url: "folyo.page/solka" },
+    { id: "developer",   label: "IT",         url: "folyo.page/alex-martin" },
+    { id: "designer",    label: "Diseñador",  url: "folyo.page/clara-moreau" },
+    { id: "photographe", label: "Fotógrafo",  url: "folyo.page/nathan-dubois" },
+    { id: "artist",      label: "Artista",    url: "folyo.page/sophie-noir" },
+    { id: "fashion",     label: "Moda",       url: "folyo.page/nina-beaumont" },
+    { id: "musicien",    label: "Música",     url: "folyo.page/solka" },
   ],
   de: [
-    { id: "developer", label: "Entwickler", url: "folyo.page/alex-martin" },
-    { id: "artist",    label: "Künstler",   url: "folyo.page/sophie-noir" },
-    { id: "fashion",   label: "Mode",       url: "folyo.page/nina-beaumont" },
-    { id: "musicien",  label: "Musik",      url: "folyo.page/solka" },
+    { id: "developer",   label: "IT",        url: "folyo.page/alex-martin" },
+    { id: "designer",    label: "Designer",  url: "folyo.page/clara-moreau" },
+    { id: "photographe", label: "Fotograf",  url: "folyo.page/nathan-dubois" },
+    { id: "artist",      label: "Künstler",  url: "folyo.page/sophie-noir" },
+    { id: "fashion",     label: "Mode",      url: "folyo.page/nina-beaumont" },
+    { id: "musicien",    label: "Musik",     url: "folyo.page/solka" },
   ],
 } as const;
 
@@ -102,10 +110,12 @@ export default function PortfolioPreviews({ locale }: { locale: Locale }) {
               <div key={tab.id}
                 className="absolute inset-0 transition-opacity duration-500 ease-in-out"
                 style={{ opacity: i === index ? 1 : 0, pointerEvents: i === index ? "auto" : "none" }}>
-                {tab.id === "developer" && <DeveloperPreview locale={locale} />}
-                {tab.id === "artist"    && <ArtistPreview locale={locale} />}
-                {tab.id === "fashion"   && <FashionPreview locale={locale} />}
-                {tab.id === "musicien"  && <MusicianPreview locale={locale} />}
+                {tab.id === "developer"   && <DeveloperPreview locale={locale} />}
+                {tab.id === "designer"    && <DesignerPreview locale={locale} />}
+                {tab.id === "photographe" && <PhotographePreview locale={locale} />}
+                {tab.id === "artist"      && <ArtistPreview locale={locale} />}
+                {tab.id === "fashion"     && <FashionPreview locale={locale} />}
+                {tab.id === "musicien"    && <MusicianPreview locale={locale} />}
               </div>
             ))}
           </div>
@@ -207,6 +217,125 @@ function DeveloperPreview({ locale }: { locale: Locale }) {
             </div>
           ))}
         </div>
+      </div>
+    </div>
+  );
+}
+
+const DESIGNER_CONTENT = {
+  fr: {
+    nav: ["Projets", "À propos", "Contact"],
+    role: "Direction artistique · UI/UX",
+    bio: "Je façonne des identités et des interfaces qui ont du caractère. Startups, marques, culture.",
+    projects: [
+      { name: "Lumen",   cat: "Identité de marque" },
+      { name: "Orbit",   cat: "App mobile" },
+      { name: "Studio K", cat: "Site web" },
+      { name: "Faye",    cat: "Direction artistique" },
+    ],
+  },
+  en: {
+    nav: ["Work", "About", "Contact"],
+    role: "Art direction · UI/UX",
+    bio: "I craft identities and interfaces with character. Startups, brands, culture.",
+    projects: [
+      { name: "Lumen",   cat: "Brand identity" },
+      { name: "Orbit",   cat: "Mobile app" },
+      { name: "Studio K", cat: "Website" },
+      { name: "Faye",    cat: "Art direction" },
+    ],
+  },
+  es: {
+    nav: ["Proyectos", "Sobre mí", "Contacto"],
+    role: "Dirección de arte · UI/UX",
+    bio: "Diseño identidades e interfaces con carácter. Startups, marcas, cultura.",
+    projects: [
+      { name: "Lumen",   cat: "Identidad de marca" },
+      { name: "Orbit",   cat: "App móvil" },
+      { name: "Studio K", cat: "Sitio web" },
+      { name: "Faye",    cat: "Dirección de arte" },
+    ],
+  },
+  de: {
+    nav: ["Projekte", "Über mich", "Kontakt"],
+    role: "Art Direction · UI/UX",
+    bio: "Ich gestalte Identitäten und Interfaces mit Charakter. Startups, Marken, Kultur.",
+    projects: [
+      { name: "Lumen",   cat: "Markenidentität" },
+      { name: "Orbit",   cat: "Mobile App" },
+      { name: "Studio K", cat: "Website" },
+      { name: "Faye",    cat: "Art Direction" },
+    ],
+  },
+};
+
+function DesignerPreview({ locale }: { locale: Locale }) {
+  const c = DESIGNER_CONTENT[locale];
+  const thumbs = ["linear-gradient(135deg,#ff5a3c,#ffb199)", "linear-gradient(135deg,#1a1a1a,#4a4a4a)", "linear-gradient(135deg,#6366f1,#a5b4fc)", "linear-gradient(135deg,#f4d03f,#f7e08a)"];
+  return (
+    <div className="h-full overflow-y-auto bg-[#f7f5f2] text-[#1a1a1a]" style={{ fontFamily: "Inter, sans-serif" }}>
+      <nav className="flex items-center justify-between px-8 py-5 border-b border-black/6">
+        <span className="text-sm font-bold" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>Clara Moreau</span>
+        <div className="flex gap-6 text-xs text-[#a09a94]">
+          {c.nav.map((n) => <span key={n}>{n}</span>)}
+        </div>
+      </nav>
+      <div className="px-8 py-10">
+        <p className="text-xs mb-2" style={{ color: "#ff5a3c" }}>{c.role}</p>
+        <h1 className="text-4xl mb-3 text-[#1a1a1a]" style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, letterSpacing: "-0.02em" }}>Clara Moreau</h1>
+        <p className="text-[#78716c] text-sm leading-relaxed max-w-md mb-9">{c.bio}</p>
+        <div className="grid grid-cols-2 gap-3">
+          {c.projects.map((p, i) => (
+            <div key={p.name} className="overflow-hidden rounded-xl border border-black/6 bg-white">
+              <div className="h-20 w-full" style={{ background: thumbs[i] }} />
+              <div className="px-4 py-3">
+                <p className="text-sm font-semibold" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>{p.name}</p>
+                <p className="text-[#a09a94] text-xs mt-0.5">{p.cat}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const PHOTOGRAPHE_CONTENT = {
+  fr: { nav: ["Galerie", "Séries", "Contact"], role: "Portrait · Reportage · Paris", heading: "Portfolio", bio: "Je capture la lumière et l'instant — éditorial, mariages, corporate." },
+  en: { nav: ["Gallery", "Series", "Contact"], role: "Portrait · Reportage · Paris", heading: "Portfolio", bio: "I capture light and the moment — editorial, weddings, corporate." },
+  es: { nav: ["Galería", "Series", "Contacto"], role: "Retrato · Reportaje · París", heading: "Portfolio", bio: "Capturo la luz y el instante — editorial, bodas, corporativo." },
+  de: { nav: ["Galerie", "Serien", "Kontakt"], role: "Porträt · Reportage · Paris", heading: "Portfolio", bio: "Ich fange Licht und den Moment ein — Editorial, Hochzeiten, Corporate." },
+};
+
+function PhotographePreview({ locale }: { locale: Locale }) {
+  const c = PHOTOGRAPHE_CONTENT[locale];
+  const tiles = [
+    { bg: "linear-gradient(160deg,#2a2320,#0d0b0a)", h: "pb-[130%]" },
+    { bg: "linear-gradient(160deg,#3a3330,#14100e)", h: "pb-[95%]" },
+    { bg: "linear-gradient(160deg,#1e1a17,#0a0807)", h: "pb-[110%]" },
+    { bg: "linear-gradient(160deg,#403428,#161009)", h: "pb-[85%]" },
+    { bg: "linear-gradient(160deg,#2d2622,#100c0a)", h: "pb-[120%]" },
+    { bg: "linear-gradient(160deg,#241f1b,#0c0908)", h: "pb-[90%]" },
+  ];
+  return (
+    <div className="h-full overflow-y-auto bg-[#0a0a0a] text-[#f5f5f5]" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
+      <nav className="flex items-center justify-between px-8 py-5 border-b border-white/6">
+        <span className="text-sm tracking-[0.2em] uppercase" style={{ fontFamily: "Inter, sans-serif", color: "#c9a96e" }}>Nathan Dubois</span>
+        <div className="flex gap-7 text-xs tracking-[0.15em] uppercase text-white/25" style={{ fontFamily: "Inter, sans-serif" }}>
+          {c.nav.map((n) => <span key={n}>{n}</span>)}
+        </div>
+      </nav>
+      <div className="px-8 pt-6 pb-4">
+        <p className="text-xs tracking-widest uppercase mb-1" style={{ fontFamily: "Inter, sans-serif", color: "rgba(201,169,110,0.6)" }}>{c.role}</p>
+        <h1 className="text-3xl font-light mb-6 text-white/90">{c.heading}</h1>
+        <div className="grid grid-cols-3 gap-2">
+          {tiles.map((t, i) => (
+            <div key={i} className={`relative w-full ${t.h} rounded-sm`} style={{ background: t.bg }} />
+          ))}
+        </div>
+      </div>
+      <div className="px-8 pb-8 pt-4">
+        <p className="text-sm text-white/35 leading-relaxed max-w-sm italic">{c.bio}</p>
       </div>
     </div>
   );

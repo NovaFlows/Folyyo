@@ -8,6 +8,7 @@ import PortfolioCard from "./PortfolioCard";
 import FreshnessBanner from "./FreshnessBanner";
 import { getLocale } from "@/lib/i18n/locale";
 import { getDictionary } from "@/lib/i18n/dictionaries";
+import { isAdmin } from "@/lib/auth/admin";
 
 export default async function DashboardPage() {
   const { userId } = await auth();
@@ -24,7 +25,7 @@ export default async function DashboardPage() {
 
   // Un portfolio par compte, sauf les comptes "lifetime" — voir
   // app/api/portfolio/generate/route.ts pour la garde serveur équivalente.
-  const canCreateMore = settings?.subscription_status === "lifetime" || portfolios.length === 0;
+  const canCreateMore = isAdmin(userId) || settings?.subscription_status === "lifetime" || portfolios.length === 0;
 
   // Nudge de fraîcheur GitHub/YouTube — best-effort, ne doit jamais faire
   // planter le dashboard si une API externe est indisponible.
