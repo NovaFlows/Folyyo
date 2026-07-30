@@ -162,7 +162,7 @@ export default function HeroVisual({ locale }: { locale: Locale }) {
           fontFamily: "'Playfair Display', Georgia, serif",
           fontSize: "1.375rem", fontWeight: 500,
           color: "#1c1917", lineHeight: 1, marginBottom: 4,
-        }}>1 247</p>
+        }}>269</p>
         <p style={{ fontSize: "0.575rem", color: "#a09a94" }}>{s.portfoliosCreated}</p>
       </div>
 
