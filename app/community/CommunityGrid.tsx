@@ -7,12 +7,14 @@ import type { Dictionary } from "@/lib/i18n/dictionaries/fr";
 export default function CommunityGrid({ items, t, templateCardT }: { items: TemplateCardData[]; t: Dictionary["community"]; templateCardT: Dictionary["templateCard"] }) {
   const [filter, setFilter] = useState("all");
   const FILTERS: { value: string; label: string }[] = [
-    { value: "all",       label: t.filters.all },
-    { value: "developer", label: t.filters.developer },
-    { value: "artist",    label: t.filters.artist },
-    { value: "fashion",   label: t.filters.fashion },
-    { value: "musicien",  label: t.filters.musicien },
-    { value: "other",     label: t.filters.other },
+    { value: "all",         label: t.filters.all },
+    { value: "developer",   label: t.filters.developer },
+    { value: "designer",    label: t.filters.designer },
+    { value: "photographe", label: t.filters.photographe },
+    { value: "artist",      label: t.filters.artist },
+    { value: "fashion",     label: t.filters.fashion },
+    { value: "musicien",    label: t.filters.musicien },
+    { value: "other",       label: t.filters.other },
   ];
   const visible = filter === "all" ? items : items.filter((i) => i.profileType === filter);
 

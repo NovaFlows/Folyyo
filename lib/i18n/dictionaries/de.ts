@@ -422,7 +422,7 @@ const de = {
     backDashboard: "← Dashboard",
     emptyAll: "Noch keine Portfolios vorgestellt — schau bald wieder vorbei!",
     emptyFiltered: "Noch keine Portfolios in dieser Kategorie.",
-    filters: { all: "Alle", developer: "Entwickler", artist: "Künstler", fashion: "Mode", musicien: "Musiker", other: "Sonstiges" },
+    filters: { all: "Alle", developer: "IT", designer: "Designer", photographe: "Fotograf", artist: "Künstler", fashion: "Mode", musicien: "Musiker", other: "Sonstiges" },
   },
   settings: {
     title: "Einstellungen",

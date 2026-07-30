@@ -420,7 +420,7 @@ const fr = {
     backDashboard: "← Dashboard",
     emptyAll: "Aucun portfolio mis en avant pour l'instant — reviens bientôt !",
     emptyFiltered: "Aucun portfolio dans cette catégorie pour l'instant.",
-    filters: { all: "Tous", developer: "Développeur", artist: "Artiste", fashion: "Mode", musicien: "Musicien", other: "Autre" },
+    filters: { all: "Tous", developer: "IT", designer: "Designer", photographe: "Photographe", artist: "Artiste", fashion: "Mode", musicien: "Musicien", other: "Autre" },
   },
   settings: {
     title: "Paramètres",

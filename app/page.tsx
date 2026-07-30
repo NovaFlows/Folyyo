@@ -182,7 +182,7 @@ export default function LandingPage() {
             <div className="mt-14 flex flex-wrap items-center justify-center lg:justify-start gap-8">
               {[
                 { value: "< 60s", label: t.hero.statGeneration },
-                { value: "3",     label: t.hero.statProfiles },
+                { value: "6",     label: t.hero.statProfiles },
                 { value: "0€",    label: t.hero.statBeta },
               ].map((s) => (
                 <div key={s.label} className="text-center lg:text-left">
@@ -193,7 +193,7 @@ export default function LandingPage() {
               <div className="h-8 w-px hidden sm:block" style={{ background: "rgba(0,0,0,0.08)" }} />
               <p className="text-xs" style={{ color: "#a09a94" }}>
                 <span style={{ color: "#c9a96e", fontWeight: 600 }}>
-                  <AnimatedCounter value={1247} />
+                  <AnimatedCounter value={269} />
                 </span> {t.hero.portfoliosCreated}
               </p>
             </div>

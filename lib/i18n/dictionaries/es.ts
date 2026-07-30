@@ -422,7 +422,7 @@ const es = {
     backDashboard: "← Panel",
     emptyAll: "Aún no hay ningún portfolio destacado — ¡vuelve pronto!",
     emptyFiltered: "Aún no hay ningún portfolio en esta categoría.",
-    filters: { all: "Todos", developer: "Desarrollador", artist: "Artista", fashion: "Moda", musicien: "Músico", other: "Otro" },
+    filters: { all: "Todos", developer: "IT", designer: "Diseñador", photographe: "Fotógrafo", artist: "Artista", fashion: "Moda", musicien: "Músico", other: "Otro" },
   },
   settings: {
     title: "Ajustes",
