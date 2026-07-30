@@ -80,4 +80,71 @@ export const SEED_PERSONAS: SeedPersona[] = [
     avatarUrl: "/testimonials/lea-fontaine.png",
     background: "Illustratrice freelance. Illustration éditoriale, jeunesse et digitale, univers coloré et poétique. Collabore avec l'édition, la presse et des marques. Travaille à l'aquarelle et en numérique (Procreate). Réalise des commandes et des licences d'images.",
   },
+
+  // ── Métiers à étoffer — noms d'origines variées, pas de photo (fond Unsplash) ──
+  // ── Mode ──
+  {
+    profileType: "fashion", name: "Aïcha Traoré", title: "Mannequin & Directrice de Casting",
+    slug: "aicha-traore", email: "aicha.traore@example.com", country: "FR", language: "fr",
+    background: "Mannequin (Paris, Milan) et directrice de casting. A défilé et posé pour des maisons de luxe et des créateurs émergents, éditoriaux dans la presse mode. Dirige désormais des castings inclusifs pour des campagnes. Book éditorial et campagnes disponibles.",
+  },
+  {
+    profileType: "fashion", name: "Yuna Park", title: "Styliste & Créatrice de mode",
+    slug: "yuna-park", email: "yuna.park@example.com", country: "FR", language: "fr",
+    background: "Styliste et créatrice de mode, univers mêlant minimalisme coréen et couture parisienne. Collections capsules autoproduites, vendues en concept-stores. Anciennement assistante studio dans une maison parisienne. Sensibilité slow fashion et matières nobles.",
+  },
+  {
+    profileType: "fashion", name: "Sofia Ferreira", title: "Directrice Artistique Mode",
+    slug: "sofia-ferreira", email: "sofia.ferreira@example.com", country: "FR", language: "fr",
+    background: "Directrice artistique mode. Conçoit l'image de marques et de campagnes : éditos, lookbooks, défilés. Collabore avec photographes, stylistes et magazines. Esthétique éditoriale et sensorielle. Travaille entre Lisbonne et Paris.",
+  },
+  // ── Musicien ──
+  {
+    profileType: "musicien", name: "Kwame Mensah", title: "Producteur & Beatmaker",
+    slug: "kwame-mensah", email: "kwame.mensah@example.com", country: "FR", language: "fr",
+    background: "Producteur et beatmaker, sonorités afrobeat, hip-hop et électronique. A produit pour des artistes de la scène émergente, plusieurs sorties en streaming. Compose, mixe et masterise. Univers chaud et groovy. Studio à Paris.",
+  },
+  {
+    profileType: "musicien", name: "Elena Kovač", title: "Violoniste & Compositrice",
+    slug: "elena-kovac", email: "elena.kovac@example.com", country: "FR", language: "fr",
+    background: "Violoniste et compositrice formée au conservatoire, passerelle entre classique et musiques actuelles. Concerts en salles et festivals, compositions pour l'image (film, publicité). Collaborations avec ensembles et artistes pop. Originaire de Zagreb.",
+  },
+  {
+    profileType: "musicien", name: "Diego Herrera", title: "Chanteur & Guitariste",
+    slug: "diego-herrera", email: "diego.herrera@example.com", country: "FR", language: "fr",
+    background: "Chanteur et guitariste, univers latino-folk teinté de pop. Un EP autoproduit, concerts en clubs et festivals. Écrit et compose ses titres en français et en espagnol. Voix chaude, mélodies solaires.",
+  },
+  // ── Photographe ──
+  {
+    profileType: "photographe", name: "Mei Chen", title: "Photographe Mode & Portrait",
+    slug: "mei-chen", email: "mei.chen@example.com", country: "FR", language: "fr",
+    background: "Photographe mode et portrait, esthétique épurée et lumière naturelle. Éditoriaux pour magazines, campagnes de marques, portraits d'artistes. Assure la direction artistique de ses shootings. Basée à Paris, disponible en studio et en extérieur.",
+  },
+  {
+    profileType: "photographe", name: "Omar El-Amrani", title: "Photographe Documentaire & Rue",
+    slug: "omar-el-amrani", email: "omar.elamrani@example.com", country: "FR", language: "fr",
+    background: "Photographe documentaire et de rue, capte l'humain et l'instant. Reportages en France et au Maghreb, séries personnelles exposées en galerie. Publié dans la presse. Argentique et numérique, regard sensible et engagé.",
+  },
+  // ── Artiste ──
+  {
+    profileType: "artist", name: "Fatou Ndiaye", title: "Peintre & Muraliste",
+    slug: "fatou-ndiaye", email: "fatou.ndiaye@example.com", country: "FR", language: "fr",
+    background: "Peintre et muraliste, couleurs vives et motifs inspirés des textiles ouest-africains. Fresques dans l'espace public, expositions en galeries. Commandes pour marques et institutions culturelles. Basée à Paris.",
+  },
+  {
+    profileType: "artist", name: "Luca Romano", title: "Sculpteur & Céramiste",
+    slug: "luca-romano", email: "luca.romano@example.com", country: "FR", language: "fr",
+    background: "Sculpteur et céramiste, formes organiques en terre et bronze inspirées de la Méditerranée. Expositions en galeries et résidences d'artiste. Réalise des pièces uniques et des collaborations avec des architectes d'intérieur. Atelier près de Naples.",
+  },
+  // ── Autre (image de fond sur le titre) ──
+  {
+    profileType: "other", name: "Priya Sharma", title: "Coach bien-être & Sophrologue",
+    slug: "priya-sharma", email: "priya.sharma@example.com", country: "FR", language: "fr",
+    background: "Coach en bien-être et sophrologue, accompagne particuliers et entreprises vers l'équilibre et la gestion du stress. Ateliers, séances individuelles et en ligne. Approche mêlant respiration, méditation et développement personnel.",
+  },
+  {
+    profileType: "other", name: "Rayan Haddad", title: "Chef & Consultant culinaire",
+    slug: "rayan-haddad", email: "rayan.haddad@example.com", country: "FR", language: "fr",
+    background: "Chef et consultant culinaire, cuisine méditerranéenne et levantine revisitée. Menus pour restaurants, ateliers et événements privés. Création de cartes et formation d'équipes. Produits de saison, dressage soigné.",
+  },
 ];
