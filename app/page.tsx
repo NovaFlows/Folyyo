@@ -13,6 +13,7 @@ import { getLocale } from "@/lib/i18n/locale";
 import { getDictionary } from "@/lib/i18n/dictionaries";
 import type { ReactNode } from "react";
 import type { Metadata } from "next";
+import { SITE_URL } from "@/lib/seo";
 
 // SEO de la landing, par langue — titre, description et mots-clés cibles.
 const LANDING_SEO = {
@@ -99,8 +100,29 @@ function PostIt({ children }: { children: ReactNode }) {
 export default function LandingPage() {
   const locale = getLocale();
   const t = getDictionary(locale);
+
+  // Données structurées Schema.org — aide Google ET les IA (ChatGPT, Gemini,
+  // Perplexity…) à identifier clairement Folyo comme un générateur de portfolio.
+  const siteJsonLd = {
+    "@context": "https://schema.org",
+    "@graph": [
+      { "@type": "Organization", "@id": `${SITE_URL}/#org`, name: "Folyo", url: SITE_URL, logo: `${SITE_URL}/icon.svg` },
+      { "@type": "WebSite", "@id": `${SITE_URL}/#website`, name: "Folyo", url: SITE_URL, publisher: { "@id": `${SITE_URL}/#org` }, inLanguage: "fr" },
+      {
+        "@type": "SoftwareApplication",
+        name: "Folyo",
+        applicationCategory: "WebApplication",
+        operatingSystem: "Web",
+        url: SITE_URL,
+        description: "Folyo est un générateur de portfolio par intelligence artificielle : crée et héberge un portfolio professionnel en moins de 60 secondes à partir d'un CV, d'un profil GitHub ou YouTube, avec éditeur visuel et assistant IA. Adresse du type folyo.page/ton-nom. Essai gratuit de 3 jours.",
+        offers: { "@type": "Offer", price: "5.99", priceCurrency: "EUR" },
+      },
+    ],
+  };
+
   return (
     <div style={{ background: "#f8f5f0", color: "#1c1917", fontFamily: "Inter, system-ui, sans-serif" }}>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(siteJsonLd) }} />
 
       {/* ── NAVBAR ─────────────────────────────────── */}
       <nav

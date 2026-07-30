@@ -137,8 +137,19 @@ function FAQItem({ q, a }: { q: string; a: string }) {
 
 export default function FAQ({ locale }: { locale: Locale }) {
   const c = CONTENT[locale];
+  // Données structurées FAQPage — extraits enrichis Google + compréhension IA.
+  const faqLd = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: c.items.map((it) => ({
+      "@type": "Question",
+      name: it.q,
+      acceptedAnswer: { "@type": "Answer", text: it.a },
+    })),
+  };
   return (
     <section id="faq" className="ld-reveal px-6 py-24" style={{ background: "#f0ece6" }}>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqLd) }} />
       <div className="mx-auto max-w-3xl">
         <div className="mb-12 text-center">
           <p className="text-sm tracking-widest uppercase mb-4" style={{ color: "#c9a96e" }}>{c.kicker}</p>
