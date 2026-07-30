@@ -242,7 +242,9 @@ const de = {
     slugAvailableCta: "Mein Portfolio mit diesem Namen erstellen →",
     statGeneration: "Generierung",
     statProfiles: "Profile",
-    statBeta: "Beta",
+    statTrialValue: "3 Tage",
+    statTrialLabel: "gratis",
+    statTrialSub: "dann 5,99 €",
     portfoliosCreated: "erstellte Portfolios",
   },
   teaser: {

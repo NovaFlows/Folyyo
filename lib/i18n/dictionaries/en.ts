@@ -242,7 +242,9 @@ const en = {
     slugAvailableCta: "Create my portfolio with this name →",
     statGeneration: "generation",
     statProfiles: "profiles",
-    statBeta: "beta",
+    statTrialValue: "3 days",
+    statTrialLabel: "free",
+    statTrialSub: "then €5.99",
     portfoliosCreated: "portfolios created",
   },
   teaser: {

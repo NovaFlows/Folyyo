@@ -180,14 +180,15 @@ export default function LandingPage() {
 
             {/* Stats — compact row under CTAs */}
             <div className="mt-14 flex flex-wrap items-center justify-center lg:justify-start gap-8">
-              {[
+              {([
                 { value: "< 60s", label: t.hero.statGeneration },
                 { value: "6",     label: t.hero.statProfiles },
-                { value: "0€",    label: t.hero.statBeta },
-              ].map((s) => (
+                { value: t.hero.statTrialValue, label: t.hero.statTrialLabel, sub: t.hero.statTrialSub },
+              ] as { value: string; label: string; sub?: string }[]).map((s) => (
                 <div key={s.label} className="text-center lg:text-left">
                   <p className="mono text-xl font-medium mb-0.5" style={{ color: "#1c1917" }}>{s.value}</p>
                   <p className="text-xs" style={{ color: "#a09a94" }}>{s.label}</p>
+                  {s.sub && <p className="mt-0.5" style={{ fontSize: "0.625rem", color: "#c8c4bf" }}>{s.sub}</p>}
                 </div>
               ))}
               <div className="h-8 w-px hidden sm:block" style={{ background: "rgba(0,0,0,0.08)" }} />
