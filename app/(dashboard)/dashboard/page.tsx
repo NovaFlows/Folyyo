@@ -3,8 +3,8 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getPortfoliosByUser, getViewCountsForUser, getUserSettings } from "@/lib/db/queries";
 import { checkFreshness } from "@/lib/freshness/check";
-import type { Portfolio } from "@/types";
 import PortfolioCard from "./PortfolioCard";
+import MultiPortfolioBrowser from "./MultiPortfolioBrowser";
 import FreshnessBanner from "./FreshnessBanner";
 import { getLocale } from "@/lib/i18n/locale";
 import { getDictionary } from "@/lib/i18n/dictionaries";
@@ -71,11 +71,9 @@ export default async function DashboardPage() {
           )}
         </div>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {portfolios.map((p: Portfolio) => (
-            <PortfolioCard key={p.id} portfolio={p} views={viewCounts[p.id]} locale={locale} />
-          ))}
-        </div>
+        // Plusieurs portfolios (comptes admin/lifetime) : grille cliquable +
+        // aperçu du portfolio sélectionné à droite.
+        <MultiPortfolioBrowser portfolios={portfolios} viewCounts={viewCounts} locale={locale} />
       )}
     </div>
   );

@@ -34,6 +34,14 @@ export async function upsertUserSettings(userId: string, data: { country?: strin
   return many<UserSettings>(rows)[0];
 }
 
+// Accorde l'accès "lifetime" à un compte — utilisé pour le compte showcase/admin
+// qui héberge les portfolios de démo de la Communauté : sans accès actif, leurs
+// pages publiques seraient mises en pause (voir app/[slug]/page.tsx). La ligne
+// users doit déjà exister (upsertUserSettings au préalable).
+export async function grantLifetimeAccess(userId: string): Promise<void> {
+  await sql`UPDATE users SET subscription_status = 'lifetime', updated_at = now() WHERE user_id = ${userId}`;
+}
+
 // ── Teaser CV public (landing page, sans compte) ────────────────────────────
 
 export async function countRecentTeaserRequests(ip: string, sinceHours: number): Promise<number> {

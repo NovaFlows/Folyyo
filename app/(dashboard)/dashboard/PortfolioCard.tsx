@@ -8,8 +8,11 @@ import { PROFILE_LABEL } from "@/lib/profile-labels";
 import { getDictionary } from "@/lib/i18n/dictionaries";
 import type { Locale } from "@/lib/i18n/types";
 
-export default function PortfolioCard({ portfolio: p, views, locale }: {
+export default function PortfolioCard({ portfolio: p, views, locale, selected, onSelect }: {
   portfolio: Portfolio; views?: { total: number; last7d: number }; locale: Locale;
+  // Mode "sélectionnable" (dashboard multi-portfolios admin) : la carte devient
+  // cliquable pour choisir quel portfolio afficher dans l'aperçu latéral.
+  selected?: boolean; onSelect?: () => void;
 }) {
   // Les fonctions du dictionnaire (t.views, t.count…) ne sont pas
   // sérialisables à travers la frontière Server→Client Component — on reçoit
@@ -37,12 +40,17 @@ export default function PortfolioCard({ portfolio: p, views, locale }: {
   }
 
   return (
-    <div className="rounded-2xl p-6 transition hover:-translate-y-0.5 relative"
-      style={{ background: "#f0ece6", border: "1px solid rgba(0,0,0,0.06)" }}>
+    <div onClick={onSelect}
+      className={`rounded-2xl p-6 transition hover:-translate-y-0.5 relative ${onSelect ? "cursor-pointer" : ""}`}
+      style={{
+        background: "#f0ece6",
+        border: selected ? "1px solid #c9a96e" : "1px solid rgba(0,0,0,0.06)",
+        boxShadow: selected ? "0 0 0 1px #c9a96e" : undefined,
+      }}>
 
       {/* Delete button */}
       <button
-        onClick={handleDelete}
+        onClick={(e) => { e.stopPropagation(); handleDelete(); }}
         disabled={deleting}
         title={confirm ? t.deleteConfirmTitle : t.deleteTitle}
         className="absolute top-4 right-4 rounded-lg px-2 py-1 text-xs transition hover:opacity-80 disabled:opacity-40"
@@ -93,13 +101,13 @@ export default function PortfolioCard({ portfolio: p, views, locale }: {
       )}
 
       <div className="flex gap-2">
-        <Link href={`/portfolio/${p.id}`}
+        <Link href={`/portfolio/${p.id}`} onClick={(e) => e.stopPropagation()}
           className="flex-1 rounded-xl py-2 text-center text-xs font-medium transition hover:opacity-70"
           style={{ border: "1px solid rgba(0,0,0,0.08)", color: "#78716c" }}>
           {t.manage}
         </Link>
         {isLive && (
-          <a href={`/${shortSlug}`} target="_blank" rel="noopener noreferrer"
+          <a href={`/${shortSlug}`} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
             className="flex-1 rounded-xl py-2 text-center text-xs font-medium transition hover:opacity-70"
             style={{ background: "rgba(201,169,110,0.1)", color: "#c9a96e" }}>
             {t.viewSite}
