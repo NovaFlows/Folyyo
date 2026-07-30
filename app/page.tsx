@@ -47,8 +47,8 @@ export function generateMetadata(): Metadata {
     description: seo.description,
     keywords: [...seo.keywords],
     alternates: { canonical: "/" },
-    openGraph: { title: seo.title, description: seo.description, url: "/", type: "website", siteName: "Folyo", locale: ogLocale },
-    twitter: { card: "summary_large_image", title: seo.title, description: seo.description },
+    openGraph: { title: seo.title, description: seo.description, url: "/", type: "website", siteName: "Folyo", locale: ogLocale, images: [{ url: "/og", width: 1200, height: 630, alt: "Folyo" }] },
+    twitter: { card: "summary_large_image", title: seo.title, description: seo.description, images: ["/og"] },
   };
 }
 
