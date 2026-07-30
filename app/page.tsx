@@ -12,6 +12,45 @@ import LanguageToggle from "@/components/i18n/LanguageToggle";
 import { getLocale } from "@/lib/i18n/locale";
 import { getDictionary } from "@/lib/i18n/dictionaries";
 import type { ReactNode } from "react";
+import type { Metadata } from "next";
+
+// SEO de la landing, par langue — titre, description et mots-clés cibles.
+const LANDING_SEO = {
+  fr: {
+    title: "Folyo — Crée ton portfolio professionnel en ligne avec l'IA",
+    description: "Génère et déploie ton portfolio pro en 60 secondes avec l'IA. Import CV, GitHub ou YouTube, éditeur visuel, assistant IA. Ton site sur folyo.page/ton-nom. Essai gratuit.",
+    keywords: ["créer un portfolio", "portfolio en ligne", "générateur de portfolio", "portfolio IA", "créer un site portfolio", "portfolio développeur", "portfolio étudiant", "portfolio designer", "portfolio photographe", "cv en ligne", "site portfolio gratuit"],
+  },
+  en: {
+    title: "Folyo — Build your professional portfolio online with AI",
+    description: "Generate and deploy your professional portfolio in 60 seconds with AI. Import your resume, GitHub or YouTube, visual editor, AI assistant. Your site at folyo.page/your-name. Free trial.",
+    keywords: ["portfolio maker", "online portfolio", "portfolio generator", "AI portfolio", "create a portfolio website", "developer portfolio", "student portfolio", "designer portfolio", "photographer portfolio", "resume website", "free portfolio site"],
+  },
+  es: {
+    title: "Folyo — Crea tu portfolio profesional online con IA",
+    description: "Genera y publica tu portfolio profesional en 60 segundos con IA. Importa tu CV, GitHub o YouTube, editor visual, asistente IA. Tu sitio en folyo.page/tu-nombre. Prueba gratis.",
+    keywords: ["crear portfolio", "portfolio online", "generador de portfolio", "portfolio IA", "crear web de portfolio", "portfolio desarrollador", "portfolio estudiante", "portfolio diseñador", "cv online", "portfolio gratis"],
+  },
+  de: {
+    title: "Folyo — Erstelle dein professionelles Portfolio online mit KI",
+    description: "Generiere und veröffentliche dein professionelles Portfolio in 60 Sekunden mit KI. Importiere Lebenslauf, GitHub oder YouTube, visueller Editor, KI-Assistent. Deine Seite auf folyo.page/dein-name. Kostenlos testen.",
+    keywords: ["portfolio erstellen", "online portfolio", "portfolio generator", "KI portfolio", "portfolio website erstellen", "entwickler portfolio", "studenten portfolio", "designer portfolio", "lebenslauf website", "kostenloses portfolio"],
+  },
+} as const;
+
+export function generateMetadata(): Metadata {
+  const locale = getLocale();
+  const seo = LANDING_SEO[locale];
+  const ogLocale = { fr: "fr_FR", en: "en_US", es: "es_ES", de: "de_DE" }[locale];
+  return {
+    title: { absolute: seo.title },
+    description: seo.description,
+    keywords: [...seo.keywords],
+    alternates: { canonical: "/" },
+    openGraph: { title: seo.title, description: seo.description, url: "/", type: "website", siteName: "Folyo", locale: ogLocale },
+    twitter: { card: "summary_large_image", title: seo.title, description: seo.description },
+  };
+}
 
 function Lines({ text }: { text: string }) {
   return <>{text.split("\n").map((line, i, arr) => <span key={i}>{line}{i < arr.length - 1 && <br />}</span>)}</>;

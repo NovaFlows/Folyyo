@@ -1,8 +1,12 @@
 import { notFound } from "next/navigation";
+import { cache } from "react";
+import type { Metadata } from "next";
 import { headers, cookies } from "next/headers";
 import { getPortfolioBySlugPublic, logPortfolioView } from "@/lib/db/queries";
+import { SITE_URL } from "@/lib/seo";
 import { isBotUserAgent } from "@/lib/tracking/is-bot";
 import type { ValidatedPortfolioJSON, ContentAside, BlockRow, GridItem } from "@/lib/anthropic/schema";
+import type { PortfolioWithOwnerAccess } from "@/types";
 import Image from "next/image";
 import { BlockContent, BlockRowsStatic, GridStatic, WidgetFrame, type WidgetStyle } from "@/components/portfolio/blocks";
 import HeroBackgroundCarousel from "@/components/portfolio/HeroBackgroundCarousel";
@@ -55,8 +59,39 @@ function sectionDefaultTitle(type: string): string {
   return map[type] ?? type;
 }
 
+// Mémoïsé par requête : generateMetadata ET la page appellent ce getter — cache()
+// évite la double requête DB pour un même rendu.
+const getPortfolio = cache((slug: string) => getPortfolioBySlugPublic(slug));
+
+function ownerActive(p: PortfolioWithOwnerAccess): boolean {
+  return Boolean(p.owner_subscription_status && hasActiveAccess({ subscription_status: p.owner_subscription_status, trial_ends_at: p.owner_trial_ends_at }));
+}
+
+export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
+  const portfolio = await getPortfolio(params.slug);
+  if (!portfolio?.site_json) return { title: "Portfolio", robots: { index: false, follow: false } };
+  const site = portfolio.site_json as ValidatedPortfolioJSON;
+  const name = stripRichTags(site.meta.name).trim();
+  const role = stripRichTags(site.meta.title).trim();
+  const tagline = stripRichTags(site.meta.tagline).trim();
+  const displayTitle = role ? `${name} — ${role}` : name;
+  const description = (tagline || `Portfolio de ${name}${role ? `, ${role}` : ""}.`).slice(0, 200);
+  const image = site.theme.hero_image_url || site.meta.avatar_url || undefined;
+  const url = `/${portfolio.slug ?? params.slug}`;
+  return {
+    title: { absolute: `${displayTitle} · Folyo` },
+    description,
+    alternates: { canonical: url },
+    // Un portfolio en pause (essai/abonnement inactif) ne rend pas son contenu
+    // → on ne le laisse pas s'indexer tant qu'il est indisponible.
+    robots: ownerActive(portfolio) ? { index: true, follow: true } : { index: false, follow: false },
+    openGraph: { type: "profile", title: displayTitle, description, url, images: image ? [{ url: image }] : undefined },
+    twitter: { card: "summary_large_image", title: displayTitle, description, images: image ? [image] : undefined },
+  };
+}
+
 export default async function PublicPortfolioPage({ params }: { params: { slug: string } }) {
-  const portfolio = await getPortfolioBySlugPublic(params.slug);
+  const portfolio = await getPortfolio(params.slug);
   if (!portfolio || !portfolio.site_json) notFound();
 
   // Slug jamais supprimé/désactivé en base — juste masqué tant que l'essai/
@@ -155,9 +190,28 @@ export default async function PublicPortfolioPage({ params }: { params: { slug: 
     );
   };
 
+  // Données structurées Schema.org (ProfilePage/Person) — résultats enrichis
+  // dans Google, et l'IA/robots comprennent que c'est le profil d'une personne.
+  const slug = portfolio.slug ?? params.slug;
+  const socials = [meta.github_url, meta.linkedin_url, meta.twitter_url, meta.instagram_url, meta.youtube_url].filter(Boolean);
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "ProfilePage",
+    mainEntity: {
+      "@type": "Person",
+      name: stripRichTags(meta.name).trim(),
+      jobTitle: stripRichTags(meta.title).trim() || undefined,
+      description: stripRichTags(meta.tagline).trim() || undefined,
+      url: `${SITE_URL}/${slug}`,
+      image: theme.hero_image_url || meta.avatar_url || undefined,
+      sameAs: socials.length ? socials : undefined,
+    },
+  };
+
   return (
     <main style={{ fontFamily: bFont, background: bg, color: txt, minHeight: "100vh", position: "relative",
       ...(scrollReveal ? { ["--pf-reveal-distance" as string]: `${revealDistance}px` } : {}) } as React.CSSProperties}>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       {/* scroll-behavior s'applique au document entier — sans effet sur l'éditeur,
           qui rend ce composant dans un <div> scrollable distinct, pas <html>. */}
       {smoothScroll && <style>{`html{scroll-behavior:smooth}`}</style>}

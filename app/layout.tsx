@@ -1,10 +1,22 @@
 import type { Metadata, Viewport } from "next";
 import { ClerkProvider } from "@clerk/nextjs";
+import { SITE_URL } from "@/lib/seo";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Folyo — Portfolio generator",
-  description: "Génère et déploie ton portfolio professionnel en quelques minutes avec l'IA.",
+  metadataBase: new URL(SITE_URL),
+  // `default` sert de repli ; les pages (landing, portfolios) posent leur
+  // propre titre. `template` ajoute le suffixe de marque aux titres enfants.
+  title: {
+    default: "Folyo — Crée ton portfolio professionnel avec l'IA",
+    template: "%s · Folyo",
+  },
+  description: "Génère et déploie ton portfolio professionnel en quelques minutes avec l'IA. Import de CV, GitHub ou YouTube, édition visuelle et assistant IA. Hébergé sur folyo.page/ton-nom.",
+  applicationName: "Folyo",
+  robots: { index: true, follow: true },
+  openGraph: { type: "website", siteName: "Folyo", locale: "fr_FR" },
+  twitter: { card: "summary_large_image" },
+  icons: { icon: "/icon.svg" },
 };
 
 // Empêche le pinch-to-zoom sur mobile — sans ça, dézoomer sur les mises en
