@@ -117,6 +117,7 @@ export default function LandingPage() {
             <a href="#examples" className="nav-link hover:text-[#1c1917] transition-colors">{t.nav.examples}</a>
             <a href="#features" className="nav-link hover:text-[#1c1917] transition-colors">{t.nav.features}</a>
             <a href="#faq"      className="nav-link hover:text-[#1c1917] transition-colors">{t.nav.faq}</a>
+            <Link href="/blog"    className="nav-link hover:text-[#1c1917] transition-colors">Blog</Link>
             <Link href="/contact" className="nav-link hover:text-[#1c1917] transition-colors">{t.nav.contact}</Link>
           </div>
 
@@ -429,6 +430,7 @@ export default function LandingPage() {
               <Link href="/login"  className="hover:text-white/50 transition-colors">{t.nav.login}</Link>
               <Link href="/signup" className="hover:text-white/50 transition-colors">{t.nav.signup}</Link>
               <Link href="/contact" className="hover:text-white/50 transition-colors">{t.nav.contact}</Link>
+              <Link href="/blog" className="hover:text-white/50 transition-colors">Blog</Link>
               <Link href="/mentions-legales" className="hover:text-white/50 transition-colors">{t.nav.legal}</Link>
               <Link href="/confidentialite" className="hover:text-white/50 transition-colors">{t.nav.privacy}</Link>
               <Link href="/cgu" className="hover:text-white/50 transition-colors">{t.nav.terms}</Link>
