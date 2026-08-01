@@ -10,10 +10,10 @@ export function BlogHeader() {
         </Link>
         <div className="flex items-center gap-5">
           <Link href="/blog" className="text-sm font-medium transition hover:opacity-70" style={{ color: "#78716c" }}>Blog</Link>
-          <Link href="/signup"
+          <Link href="/"
             className="rounded-full px-5 py-2 text-sm font-medium text-white transition hover:opacity-80"
             style={{ background: "#1c1917" }}>
-            Créer mon portfolio
+            Découvrir Folyo
           </Link>
         </div>
       </div>
@@ -31,11 +31,16 @@ export function BlogCta() {
       <p className="mb-5 text-sm" style={{ color: "rgba(255,255,255,0.6)" }}>
         Import CV, GitHub ou YouTube · éditeur visuel · essai gratuit de 3 jours, sans carte.
       </p>
-      <Link href="/signup"
-        className="inline-block rounded-full px-7 py-3 text-sm font-semibold transition hover:opacity-90"
-        style={{ background: "#c9a96e", color: "#1c1917" }}>
-        Commencer gratuitement →
-      </Link>
+      <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-3">
+        <Link href="/"
+          className="inline-block rounded-full px-7 py-3 text-sm font-semibold transition hover:opacity-90"
+          style={{ background: "#c9a96e", color: "#1c1917" }}>
+          Découvrir Folyo →
+        </Link>
+        <Link href="/signup" className="text-sm transition hover:opacity-80" style={{ color: "rgba(255,255,255,0.7)" }}>
+          ou créer un compte
+        </Link>
+      </div>
     </div>
   );
 }
