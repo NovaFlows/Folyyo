@@ -12,7 +12,7 @@ import { BlockContent, BlockRowsStatic, GridStatic, WidgetFrame, type WidgetStyl
 import HeroBackgroundCarousel from "@/components/portfolio/HeroBackgroundCarousel";
 import HeroDecoration from "@/components/portfolio/HeroDecoration";
 import RichText from "@/components/portfolio/RichText";
-import { stripRichTags } from "@/lib/portfolio/rich-text";
+import { stripRichTags, isSafeRichTextUrl } from "@/lib/portfolio/rich-text";
 import { hasActiveAccess } from "@/lib/billing/access";
 import { getLocale } from "@/lib/i18n/locale";
 import { getDictionary } from "@/lib/i18n/dictionaries";
@@ -260,7 +260,7 @@ export default async function PublicPortfolioPage({ params }: { params: { slug: 
                 <a href="#projects" style={{ background: pri, color: "#fff", padding: "0.75rem 2rem", borderRadius: "0.75rem", textDecoration: "none", fontWeight: 600, fontSize: "0.875rem" }}>
                   <RichText html={section.cta_text}/>
                 </a>
-                {meta.github_url && (
+                {meta.github_url && isSafeRichTextUrl(meta.github_url) && (
                   <a href={meta.github_url} target="_blank" rel="noopener noreferrer"
                     style={{ border: `1px solid ${txt}20`, color: `${txt}80`, padding: "0.75rem 2rem", borderRadius: "0.75rem", textDecoration: "none", fontSize: "0.875rem" }}>
                     GitHub →
@@ -370,8 +370,8 @@ export default async function PublicPortfolioPage({ params }: { params: { slug: 
                             </div>
                           )}
                           <div style={{ display: "flex", gap: "1rem" }}>
-                            {p.github_url && <a href={p.github_url} target="_blank" rel="noopener noreferrer" style={{ fontSize: "0.75rem", color: `${txt}60`, textDecoration: "none" }}>GitHub →</a>}
-                            {p.live_url   && <a href={p.live_url}   target="_blank" rel="noopener noreferrer" style={{ fontSize: "0.75rem", color: acc, textDecoration: "none" }}>Live →</a>}
+                            {p.github_url && isSafeRichTextUrl(p.github_url) && <a href={p.github_url} target="_blank" rel="noopener noreferrer" style={{ fontSize: "0.75rem", color: `${txt}60`, textDecoration: "none" }}>GitHub →</a>}
+                            {p.live_url   && isSafeRichTextUrl(p.live_url)   && <a href={p.live_url}   target="_blank" rel="noopener noreferrer" style={{ fontSize: "0.75rem", color: acc, textDecoration: "none" }}>Live →</a>}
                           </div>
                         </div>
                       </div>
@@ -423,7 +423,7 @@ export default async function PublicPortfolioPage({ params }: { params: { slug: 
                     {section.email}
                   </a>
                   <div style={{ display: "flex", justifyContent: "center", gap: "1.5rem" }}>
-                    {section.links.map((l) => (
+                    {section.links.filter((l) => isSafeRichTextUrl(l.url)).map((l) => (
                       <a key={l.label} href={l.url} target="_blank" rel="noopener noreferrer"
                         style={{ fontSize: "0.875rem", color: `${txt}60`, textDecoration: "none" }}><RichText html={l.label}/></a>
                     ))}

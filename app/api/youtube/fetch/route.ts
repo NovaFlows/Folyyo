@@ -1,7 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@clerk/nextjs/server";
 import { fetchYouTubeData } from "@/lib/youtube/fetch";
 
+// Auth manquante jusqu'ici — n'importe quel visiteur non connecté pouvait
+// consommer le quota YOUTUBE_API_KEY (partagé par toute l'app) sans limite,
+// contrairement à /api/github/fetch qui exige déjà un compte. Alignement sur
+// le même comportement.
 export async function GET(request: NextRequest) {
+  const { userId } = await auth();
+  if (!userId) return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
+
   const handle = request.nextUrl.searchParams.get("handle");
   if (!handle) return NextResponse.json({ error: "Paramètre handle manquant" }, { status: 400 });
   const limitParam = request.nextUrl.searchParams.get("limit");

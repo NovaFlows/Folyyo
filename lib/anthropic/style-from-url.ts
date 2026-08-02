@@ -1,5 +1,6 @@
 import { callClaude } from "./client";
 import { WIDGET_FONT_OPTIONS } from "@/components/portfolio/blocks";
+import { assertPublicHttpUrl } from "@/lib/security/ssrf-guard";
 
 // Polices réellement chargées sur le site (voir @import dans app/globals.css) —
 // Claude DOIT choisir dedans, sinon la police tombe silencieusement en repli système.
@@ -47,6 +48,7 @@ async function fetchText(url: string, timeoutMs: number): Promise<string | null>
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), timeoutMs);
   try {
+    await assertPublicHttpUrl(url); // SSRF : rejette IP privée/loopback/link-local
     const res = await fetch(url, {
       signal: ctrl.signal,
       headers: {

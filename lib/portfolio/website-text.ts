@@ -4,6 +4,8 @@
 // retourne null si le site est inaccessible, vide ou trop long à répondre, pour
 // ne jamais bloquer la génération.
 
+import { assertPublicHttpUrl } from "@/lib/security/ssrf-guard";
+
 const ENTITIES: Record<string, string> = {
   "&nbsp;": " ", "&amp;": "&", "&lt;": "<", "&gt;": ">",
   "&#39;": "'", "&apos;": "'", "&quot;": '"', "&eacute;": "é",
@@ -18,6 +20,7 @@ export async function fetchWebsiteText(url: string, maxChars = 4000, timeoutMs =
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), timeoutMs);
   try {
+    await assertPublicHttpUrl(target); // SSRF : rejette IP privée/loopback/link-local
     const res = await fetch(target, {
       signal: ctrl.signal,
       headers: {

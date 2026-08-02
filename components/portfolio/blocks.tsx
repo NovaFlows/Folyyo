@@ -2,7 +2,7 @@ import type { ContentBlock, BlockRow, GridItem } from "@/lib/anthropic/schema";
 import { GRID_COLS, GRID_ROW_HEIGHT, GRID_MARGIN, sortGridItems } from "@/lib/portfolio/grid";
 import Carousel from "./Carousel";
 import RichText from "./RichText";
-import { stripRichTags } from "@/lib/portfolio/rich-text";
+import { stripRichTags, isSafeRichTextUrl } from "@/lib/portfolio/rich-text";
 
 export type WidgetStyle = "strict" | "soft" | "glass";
 
@@ -118,7 +118,7 @@ export function BlockContent({ block, pri, txt, hFont, editMode = false, fill = 
       const fs = block.fontSize ? `${block.fontSize}px` : `${0.875 * sc}rem`;
       return (
         <div style={{ display: "flex", flexDirection: "column", gap: `${0.5 * sc}rem`, ...(fill ? { height: "100%", justifyContent: "center" } : {}) }}>
-          {block.items.map((lk, i) => (
+          {block.items.filter((lk) => isSafeRichTextUrl(lk.url || "#")).map((lk, i) => (
             <a key={i} href={lk.url || "#"} target="_blank" rel="noopener noreferrer"
               style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.75rem", padding: `${0.625 * sc}rem ${0.875 * sc}rem`, borderRadius: "0.625rem", background: `${pri}0d`, border: `1px solid ${pri}22`, color: txt, textDecoration: "none", fontSize: fs, fontFamily: block.fontFamily || undefined, fontWeight: 500 }}>
               <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{lk.label ? <RichText html={lk.label}/> : (lk.url || "Lien")}</span>

@@ -460,6 +460,17 @@ export interface SupportMessage {
   status: string; created_at: string;
 }
 
+// Anti-spam : borne le nombre de messages qu'un même compte peut envoyer par
+// heure (aucune limite avant — un compte pouvait spammer indéfiniment l'email
+// de l'exploitant via notifyNewSupportMessage, chaque appel déclenchant un envoi Resend).
+export async function countRecentSupportMessages(userId: string, sinceHours: number): Promise<number> {
+  const rows = await sql`
+    SELECT COUNT(*)::int AS count FROM support_messages
+    WHERE user_id = ${userId} AND created_at > now() - (${sinceHours} || ' hours')::interval
+  `;
+  return one<{ count: number }>(rows)?.count ?? 0;
+}
+
 export async function createSupportMessage(data: {
   user_id: string; email: string; category: string; message: string;
 }): Promise<SupportMessage> {

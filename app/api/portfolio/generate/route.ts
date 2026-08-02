@@ -82,7 +82,15 @@ export async function POST(request: NextRequest) {
   try {
     let cvText = "";
     try {
-      const cvBuffer = await readCvBuffer(cvStoragePath);
+      // IDOR : cvStoragePath vient du client (renvoyé par /api/upload à
+      // l'étape précédente) — sans cette vérification, n'importe quel compte
+      // connecté pouvait fournir la cvStoragePath d'un AUTRE utilisateur
+      // (clé R2 "cvs/{userId}/{tmpId}.pdf") et faire lire son CV par le
+      // serveur pour l'injecter dans SON PROPRE portfolio généré.
+      const isOwnCv = !cvStoragePath
+        || cvStoragePath.startsWith(`cvs/${userId}/`)
+        || cvStoragePath.startsWith(`local:cvs/${userId}/`);
+      const cvBuffer = isOwnCv ? await readCvBuffer(cvStoragePath) : null;
       if (cvBuffer) cvText = await parsePdfText(cvBuffer, 4000);
     } catch { /* CV parsing optional */ }
 

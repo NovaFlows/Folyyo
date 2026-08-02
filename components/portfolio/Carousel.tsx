@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import RichText from "./RichText";
-import { stripRichTags } from "@/lib/portfolio/rich-text";
+import { stripRichTags, isSafeRichTextUrl } from "@/lib/portfolio/rich-text";
 
 export default function Carousel({ images, pri, txt, fill = false, fontFamily, fontSize, descriptionWidth }: {
   images: { url: string; caption?: string; description?: string; linkUrl?: string }[];
@@ -14,7 +14,11 @@ export default function Carousel({ images, pri, txt, fill = false, fontFamily, f
 
   const go = (i: number) => setIndex((i + images.length) % images.length);
   const current = images[index];
-  const hasLink = Boolean(current.linkUrl);
+  // isSafeRichTextUrl rejette les schémas exécutables ("javascript:", etc.) —
+  // sans ce garde-fou, un linkUrl malveillant posé sur SON PROPRE portfolio
+  // (via l'éditeur ou un appel direct à l'API) s'exécutait dans le navigateur
+  // de n'importe quel visiteur au clic (XSS stocké, même origine folyo.page).
+  const hasLink = Boolean(current.linkUrl) && isSafeRichTextUrl(current.linkUrl!);
   // Basé sur TOUT le carrousel (pas seulement la photo affichée) : si une
   // seule photo a une description, la mise en page 2 colonnes s'applique à
   // toutes les photos — sinon la taille de l'image sauterait en naviguant
