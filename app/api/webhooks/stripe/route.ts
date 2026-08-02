@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 import { getStripe } from "@/lib/stripe/client";
 import { setSubscriptionActive, setSubscriptionStatusByCustomerId, getUserSettingsByStripeCustomerId } from "@/lib/db/queries";
+import { notifyNewSubscription } from "@/lib/email/notify";
 
 // La vérification de signature Stripe exige le corps BRUT (pas le JSON déjà
 // parsé) — App Router ne parse rien par défaut, `request.text()` suffit
@@ -38,6 +39,21 @@ export async function POST(request: NextRequest) {
         const priceId = item?.price.id ?? "";
         const currentPeriodEnd = new Date((item?.current_period_end ?? Math.floor(Date.now() / 1000)) * 1000);
         await setSubscriptionActive(userId, { stripeCustomerId: customerId, stripeSubscriptionId: subscriptionId, stripePriceId: priceId, currentPeriodEnd });
+
+        // Notification e-mail à l'exploitant (best-effort : n'interrompt jamais
+        // le webhook — notifyNewSubscription avale ses propres erreurs).
+        const price = item?.price;
+        const amount = price?.unit_amount != null
+          ? `${(price.unit_amount / 100).toFixed(2).replace(".", ",")} ${price.currency.toUpperCase()}`
+          : "";
+        const plan = price?.recurring?.interval === "year" ? "Annuel"
+          : price?.recurring?.interval === "month" ? "Mensuel" : "";
+        await notifyNewSubscription({
+          email: session.customer_details?.email ?? session.customer_email ?? "",
+          plan,
+          amount,
+          userId,
+        });
         break;
       }
 
