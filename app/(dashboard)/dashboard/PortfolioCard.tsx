@@ -49,6 +49,7 @@ export default function PortfolioCard({ portfolio: p, views, locale, selected, o
   }
 
   return (
+    <>
     <div onClick={onSelect}
       className={`rounded-2xl p-6 transition hover:-translate-y-0.5 relative ${onSelect ? "cursor-pointer" : ""}`}
       style={{
@@ -121,12 +122,17 @@ export default function PortfolioCard({ portfolio: p, views, locale, selected, o
           </a>
         )}
       </div>
+    </div>
 
-      {/* Modale de confirmation de suppression — même gabarit que ReviewPopup
-          (overlay fixed + voile + carte centrée crème). `onClick` sur le
-          conteneur stoppe la propagation pour ne pas déclencher `onSelect`
-          de la carte parente en mode sélectionnable. */}
-      {confirmOpen && (
+    {/* Modale de confirmation de suppression — même gabarit que ReviewPopup
+        (overlay fixed + voile + carte centrée crème). Rendue en dehors de la
+        carte ci-dessus (qui a `hover:-translate-y-0.5`) : un ancêtre avec
+        `transform` devient le référentiel de positionnement pour tout
+        descendant `position: fixed`, ce qui faisait suivre la modale au
+        survol de la carte au lieu de rester fixée à l'écran (elle se
+        déplaçait/clignotait). `onClick` sur le conteneur stoppe la
+        propagation pour ne pas déclencher `onSelect` de la carte. */}
+    {confirmOpen && (
         <div onClick={(e) => e.stopPropagation()}
           style={{ position: "fixed", inset: 0, zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}
           role="dialog" aria-modal="true">
@@ -160,6 +166,6 @@ export default function PortfolioCard({ portfolio: p, views, locale, selected, o
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }

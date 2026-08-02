@@ -240,7 +240,7 @@ export default async function LandingPage() {
               gardée courte à gauche pour que cette colonne tienne dans un seul
               écran ; voir le paragraphe équivalent lg:hidden plus haut) */}
           <div className="hidden lg:flex flex-shrink-0 flex-col items-center justify-center gap-6" style={{ padding: "8px 48px 24px" }}>
-            <HeroVisual locale={locale} />
+            <HeroVisual locale={locale} portfoliosCount={portfoliosCount} />
             <p className="max-w-xs text-center text-sm leading-relaxed" style={{ color: "#78716c" }}>
               {t.hero.subtitle}
             </p>

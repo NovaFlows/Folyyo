@@ -19,7 +19,7 @@ const STRINGS = {
   de: { generating: "Generierung", yourUrl: "deine URL", portfoliosCreated: "erstellte Portfolios" },
 };
 
-export default function HeroVisual({ locale }: { locale: Locale }) {
+export default function HeroVisual({ locale, portfoliosCount }: { locale: Locale; portfoliosCount: number }) {
   const s = STRINGS[locale];
   const [cardIndex, setCardIndex] = useState(0);
   const [urlLen, setUrlLen] = useState(URL_NAMES[0].length);
@@ -162,7 +162,7 @@ export default function HeroVisual({ locale }: { locale: Locale }) {
           fontFamily: "'Playfair Display', Georgia, serif",
           fontSize: "1.375rem", fontWeight: 500,
           color: "#1c1917", lineHeight: 1, marginBottom: 4,
-        }}>269</p>
+        }}>{portfoliosCount.toLocaleString("fr-FR")}</p>
         <p style={{ fontSize: "0.575rem", color: "#a09a94" }}>{s.portfoliosCreated}</p>
       </div>
 
