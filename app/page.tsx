@@ -14,6 +14,14 @@ import { getDictionary } from "@/lib/i18n/dictionaries";
 import type { ReactNode } from "react";
 import type { Metadata } from "next";
 import { SITE_URL } from "@/lib/seo";
+import { countPortfoliosCreatedSince } from "@/lib/db/queries";
+
+// Point de départ du compteur "portfolios créés" affiché sur la landing —
+// choisi par l'exploitant (2026-08-02) plutôt que le vrai total DB (qui
+// inclut les portfolios de démo communauté). À partir de cette date, chaque
+// nouveau portfolio créé s'ajoute réellement à ce nombre de base.
+const COUNTER_BASELINE = 87;
+const COUNTER_BASELINE_DATE = new Date("2026-08-02T00:00:00Z");
 
 // SEO de la landing, par langue — titre, description et mots-clés cibles.
 const LANDING_SEO = {
@@ -97,9 +105,14 @@ function PostIt({ children }: { children: ReactNode }) {
   );
 }
 
-export default function LandingPage() {
+export default async function LandingPage() {
   const locale = getLocale();
   const t = getDictionary(locale);
+
+  // Ne bloque jamais le rendu de la landing si la DB a un souci — repli sur
+  // le seul point de départ.
+  const newSinceBaseline = await countPortfoliosCreatedSince(COUNTER_BASELINE_DATE).catch(() => 0);
+  const portfoliosCount = COUNTER_BASELINE + newSinceBaseline;
 
   // Données structurées Schema.org — aide Google ET les IA (ChatGPT, Gemini,
   // Perplexity…) à identifier clairement Folyo comme un générateur de portfolio.
@@ -217,7 +230,7 @@ export default function LandingPage() {
               <div className="h-8 w-px hidden sm:block" style={{ background: "rgba(0,0,0,0.08)" }} />
               <p className="text-xs" style={{ color: "#a09a94" }}>
                 <span style={{ color: "#c9a96e", fontWeight: 600 }}>
-                  <AnimatedCounter value={269} />
+                  <AnimatedCounter value={portfoliosCount} />
                 </span> {t.hero.portfoliosCreated}
               </p>
             </div>

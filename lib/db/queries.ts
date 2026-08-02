@@ -463,6 +463,16 @@ export interface SupportMessage {
 // Anti-spam : borne le nombre de messages qu'un même compte peut envoyer par
 // heure (aucune limite avant — un compte pouvait spammer indéfiniment l'email
 // de l'exploitant via notifyNewSupportMessage, chaque appel déclenchant un envoi Resend).
+// Compteur "portfolios créés" affiché sur la landing — voir COUNTER_BASELINE
+// dans app/page.tsx : la vraie valeur DB au moment choisi par l'exploitant
+// n'est jamais montrée telle quelle (elle inclut les portfolios de démo
+// communauté) ; seuls les portfolios créés APRÈS ce point de départ
+// s'additionnent au nombre affiché, qui grandit ensuite avec les vraies créations.
+export async function countPortfoliosCreatedSince(since: Date): Promise<number> {
+  const rows = await sql`SELECT COUNT(*)::int AS count FROM portfolios WHERE created_at >= ${since.toISOString()}`;
+  return one<{ count: number }>(rows)?.count ?? 0;
+}
+
 export async function countRecentSupportMessages(userId: string, sinceHours: number): Promise<number> {
   const rows = await sql`
     SELECT COUNT(*)::int AS count FROM support_messages
@@ -489,4 +499,37 @@ export async function getSupportMessages(): Promise<SupportMessage[]> {
 
 export async function setSupportMessageStatus(id: string, status: "new" | "resolved"): Promise<void> {
   await sql`UPDATE support_messages SET status = ${status} WHERE id = ${id}`;
+}
+
+// ── Avis clients (popup dashboard → admin) ──────────────────────────────────
+export interface Review {
+  id: string; user_id: string; email: string; rating: number; comment: string | null; created_at: string;
+}
+
+// Un seul avis par compte — vérifié avant d'afficher le popup ET avant
+// insertion (la contrainte UNIQUE(user_id) protège en plus au niveau DB).
+export async function hasUserReviewed(userId: string): Promise<boolean> {
+  const rows = await sql`SELECT 1 FROM reviews WHERE user_id = ${userId} LIMIT 1`;
+  return rows.length > 0;
+}
+
+// `ON CONFLICT DO NOTHING` : si l'utilisateur a déjà un avis (course entre
+// deux requêtes, ou popup pas encore refermé côté client), on n'écrase jamais
+// un avis existant — la route appelante doit vérifier hasUserReviewed avant
+// et traiter un retour vide comme "déjà noté".
+export async function createReview(data: {
+  user_id: string; email: string; rating: number; comment?: string | null;
+}): Promise<Review | null> {
+  const rows = await sql`
+    INSERT INTO reviews (user_id, email, rating, comment)
+    VALUES (${data.user_id}, ${data.email}, ${data.rating}, ${data.comment ?? null})
+    ON CONFLICT (user_id) DO NOTHING
+    RETURNING *
+  `;
+  return one<Review>(rows);
+}
+
+export async function getReviews(): Promise<Review[]> {
+  const rows = await sql`SELECT * FROM reviews ORDER BY created_at DESC`;
+  return many<Review>(rows);
 }
