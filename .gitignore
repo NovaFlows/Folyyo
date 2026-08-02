@@ -22,3 +22,9 @@ npm-debug.log*
 
 .vercel
 .env*
+
+# Higgsfield skills (installées via `npx skills add higgsfield-ai/skills`,
+# régénérables depuis skills-lock.json — .claude/skills/ contient des
+# symlinks à chemins absolus, non portables d'une machine à l'autre)
+.agents/
+.claude/skills/
