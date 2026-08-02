@@ -22,7 +22,8 @@ export default function PortfolioCard({ portfolio: p, views, locale, selected, o
   const t = getDictionary(locale).dashboard;
   const router = useRouter();
   const [deleting, setDeleting] = useState(false);
-  const [confirm, setConfirm] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [deleteError, setDeleteError] = useState(false);
   const statusColor: Record<PortfolioStatus, string> = {
     draft: "#a09a94", generating: "#d97706", deploying: "#0891b2",
     live: "#22a06b", editing: "#d97706", error: "#dc2626",
@@ -33,10 +34,18 @@ export default function PortfolioCard({ portfolio: p, views, locale, selected, o
   const isLive = p.status === "live";
 
   async function handleDelete() {
-    if (!confirm) { setConfirm(true); return; }
     setDeleting(true);
-    await fetch(`/api/portfolio/${p.id}`, { method: "DELETE" });
-    router.refresh();
+    setDeleteError(false);
+    try {
+      const res = await fetch(`/api/portfolio/${p.id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error();
+      router.refresh();
+    } catch {
+      // Échec réseau/serveur : on rouvre la possibilité de réessayer plutôt
+      // que de laisser le bouton bloqué indéfiniment sur "Suppression…".
+      setDeleting(false);
+      setDeleteError(true);
+    }
   }
 
   return (
@@ -48,31 +57,29 @@ export default function PortfolioCard({ portfolio: p, views, locale, selected, o
         boxShadow: selected ? "0 0 0 1px #c9a96e" : undefined,
       }}>
 
-      {/* Delete button */}
-      <button
-        onClick={(e) => { e.stopPropagation(); handleDelete(); }}
-        disabled={deleting}
-        title={confirm ? t.deleteConfirmTitle : t.deleteTitle}
-        className="absolute top-4 right-4 rounded-lg px-2 py-1 text-xs transition hover:opacity-80 disabled:opacity-40"
-        style={{
-          background: confirm ? "rgba(220,38,38,0.08)" : "transparent",
-          color: confirm ? "#dc2626" : "#c8c4bf",
-          border: confirm ? "1px solid rgba(220,38,38,0.15)" : "1px solid transparent",
-        }}
-        onBlur={() => setConfirm(false)}>
-        {deleting ? "…" : confirm ? t.deleteConfirmLabel : "✕"}
-      </button>
-
-      {/* Profile + status row */}
-      <div className="mb-4 flex items-center justify-between pr-8">
-        <span className="mono rounded px-1.5 py-0.5 text-xs"
+      {/* Profile + status + suppression, dans une seule ligne flex. La
+          confirmation de suppression passe désormais par une modale centrée
+          (voir plus bas) plutôt que par un changement de libellé inline sur
+          ce bouton — celui-ci garde donc toujours la même largeur. */}
+      <div className="mb-4 flex items-center justify-between gap-2">
+        <span className="mono rounded px-1.5 py-0.5 text-xs shrink-0"
           style={{ background: "rgba(0,0,0,0.04)", color: "#a09a94" }}>
           {PROFILE_LABEL[p.profile_type] ?? p.profile_type}
         </span>
-        <span className="flex items-center gap-1.5 text-xs font-medium" style={{ color }}>
-          <span className="h-1.5 w-1.5 rounded-full" style={{ background: color }} />
-          {statusLabel}
-        </span>
+        <div className="flex items-center gap-3 min-w-0">
+          <span className="flex items-center gap-1.5 text-xs font-medium shrink-0" style={{ color }}>
+            <span className="h-1.5 w-1.5 rounded-full" style={{ background: color }} />
+            {statusLabel}
+          </span>
+          <button
+            onClick={(e) => { e.stopPropagation(); setConfirmOpen(true); }}
+            disabled={deleting}
+            title={t.deleteTitle}
+            className="shrink-0 rounded-lg px-2 py-1 text-xs transition hover:opacity-80 disabled:opacity-40"
+            style={{ background: "transparent", color: "#c8c4bf", border: "1px solid transparent" }}>
+            ✕
+          </button>
+        </div>
       </div>
 
       {/* Name */}
@@ -114,6 +121,45 @@ export default function PortfolioCard({ portfolio: p, views, locale, selected, o
           </a>
         )}
       </div>
+
+      {/* Modale de confirmation de suppression — même gabarit que ReviewPopup
+          (overlay fixed + voile + carte centrée crème). `onClick` sur le
+          conteneur stoppe la propagation pour ne pas déclencher `onSelect`
+          de la carte parente en mode sélectionnable. */}
+      {confirmOpen && (
+        <div onClick={(e) => e.stopPropagation()}
+          style={{ position: "fixed", inset: 0, zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}
+          role="dialog" aria-modal="true">
+          <div onClick={deleting ? undefined : () => { setConfirmOpen(false); setDeleteError(false); }}
+            style={{ position: "absolute", inset: 0, background: "rgba(28,25,23,0.55)" }} />
+
+          <div className="rounded-2xl p-6" style={{
+            position: "relative", width: "min(380px, 100%)",
+            background: "#f0ece6", border: "1px solid rgba(0,0,0,0.08)",
+            boxShadow: "0 24px 60px -20px rgba(28,25,23,0.45)",
+          }}>
+            <h3 className="serif mb-2" style={{ fontSize: "1.15rem", fontWeight: 500, color: "#1c1917" }}>
+              {t.deleteModalTitle}
+            </h3>
+            <p className="text-sm mb-5" style={{ color: "#78716c" }}>{t.deleteModalDesc}</p>
+
+            {deleteError && <p className="text-sm mb-4" style={{ color: "#dc2626" }}>{t.deleteModalError}</p>}
+
+            <div className="flex items-center gap-4">
+              <button onClick={handleDelete} disabled={deleting}
+                className="rounded-xl px-5 py-2 text-sm font-semibold text-white transition hover:opacity-85 disabled:opacity-60"
+                style={{ background: "#dc2626", border: "none", cursor: "pointer" }}>
+                {deleting ? t.deleteModalLoading : t.deleteModalConfirm}
+              </button>
+              <button onClick={() => { setConfirmOpen(false); setDeleteError(false); }} disabled={deleting}
+                className="text-sm transition hover:opacity-70 disabled:opacity-40"
+                style={{ color: "#a09a94", background: "none", border: "none", cursor: "pointer" }}>
+                {t.deleteModalCancel}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

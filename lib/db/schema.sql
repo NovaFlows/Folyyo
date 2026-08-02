@@ -136,3 +136,21 @@ CREATE TABLE IF NOT EXISTS support_messages (
 
 CREATE INDEX IF NOT EXISTS idx_support_messages_created_at ON support_messages(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_support_messages_status     ON support_messages(status);
+
+-- Avis clients (popup étoiles proposé depuis le dashboard, 1 jour après
+-- l'inscription) — consultés côté admin sur /dashboard/admin/reviews.
+-- `email` capturé côté serveur (Clerk) au moment de l'envoi, comme pour
+-- support_messages, jamais fourni par le client. Un seul avis par compte :
+-- contrainte UNIQUE sur user_id (défense en profondeur en plus du check
+-- côté route/dashboard) — pas de mise à jour d'un avis existant, la personne
+-- ne peut simplement plus en soumettre un second.
+CREATE TABLE IF NOT EXISTS reviews (
+  id         UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id    TEXT        NOT NULL UNIQUE,
+  email      TEXT        NOT NULL,
+  rating     SMALLINT    NOT NULL CHECK (rating BETWEEN 1 AND 5),
+  comment    TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_reviews_created_at ON reviews(created_at DESC);

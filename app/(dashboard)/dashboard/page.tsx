@@ -1,14 +1,17 @@
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { getPortfoliosByUser, getViewCountsForUser, getUserSettings } from "@/lib/db/queries";
+import { getPortfoliosByUser, getViewCountsForUser, getUserSettings, hasUserReviewed } from "@/lib/db/queries";
 import { checkFreshness } from "@/lib/freshness/check";
 import PortfolioCard from "./PortfolioCard";
 import MultiPortfolioBrowser from "./MultiPortfolioBrowser";
 import FreshnessBanner from "./FreshnessBanner";
+import ReviewPopup from "./ReviewPopup";
 import { getLocale } from "@/lib/i18n/locale";
 import { getDictionary } from "@/lib/i18n/dictionaries";
 import { isAdmin } from "@/lib/auth/admin";
+
+const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 
 export default async function DashboardPage() {
   const { userId } = await auth();
@@ -17,15 +20,25 @@ export default async function DashboardPage() {
   const locale = getLocale();
   const t = getDictionary(locale);
 
-  const [portfolios, viewCounts, settings] = await Promise.all([
+  const [portfolios, viewCounts, settings, alreadyReviewed] = await Promise.all([
     getPortfoliosByUser(userId),
     getViewCountsForUser(userId),
     getUserSettings(userId),
+    hasUserReviewed(userId),
   ]);
 
   // Un portfolio par compte, sauf les comptes "lifetime" — voir
   // app/api/portfolio/generate/route.ts pour la garde serveur équivalente.
   const canCreateMore = isAdmin(userId) || settings?.subscription_status === "lifetime" || portfolios.length === 0;
+
+  // Popup de notation : proposé au plus tôt 1 jour après l'inscription, jamais
+  // si un avis existe déjà. Le cooldown "fermé sans noter" (7 jours) est géré
+  // côté client dans ReviewPopup (localStorage) — cette garde-ci ne concerne
+  // que "compte assez ancien" + "pas encore noté", vérifiés en base à chaque
+  // chargement du dashboard.
+  const reviewPopupEligible = !alreadyReviewed
+    && !!settings
+    && Date.now() - new Date(settings.created_at).getTime() >= ONE_DAY_MS;
 
   // Nudge de fraîcheur GitHub/YouTube — best-effort, ne doit jamais faire
   // planter le dashboard si une API externe est indisponible.
@@ -35,6 +48,8 @@ export default async function DashboardPage() {
 
   return (
     <div>
+      <ReviewPopup locale={locale} eligible={reviewPopupEligible} />
+
       <div className="mb-10 flex items-end justify-between">
         <div>
           <p className="mono text-xs tracking-widest uppercase mb-2" style={{ color: "#a09a94", letterSpacing: "0.12em" }}>{t.dashboard.kicker}</p>
