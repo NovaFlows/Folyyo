@@ -1,10 +1,20 @@
 import { z } from "zod";
+import { isSafeRichTextUrl } from "@/lib/portfolio/rich-text";
 
 // Accepts a valid URL, an empty string, or null/undefined
 const optionalUrl = z.string().optional().nullable().transform((v) => {
   if (!v || v.trim() === "") return undefined;
   return v;
 }).pipe(z.string().url().optional());
+
+// avatar_url spécifiquement : accepte aussi un chemin relatif (`/testimonials/x.png`,
+// servi depuis /public) — utilisé par le seeding communauté (lib/seed/personas.ts).
+// z.string().url() rejetterait ces valeurs légitimes, cassant toute sauvegarde
+// ultérieure du portfolio dans l'éditeur (re-validation stricte à chaque PATCH).
+const optionalAvatarUrl = z.string().optional().nullable().transform((v) => {
+  if (!v || v.trim() === "") return undefined;
+  return v;
+}).pipe(z.string().refine((v) => isSafeRichTextUrl(v), "URL invalide").optional());
 
 // ── Content blocks (widgets added inside sections) ────────────────────────────
 // size : taille visuelle du widget, 1 (petit) à 5 (grand), 3 = normal — utilisé
@@ -84,7 +94,7 @@ const MetaSchema = z.object({
   youtube_url:   optionalUrl,
   linkedin_url:  optionalUrl,
   twitter_url:   optionalUrl,
-  avatar_url:    optionalUrl,
+  avatar_url:    optionalAvatarUrl,
 });
 
 const ThemeSchema = z.object({
