@@ -60,6 +60,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   // longueur : ce texte part directement dans le prompt Claude.
   const heroTitle = typeof body?.heroTitle === "string" ? body.heroTitle.trim().slice(0, 300) : "";
   const heroSubtitle = typeof body?.heroSubtitle === "string" ? body.heroSubtitle.trim().slice(0, 500) : "";
+  const heroProfession = typeof body?.heroProfession === "string" ? body.heroProfession.trim().slice(0, 200) : "";
   if (styleUrl) {
     const urlTheme = await generateThemeFromUrl(styleUrl);
     if (!urlTheme) {
@@ -94,12 +95,16 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   const dbHeroSubtitle = heroSectionJson?.type === "hero" ? stripRichTags(heroSectionJson.subtitle) : "";
   const effectiveHeroTitle = heroTitle || dbHeroTitle || siteJson.meta.name;
   const effectiveHeroSubtitle = heroSubtitle || dbHeroSubtitle || siteJson.meta.tagline;
+  // meta.title (le métier, ex. "Ingénieur Data / IA") édité en mémoire dans le
+  // panneau hero de l'éditeur — même priorité que heroTitle/heroSubtitle
+  // ci-dessus sur la valeur figée en base.
+  const effectiveHeroProfession = heroProfession || siteJson.meta.title;
 
   const prompt = `Tu es un directeur artistique expert. Analyse ce portfolio et génère un thème visuel parfaitement adapté.
 
 PROFIL : ${profileType}
 NOM : ${siteJson.meta.name}
-TITRE PROFESSIONNEL : ${siteJson.meta.title}
+TITRE PROFESSIONNEL : ${effectiveHeroProfession}
 TEXTE HERO AFFICHÉ AU VISITEUR (H1) : ${effectiveHeroTitle}
 SOUS-TITRE HERO AFFICHÉ AU VISITEUR : ${effectiveHeroSubtitle}
 SECTIONS : ${siteJson.sections.map(s => s.type).join(", ")}

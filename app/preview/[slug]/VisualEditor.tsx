@@ -1592,7 +1592,10 @@ function SectionRender({ section, meta, theme, bg, txt, pri, acc, hFont, section
           {hasCarousel&&<HeroBackgroundCarousel images={heroImages} intervalSeconds={theme.hero_interval??5}/>}
           {(hasCarousel||heroImg)&&<div style={{position:"absolute",inset:0,background:bg,opacity:overlay}}/>}
           <HeroDecoration variant={theme.hero_decoration} color={acc}/>
-          <div style={{position:"relative",zIndex:1,display:"flex",flexDirection:"column",alignItems:"center",maxWidth:640,width:"100%"}}>
+          {/* Plafond élargi (contre l'ancien 640px figé, pensé pour un
+              paragraphe de sous-titre) — même valeur que app/[slug]/page.tsx
+              pour que l'éditeur reflète fidèlement le rendu public. */}
+          <div style={{position:"relative",zIndex:1,display:"flex",flexDirection:"column",alignItems:"center",maxWidth:"min(92vw, 1000px)",width:"100%"}}>
             {/* marginBottom nul quand la grille prend le relais : GridBlocksArea
                 ajoute déjà son propre marginTop, un marginBottom ici cumulerait
                 les deux écarts (régression visuelle vs. avant la migration). */}
@@ -2084,11 +2087,12 @@ function ThemeEditor({ meta, theme, heroSection, updateMeta, updateTheme, profil
 
   async function genAiTheme() {
     setAiStatus("loading"); setAiReason(""); setAiError("");
-    // Envoie le titre/sous-titre hero tels qu'édités en mémoire (même si non
-    // enregistrés) pour que la génération IA reflète ce que l'utilisateur voit
-    // à l'écran, pas la dernière version sauvegardée en base.
+    // Envoie le titre/sous-titre hero ET le métier (meta.title, portfolio-wide)
+    // tels qu'édités en mémoire (même si non enregistrés) pour que la
+    // génération IA reflète ce que l'utilisateur voit à l'écran, pas la
+    // dernière version sauvegardée en base.
     const h = heroSection?.type==="hero" ? heroSection : null;
-    const body = { heroTitle: stripRichTags(h?.title ?? ""), heroSubtitle: stripRichTags(h?.subtitle ?? "") };
+    const body = { heroTitle: stripRichTags(h?.title ?? ""), heroSubtitle: stripRichTags(h?.subtitle ?? ""), heroProfession: stripRichTags(meta.title ?? "") };
     try{
       const res=await fetch(`/api/portfolio/${portfolioId}/generate-theme`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
       if(!res.ok)throw new Error();
@@ -2528,6 +2532,11 @@ function SectionEditor({ section, idx, updateSection, removeSection, onClose, me
         <AvatarUpload avatarUrl={meta.avatar_url} onUpdate={url=>updateMeta({avatar_url:url})} t={t.shared}/>
         <div style={{height:1,background:"rgba(0,0,0,0.06)",margin:"0.75rem 0 1rem"}}/>
         <PanelField label={t.section.heroTitle}    value={section.title}    onChange={v=>update({...section,title:v})} rich/>
+        {/* hero_tagline (l'accroche pro sous le H1) affiche en réalité meta.title,
+            un champ portfolio-wide — pas un champ de section. On l'expose ici en
+            plus du panneau Identité pour que l'édition au clic sur le bloc mène
+            quelque part (les deux champs pointent vers le même updateMeta). */}
+        <PanelField label={t.section.heroProfession} value={meta.title} onChange={v=>updateMeta({title:v})} rich/>
         <PanelTextarea label={t.section.heroSubtitle} value={section.subtitle} onChange={v=>update({...section,subtitle:v})} rich/>
         {/* Police & taille : désormais réglées comme un widget ordinaire —
             clique le titre/sous-titre dans l'aperçu pour ouvrir ces contrôles. */}

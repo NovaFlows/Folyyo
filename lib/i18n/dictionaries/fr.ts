@@ -82,6 +82,7 @@ const fr = {
     },
     section: {
       heroTitle: "Titre",
+      heroProfession: "Titre professionnel",
       heroSubtitle: "Sous-titre",
       ctaText: "Texte du bouton",
       ctaUrl: "Lien du bouton",

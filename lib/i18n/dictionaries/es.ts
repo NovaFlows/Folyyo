@@ -84,6 +84,7 @@ const es = {
     },
     section: {
       heroTitle: "Título",
+      heroProfession: "Título profesional",
       heroSubtitle: "Subtítulo",
       ctaText: "Texto del botón",
       ctaUrl: "Enlace del botón",

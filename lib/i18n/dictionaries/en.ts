@@ -84,6 +84,7 @@ const en = {
     },
     section: {
       heroTitle: "Title",
+      heroProfession: "Professional title",
       heroSubtitle: "Subtitle",
       ctaText: "Button text",
       ctaUrl: "Button link",

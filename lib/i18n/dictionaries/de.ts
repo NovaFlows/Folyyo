@@ -84,6 +84,7 @@ const de = {
     },
     section: {
       heroTitle: "Titel",
+      heroProfession: "Berufsbezeichnung",
       heroSubtitle: "Untertitel",
       ctaText: "Button-Text",
       ctaUrl: "Button-Link",
