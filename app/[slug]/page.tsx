@@ -293,13 +293,11 @@ export default async function PublicPortfolioPage({ params }: { params: { slug: 
                   style={{ borderRadius: "50%", marginBottom: hasHeroMarkers ? 0 : "1.5rem", border: `2px solid ${pri}` }} />
               )}
               {hasHeroMarkers ? (
-                // Plafond élargi (contre l'ancien 640px figé, pensé pour un
-                // paragraphe de sous-titre) pour laisser la grille hero 12
-                // colonnes une vraie marge de manœuvre — un H1 redimensionné
-                // en largeur ne doit pas casser sur plusieurs lignes alors que
-                // l'écran a de la place. Chaque widget garde sa propre largeur
-                // réglable ; ceci ne change que le plafond maximum.
-                <div style={{ maxWidth: "min(92vw, 1000px)", width: "100%" }}>
+                // Aucun plafond : la grille hero 12 colonnes occupe toute la
+                // largeur disponible dans la section (seul le padding de la
+                // section elle-même, plus haut, borde le contenu). Chaque
+                // widget garde sa propre largeur réglable individuellement.
+                <div style={{ width: "100%" }}>
                   <GridStatic items={heroGrid} widgetStyle={widgetStyle} pri={pri} txt={txt} bg={bg} hFont={hFont} renderHero={renderHeroMarker} />
                 </div>
               ) : (

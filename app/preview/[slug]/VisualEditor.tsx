@@ -1595,7 +1595,7 @@ function SectionRender({ section, meta, theme, bg, txt, pri, acc, hFont, section
           {/* Plafond élargi (contre l'ancien 640px figé, pensé pour un
               paragraphe de sous-titre) — même valeur que app/[slug]/page.tsx
               pour que l'éditeur reflète fidèlement le rendu public. */}
-          <div style={{position:"relative",zIndex:1,display:"flex",flexDirection:"column",alignItems:"center",maxWidth:"min(92vw, 1000px)",width:"100%"}}>
+          <div style={{position:"relative",zIndex:1,display:"flex",flexDirection:"column",alignItems:"center",width:"100%"}}>
             {/* marginBottom nul quand la grille prend le relais : GridBlocksArea
                 ajoute déjà son propre marginTop, un marginBottom ici cumulerait
                 les deux écarts (régression visuelle vs. avant la migration). */}
