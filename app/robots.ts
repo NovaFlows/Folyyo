@@ -7,7 +7,9 @@ export default function robots(): MetadataRoute.Robots {
       userAgent: "*",
       allow: "/",
       // Zones privées / techniques à ne pas indexer.
-      disallow: ["/dashboard", "/onboarding", "/portfolio", "/settings", "/billing", "/api", "/preview", "/sso-callback"],
+      // "/shot" : routes de capture d'écran locales — déjà 404 en production
+      // (voir app/shot/config.ts), interdites ici par pure ceinture-bretelles.
+      disallow: ["/dashboard", "/onboarding", "/portfolio", "/settings", "/billing", "/api", "/preview", "/sso-callback", "/shot"],
     },
     sitemap: `${SITE_URL}/sitemap.xml`,
     host: SITE_URL,
