@@ -1,5 +1,5 @@
 import type { ContentBlock, BlockRow, GridItem } from "@/lib/anthropic/schema";
-import { GRID_COLS, GRID_ROW_HEIGHT, GRID_MARGIN, sortGridItems } from "@/lib/portfolio/grid";
+import { GRID_COLS, GRID_ROW_HEIGHT, GRID_MARGIN, HERO_MARKER_TYPES, sortGridItems } from "@/lib/portfolio/grid";
 import Carousel from "./Carousel";
 import RichText from "./RichText";
 import { stripRichTags, isSafeRichTextUrl } from "@/lib/portfolio/rich-text";
@@ -136,10 +136,15 @@ export function BlockContent({ block, pri, txt, hFont, editMode = false, fill = 
         : editMode
           ? <div style={{ width: "100%", height: fill ? "100%" : 140, minHeight: 100, background: `${txt}06`, borderRadius: "0.625rem", display: "flex", alignItems: "center", justifyContent: "center", border: `1px dashed ${txt}20` }}><span style={{ color: `${txt}25`, fontSize: "0.7rem" }}>Carrousel · ajoute des photos</span></div>
           : null;
-    // Le contenu natif et le titre sont rendus par le parent (GridStatic
-    // renderNative/renderTitle, ou l'éditeur) — jamais via BlockContent.
+    // Le contenu natif, le titre de section et les 4 textes du hero sont
+    // rendus par le parent (GridStatic renderNative/renderTitle/renderHero,
+    // ou l'éditeur) — jamais via BlockContent.
     case "section_content": return null;
     case "section_title": return null;
+    case "hero_title": return null;
+    case "hero_tagline": return null;
+    case "hero_subtitle": return null;
+    case "hero_cta": return null;
     default: return null;
   }
 }
@@ -190,11 +195,14 @@ export function WidgetFrame({ widgetStyle, block, bg, txt, children }: {
 
 // ── Grille libre — rendu statique public (CSS grid pur, même géométrie que
 // l'éditeur react-grid-layout : 12 colonnes, rowHeight 32, gap 14) ─────────────
-export function GridStatic({ items, widgetStyle, pri, txt, bg, hFont, renderNative, renderTitle }: {
+export function GridStatic({ items, widgetStyle, pri, txt, bg, hFont, renderNative, renderTitle, renderHero }: {
   items: GridItem[] | undefined; widgetStyle: WidgetStyle;
   pri: string; txt: string; bg: string; hFont: string;
   renderNative?: () => React.ReactNode;
   renderTitle?: () => React.ReactNode;
+  // Un des 4 marqueurs hero_title/hero_tagline/hero_subtitle/hero_cta — reçoit
+  // le bloc (pas juste le type) pour pouvoir lire son fontSize/fontFamily.
+  renderHero?: (block: ContentBlock) => React.ReactNode;
 }) {
   if (!items || items.length === 0) return null;
   const sorted = sortGridItems(items);
@@ -207,31 +215,42 @@ export function GridStatic({ items, widgetStyle, pri, txt, bg, hFont, renderNati
       gridAutoRows: GRID_ROW_HEIGHT,
       gap: GRID_MARGIN,
     }}>
-      {sorted.map((it) => (
+      {sorted.map((it) => {
+        const isHero = HERO_MARKER_TYPES.has(it.block.type);
+        return (
         <div key={it.id} className="folyo-grid-item" style={{
           gridColumn: `${it.x + 1} / span ${it.w}`,
           gridRow: `${it.y + 1} / span ${it.h}`,
           minWidth: 0,
-          overflow: "hidden",
+          // Les 4 textes du hero débordent volontairement de leur case plutôt
+          // que d'être coupés (h1 pouvant wrapper sur plusieurs lignes selon
+          // le nom/la largeur d'écran) — pas de carte à préserver derrière,
+          // contrairement aux widgets ordinaires.
+          overflow: isHero ? "visible" : "hidden",
         }}>
           {it.block.type === "section_title"
             // Pas de WidgetFrame (pas de carte/cadre) : le titre reste un
             // simple texte, comme avant son passage en item de grille.
             ? <div style={{ height: "100%", display: "flex", alignItems: "center" }}>{renderTitle?.()}</div>
-            : (
-              <WidgetFrame widgetStyle={widgetStyle} block={it.block} bg={bg} txt={txt}>
-                {it.block.type === "section_content"
-                  // overflowY auto (pas hidden) : un widget "projets" rétréci fait
-                  // reflow ses colonnes (CSS grid interne, largeur réelle du
-                  // conteneur) mais peut avoir besoin de plus de hauteur que la
-                  // taille du widget — avec hidden, les projets en trop devenaient
-                  // invisibles ; avec auto, ils restent accessibles au scroll.
-                  ? <div style={{ height: "100%", overflowY: "auto", overflowX: "hidden", zoom: nativeZoom(it.block), fontFamily: it.block.fontFamily || undefined }}>{renderNative?.()}</div>
-                  : <BlockContent block={it.block} pri={pri} txt={txt} hFont={hFont} fill={framed} />}
-              </WidgetFrame>
-            )}
+            : isHero
+              // Idem : pas de WidgetFrame, le hero garde son apparence de
+              // simple texte sur fond/image, jamais de carte par-dessus.
+              ? <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>{renderHero?.(it.block)}</div>
+              : (
+                <WidgetFrame widgetStyle={widgetStyle} block={it.block} bg={bg} txt={txt}>
+                  {it.block.type === "section_content"
+                    // overflowY auto (pas hidden) : un widget "projets" rétréci fait
+                    // reflow ses colonnes (CSS grid interne, largeur réelle du
+                    // conteneur) mais peut avoir besoin de plus de hauteur que la
+                    // taille du widget — avec hidden, les projets en trop devenaient
+                    // invisibles ; avec auto, ils restent accessibles au scroll.
+                    ? <div style={{ height: "100%", overflowY: "auto", overflowX: "hidden", zoom: nativeZoom(it.block), fontFamily: it.block.fontFamily || undefined }}>{renderNative?.()}</div>
+                    : <BlockContent block={it.block} pri={pri} txt={txt} hFont={hFont} fill={framed} />}
+                </WidgetFrame>
+              )}
         </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

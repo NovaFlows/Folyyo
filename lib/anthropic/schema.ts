@@ -46,6 +46,18 @@ export const ContentBlockSchema = z.discriminatedUnion("type", [
   // supprimable, jamais ajoutable/modifiable via les outils d'édition IA
   // génériques (même traitement que section_content).
   z.object({ type: z.literal("section_title") }),
+  // Marqueurs de position pour les 4 textes du hero — même logique que
+  // section_title : le texte réel vit ailleurs (section.title/subtitle/
+  // cta_text/cta_url, ou meta.title pour l'accroche), ce bloc ne fait que
+  // positionner l'affichage dans la grille. Un seul de chaque par hero, non
+  // supprimables, jamais ajoutables/modifiables via les outils d'édition IA
+  // génériques. fontSize/fontFamily réglables comme un widget ordinaire
+  // (menu WIDGET_FONT_SIZES au clic) — pas de champ `size`, ces éléments
+  // n'ont pas de dimension physique comme une image.
+  z.object({ type: z.literal("hero_title"),    fontSize, fontFamily }),
+  z.object({ type: z.literal("hero_tagline"),  fontSize, fontFamily }),
+  z.object({ type: z.literal("hero_subtitle"), fontSize, fontFamily }),
+  z.object({ type: z.literal("hero_cta"),      fontSize, fontFamily }),
 ]);
 export type ContentBlock = z.infer<typeof ContentBlockSchema>;
 
@@ -145,6 +157,10 @@ const HeroSectionSchema = z.object({
   section_title: z.string().optional(),
   title:         z.string().default(""),
   subtitle:      z.string().default(""),
+  // La taille de police du titre/sous-titre hero vit désormais sur le bloc de
+  // grille (hero_title.fontSize / hero_subtitle.fontSize), comme tout autre
+  // widget texte — plus de champ dédié ici (voir migrateToGrid pour la
+  // reprise silencieuse des anciennes valeurs title_font_size/subtitle_font_size).
   cta_text:      z.string().default("Voir mes projets"),
   cta_url:       z.string().default("#projects"),
   blocks,

@@ -175,6 +175,16 @@ function generateMainPage(
   contact: ValidatedPortfolioJSON["sections"][number] | undefined
 ): string {
   const h = hero?.type === "hero" ? hero : null;
+  // Taille de police du titre/sous-titre : vit désormais sur le bloc de grille
+  // hero_title/hero_subtitle (comme tout widget texte), plus sur la section.
+  // Repli sur l'ancien champ pour les portfolios pas encore rouverts dans
+  // l'éditeur depuis ce chantier (site_json lu sans re-validation Zod, voir
+  // migrateToGrid) — cette route n'exporte pas les widgets de grille en
+  // général (limite déjà existante, pas nouvelle avec ce chantier).
+  const heroTitleBlock = h?.grid?.find((it) => it.block.type === "hero_title")?.block as { fontSize?: number } | undefined;
+  const heroSubtitleBlock = h?.grid?.find((it) => it.block.type === "hero_subtitle")?.block as { fontSize?: number } | undefined;
+  const heroTitleFontSize = heroTitleBlock?.fontSize ?? (h as { title_font_size?: number } | null)?.title_font_size;
+  const heroSubtitleFontSize = heroSubtitleBlock?.fontSize ?? (h as { subtitle_font_size?: number } | null)?.subtitle_font_size;
   const a = about?.type === "about" ? about : null;
   const sk = skills?.type === "skills" ? skills : null;
   const pr = projects?.type === "projects" ? projects : null;
@@ -207,13 +217,13 @@ export default function Portfolio() {
             ? `<Image src="${escStr(meta.avatar_url)}" alt="${escStr(meta.name)}" width={96} height={96} className="mb-6 rounded-full ring-2" style={{ ringColor: '${theme.primary_color}' }} />`
             : ""
         }
-        <h1 className="mb-4 text-5xl font-bold sm:text-7xl" style={{ color: '${theme.text_color}', fontFamily: "'${theme.font_heading}', sans-serif" }}>
+        <h1 className="mb-4 text-5xl font-bold sm:text-7xl" style={{ color: '${theme.text_color}', fontFamily: "'${theme.font_heading}', sans-serif"${heroTitleFontSize ? `, fontSize: '${heroTitleFontSize}px'` : ""} }}>
           ${escStr(h?.title ?? meta.name)}
         </h1>
         <p className="mb-2 text-xl font-medium" style={{ color: '${theme.primary_color}' }}>
           ${escStr(meta.title)}
         </p>
-        <p className="mb-10 max-w-2xl text-lg" style={{ color: '${theme.text_color}80' }}>
+        <p className="mb-10 max-w-2xl text-lg" style={{ color: '${theme.text_color}80'${heroSubtitleFontSize ? `, fontSize: '${heroSubtitleFontSize}px'` : ""} }}>
           ${escStr(h?.subtitle ?? meta.tagline)}
         </p>
         <div className="flex flex-wrap items-center justify-center gap-4">

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { Eye } from "lucide-react";
 import type { Portfolio, PortfolioStatus } from "@/types";
 import { PROFILE_LABEL } from "@/lib/profile-labels";
 import { getDictionary } from "@/lib/i18n/dictionaries";
@@ -96,7 +97,7 @@ export default function PortfolioCard({ portfolio: p, views, locale, selected, o
           de première vue et personne ne sait où la chercher. */}
       {isLive && (
         <p className="mono text-xs mb-5 flex items-center gap-1.5" style={{ color: "#a09a94" }}>
-          <span aria-hidden="true">👁</span>
+          <Eye size={13} strokeWidth={1.75} aria-hidden="true" className="shrink-0" />
           {views && views.total > 0 ? (
             <>
               {t.views(views.total)}

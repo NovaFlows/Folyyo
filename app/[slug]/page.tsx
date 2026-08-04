@@ -239,6 +239,46 @@ export default async function PublicPortfolioPage({ params }: { params: { slug: 
           case "hero": {
           const heroImages = theme.hero_images ?? [];
           const hasCarousel = heroImages.length > 0;
+          // Portfolio re-sauvé depuis l'éditeur après ce chantier : les 4
+          // textes (titre/accroche/sous-titre/CTA) sont des items de grille
+          // déplaçables — sinon (portfolio legacy, jamais rouvert dans
+          // l'éditeur depuis) on garde l'ancienne mise en page fixe, même
+          // principe que sectionBody/GridStatic pour les autres sections.
+          const heroGrid = gridOf(section) ?? [];
+          const hasHeroMarkers = heroGrid.some((it) => it.block.type === "hero_title");
+          const renderHeroMarker = (block: GridItem["block"]): React.ReactNode => {
+            switch (block.type) {
+              case "hero_title": return (
+                <h1 style={{ fontSize: block.fontSize ? `${block.fontSize}px` : "clamp(2.5rem,6vw,4rem)", fontWeight: 700, fontFamily: block.fontFamily || hFont, color: txt, lineHeight: 1.1, margin: 0 }}>
+                  <RichText html={section.title || meta.name}/>
+                </h1>
+              );
+              case "hero_tagline": return (
+                <p style={{ fontSize: block.fontSize ? `${block.fontSize}px` : "1.125rem", fontWeight: 500, color: pri, fontFamily: block.fontFamily || undefined, margin: 0 }}>
+                  <RichText html={meta.title}/>
+                </p>
+              );
+              case "hero_subtitle": return (
+                <p style={{ fontSize: block.fontSize ? `${block.fontSize}px` : "1.125rem", color: `${txt}70`, fontFamily: block.fontFamily || undefined, maxWidth: 560, margin: "0 auto" }}>
+                  <RichText html={section.subtitle || meta.tagline}/>
+                </p>
+              );
+              case "hero_cta": return (
+                <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap", justifyContent: "center" }}>
+                  <a href="#projects" style={{ background: pri, color: "#fff", padding: "0.75rem 2rem", borderRadius: "0.75rem", textDecoration: "none", fontWeight: 600, fontSize: block.fontSize ? `${block.fontSize}px` : "0.875rem", fontFamily: block.fontFamily || undefined }}>
+                    <RichText html={section.cta_text}/>
+                  </a>
+                  {meta.github_url && isSafeRichTextUrl(meta.github_url) && (
+                    <a href={meta.github_url} target="_blank" rel="noopener noreferrer"
+                      style={{ border: `1px solid ${txt}20`, color: `${txt}80`, padding: "0.75rem 2rem", borderRadius: "0.75rem", textDecoration: "none", fontSize: "0.875rem" }}>
+                      GitHub →
+                    </a>
+                  )}
+                </div>
+              );
+              default: return null;
+            }
+          };
           return (
             <section key={i} className="pf-hero" style={{ position: "relative", minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", backgroundImage: !hasCarousel && theme.hero_image_url ? `url(${theme.hero_image_url})` : undefined, backgroundSize: "cover", backgroundPosition: "center", backgroundAttachment: heroParallax && !hasCarousel && theme.hero_image_url ? "fixed" : undefined }}>
               {hasCarousel && <HeroBackgroundCarousel images={heroImages} intervalSeconds={theme.hero_interval ?? 5} />}
@@ -246,30 +286,41 @@ export default async function PublicPortfolioPage({ params }: { params: { slug: 
               <HeroDecoration variant={theme.hero_decoration} color={acc} />
               <div style={{ position: "relative", zIndex: 1, display: "flex", flexDirection: "column", alignItems: "center" }}>
               {meta.avatar_url && (
+                // marginBottom nul quand la grille prend le relais : GridStatic
+                // ajoute déjà son propre marginTop, un marginBottom ici
+                // cumulerait les deux écarts (régression visuelle vs. avant).
                 <Image src={meta.avatar_url} alt={stripRichTags(meta.name)} width={96} height={96}
-                  style={{ borderRadius: "50%", marginBottom: "1.5rem", border: `2px solid ${pri}` }} />
+                  style={{ borderRadius: "50%", marginBottom: hasHeroMarkers ? 0 : "1.5rem", border: `2px solid ${pri}` }} />
               )}
-              <h1 style={{ fontSize: "clamp(2.5rem,6vw,4rem)", fontWeight: 700, fontFamily: hFont, color: txt, marginBottom: "1rem", lineHeight: 1.1 }}>
-                <RichText html={section.title || meta.name}/>
-              </h1>
-              <p style={{ fontSize: "1.125rem", fontWeight: 500, color: pri, marginBottom: "0.5rem" }}><RichText html={meta.title}/></p>
-              <p style={{ fontSize: "1.125rem", color: `${txt}70`, maxWidth: 560, marginBottom: "2.5rem" }}>
-                <RichText html={section.subtitle || meta.tagline}/>
-              </p>
-              <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap", justifyContent: "center" }}>
-                <a href="#projects" style={{ background: pri, color: "#fff", padding: "0.75rem 2rem", borderRadius: "0.75rem", textDecoration: "none", fontWeight: 600, fontSize: "0.875rem" }}>
-                  <RichText html={section.cta_text}/>
-                </a>
-                {meta.github_url && isSafeRichTextUrl(meta.github_url) && (
-                  <a href={meta.github_url} target="_blank" rel="noopener noreferrer"
-                    style={{ border: `1px solid ${txt}20`, color: `${txt}80`, padding: "0.75rem 2rem", borderRadius: "0.75rem", textDecoration: "none", fontSize: "0.875rem" }}>
-                    GitHub →
-                  </a>
-                )}
-              </div>
-              <div style={{ maxWidth: 640, width: "100%", textAlign: "left" }}>
-                {widgetsOf(section)}
-              </div>
+              {hasHeroMarkers ? (
+                <div style={{ maxWidth: 640, width: "100%" }}>
+                  <GridStatic items={heroGrid} widgetStyle={widgetStyle} pri={pri} txt={txt} bg={bg} hFont={hFont} renderHero={renderHeroMarker} />
+                </div>
+              ) : (
+                <>
+                  <h1 style={{ fontSize: "clamp(2.5rem,6vw,4rem)", fontWeight: 700, fontFamily: hFont, color: txt, marginBottom: "1rem", lineHeight: 1.1 }}>
+                    <RichText html={section.title || meta.name}/>
+                  </h1>
+                  <p style={{ fontSize: "1.125rem", fontWeight: 500, color: pri, marginBottom: "0.5rem" }}><RichText html={meta.title}/></p>
+                  <p style={{ fontSize: "1.125rem", color: `${txt}70`, maxWidth: 560, marginBottom: "2.5rem" }}>
+                    <RichText html={section.subtitle || meta.tagline}/>
+                  </p>
+                  <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap", justifyContent: "center" }}>
+                    <a href="#projects" style={{ background: pri, color: "#fff", padding: "0.75rem 2rem", borderRadius: "0.75rem", textDecoration: "none", fontWeight: 600, fontSize: "0.875rem" }}>
+                      <RichText html={section.cta_text}/>
+                    </a>
+                    {meta.github_url && isSafeRichTextUrl(meta.github_url) && (
+                      <a href={meta.github_url} target="_blank" rel="noopener noreferrer"
+                        style={{ border: `1px solid ${txt}20`, color: `${txt}80`, padding: "0.75rem 2rem", borderRadius: "0.75rem", textDecoration: "none", fontSize: "0.875rem" }}>
+                        GitHub →
+                      </a>
+                    )}
+                  </div>
+                  <div style={{ maxWidth: 640, width: "100%", textAlign: "left" }}>
+                    {widgetsOf(section)}
+                  </div>
+                </>
+              )}
               </div>
               {!hasCarousel && theme.hero_image_credit && (
                 <p style={{ position: "absolute", bottom: "0.75rem", right: "0.75rem", zIndex: 2, fontSize: "0.6875rem", color: `${txt}60`, margin: 0 }}>

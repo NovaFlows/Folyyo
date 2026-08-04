@@ -1,23 +1,26 @@
 import Link from "next/link";
+import { Mail, Phone, MessageCircle } from "lucide-react";
 
+// Icônes lucide-react plutôt que des glyphes Unicode (✉ ☎ 💬) : leur rendu
+// dépendait de la police installée sur la machine du visiteur.
 const CONTACTS = [
   {
     label: "Email",
     value: "novaflows.pro@gmail.com",
     href: "mailto:novaflows.pro@gmail.com",
-    icon: "✉",
+    Icon: Mail,
   },
   {
     label: "Téléphone",
     value: "06 84 14 04 38",
     href: "tel:+33684140438",
-    icon: "☎",
+    Icon: Phone,
   },
   {
     label: "WhatsApp",
     value: "06 84 14 04 38",
     href: "https://wa.me/33684140438",
-    icon: "💬",
+    Icon: MessageCircle,
   },
 ];
 
@@ -49,9 +52,9 @@ export default function ContactPage() {
             <a key={c.label} href={c.href} target={c.href.startsWith("http") ? "_blank" : undefined} rel="noopener noreferrer"
               className="flex items-center gap-4 rounded-2xl p-5 transition hover:-translate-y-0.5"
               style={{ background: "#f0ece6", border: "1px solid rgba(0,0,0,0.06)" }}>
-              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-lg"
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full"
                 style={{ background: "rgba(201,169,110,0.12)", color: "#c9a96e" }}>
-                {c.icon}
+                <c.Icon size={19} strokeWidth={1.75} />
               </span>
               <div>
                 <p className="text-xs font-medium uppercase tracking-wide" style={{ color: "#a09a94" }}>{c.label}</p>

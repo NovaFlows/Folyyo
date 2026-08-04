@@ -8,6 +8,15 @@ export const GRID_COLS = 12;
 export const GRID_ROW_HEIGHT = 32; // px par unité de hauteur
 export const GRID_MARGIN = 14;     // px de gouttière
 
+// Marqueurs de position des 4 textes du hero (titre/accroche/sous-titre/CTA)
+// — même famille que section_content/section_title : le texte réel vit
+// ailleurs (section.title/subtitle/cta_text/cta_url, meta.title), ce bloc ne
+// fait que positionner l'affichage. Un seul de chaque par hero, non
+// supprimables, jamais ajoutables via le "+". Partagé entre GridStatic
+// (rendu public) et GridBlocksArea (éditeur) pour reconnaître ces items.
+export const HERO_MARKER_TYPES: ReadonlySet<ContentBlock["type"]> =
+  new Set<ContentBlock["type"]>(["hero_title", "hero_tagline", "hero_subtitle", "hero_cta"]);
+
 export function gridUid(): string {
   return Math.random().toString(36).slice(2, 10);
 }
@@ -27,6 +36,13 @@ export const DEFAULT_SIZE: Record<ContentBlock["type"], { w: number; h: number }
   divider:  { w: 12, h: 1 },
   section_content: { w: 12, h: 8 },
   section_title: { w: 12, h: 2 },
+  // Hauteurs généreuses (h1 pouvant wrapper sur 2-3 lignes pour un nom long,
+  // sous-titre pouvant courir sur plusieurs phrases) — mieux vaut un item un
+  // peu trop grand qu'un texte de hero coupé, voir MIN_SIZE ci-dessous.
+  hero_title:    { w: 12, h: 5 },
+  hero_tagline:  { w: 12, h: 2 },
+  hero_subtitle: { w: 12, h: 4 },
+  hero_cta:      { w: 12, h: 2 },
 };
 
 // En-dessous, le contenu devient illisible ou les poignées inutilisables.
@@ -47,6 +63,10 @@ export const MIN_SIZE: Record<ContentBlock["type"], { w: number; h: number }> = 
   divider:  { w: 2, h: 1 },
   section_content: { w: 4, h: 3 },
   section_title: { w: 3, h: 1 },
+  hero_title:    { w: 3, h: 2 },
+  hero_tagline:  { w: 3, h: 1 },
+  hero_subtitle: { w: 3, h: 1 },
+  hero_cta:      { w: 3, h: 1 },
 };
 
 // Lecture/écriture de la grille d'une section (le champ `grid` est optionnel
@@ -175,11 +195,18 @@ export function resolveNativeOverlap(items: GridItem[]): GridItem[] {
 //    déplaçable ; l'ancienne pile "accolée au contenu" (content_aside) est
 //    convertie en items posés à côté du contenu natif.
 type LegacyAside = { blocks?: ContentBlock[]; block?: ContentBlock; side: "left" | "right" };
+// Anciens réglages de taille de police du hero (remplacés par le fontSize
+// propre aux blocs hero_title/hero_subtitle) — encore présents tels quels
+// dans le site_json des portfolios pas encore rouverts dans l'éditeur depuis
+// ce chantier, puisque site_json est lu sans re-validation Zod côté public
+// (voir app/[slug]/page.tsx). migrateToGrid est le seul endroit qui les lit
+// encore, pour reporter silencieusement leur valeur sur le nouveau bloc.
+type LegacyHeroFontSizes = { title_font_size?: number; subtitle_font_size?: number };
 
 export function migrateToGrid(data: ValidatedPortfolioJSON): ValidatedPortfolioJSON {
   let changed = false;
   const sections = data.sections.map((section) => {
-    const s = section as { type: string; grid?: GridItem[]; blocks?: BlockRow[]; content_aside?: LegacyAside };
+    const s = section as { type: string; grid?: GridItem[]; blocks?: BlockRow[]; content_aside?: LegacyAside } & LegacyHeroFontSizes;
     let grid = s.grid;
     let mutated = false;
 
@@ -214,6 +241,30 @@ export function migrateToGrid(data: ValidatedPortfolioJSON): ValidatedPortfolioJ
       // Les widgets existants passent sous le contenu natif
       const shifted = grid.map((it) => ({ ...it, y: it.y + nativeH }));
       grid = [...items, ...shifted];
+      mutated = true;
+    }
+
+    // Hero : les 4 textes (titre, accroche, sous-titre, CTA) deviennent des
+    // marqueurs de grille déplaçables/redimensionnables indépendamment,
+    // empilés dans le MÊME ORDRE que l'ancienne mise en page fixe (titre →
+    // accroche → sous-titre → CTA, centrés, pleine largeur) — zéro
+    // régression visuelle au premier chargement. Les widgets déjà présents
+    // (ajoutés manuellement sous le hero fixe) descendent d'autant.
+    if (s.type === "hero" && !grid.some((it) => it.block.type === "hero_title")) {
+      let y = 0;
+      const heroItems: GridItem[] = [];
+      const push = (block: ContentBlock) => {
+        const { w, h } = DEFAULT_SIZE[block.type];
+        heroItems.push({ id: gridUid(), block, x: 0, y, w, h });
+        y += h;
+      };
+      push({ type: "hero_title", fontSize: s.title_font_size });
+      push({ type: "hero_tagline" });
+      push({ type: "hero_subtitle", fontSize: s.subtitle_font_size });
+      push({ type: "hero_cta" });
+      // Les widgets existants passent sous les 4 marqueurs du hero
+      const shifted = grid.map((it) => ({ ...it, y: it.y + y }));
+      grid = [...heroItems, ...shifted];
       mutated = true;
     }
 

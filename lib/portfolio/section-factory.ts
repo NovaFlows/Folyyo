@@ -17,6 +17,13 @@ export function createDefaultBlock(type: ContentBlock["type"]): ContentBlock {
     case "links":   return { type: "links", items: [{ label: "Mon site", url: "https://" }] };
     case "section_content": return { type: "section_content" };
     case "section_title": return { type: "section_title" };
+    // Marqueurs du hero — jamais créés via ce chemin (ni "+", ni add_widget
+    // IA, voir edit-tools.ts) : migrateToGrid (lib/portfolio/grid.ts) est le
+    // seul endroit qui les instancie. Cas gardé pour l'exhaustivité du switch.
+    case "hero_title": return { type: "hero_title" };
+    case "hero_tagline": return { type: "hero_tagline" };
+    case "hero_subtitle": return { type: "hero_subtitle" };
+    case "hero_cta": return { type: "hero_cta" };
   }
 }
 

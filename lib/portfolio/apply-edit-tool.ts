@@ -1,6 +1,6 @@
 import type { ValidatedPortfolioJSON, GridItem, ContentBlock } from "@/lib/anthropic/schema";
 import { EDIT_TOOL_SCHEMAS } from "@/lib/anthropic/edit-tools";
-import { gridUid, getGrid, applyGrid, resolveNativeOverlap, validateGridBounds, DEFAULT_SIZE, nextY } from "@/lib/portfolio/grid";
+import { gridUid, getGrid, applyGrid, resolveNativeOverlap, validateGridBounds, DEFAULT_SIZE, HERO_MARKER_TYPES, nextY } from "@/lib/portfolio/grid";
 import { createDefaultSection } from "@/lib/portfolio/section-factory";
 import { luminance, contrastRatio } from "@/lib/portfolio/contrast";
 
@@ -454,6 +454,7 @@ function applyUpdateWidget(state: ValidatedPortfolioJSON, input: { section_type:
   const { sectionIdx, section, grid, item } = findWidget(state, input.section_type, input.widget_id);
   if (item.block.type === "section_content") throw new EditToolError("Ce widget est le contenu natif de la section, non modifiable via update_widget.");
   if (item.block.type === "section_title") throw new EditToolError("Ce widget est le marqueur de titre de la section — modifie section.section_title via update_section, pas update_widget.");
+  if (HERO_MARKER_TYPES.has(item.block.type)) throw new EditToolError("Ce widget est un marqueur de texte du hero — modifie section.title/subtitle/cta_text/cta_url via update_hero, pas update_widget.");
   const nextGrid = grid.map((it) => (it.id === input.widget_id ? { ...it, block: input.block } : it));
   const nextSection = applyGrid(section, nextGrid);
   return { state: replaceSection(state, sectionIdx, nextSection), diff: [{ label: "Widget modifié", oldValue: item.block.type, newValue: input.block.type, type: "text" }], resultForClaude: "OK" };
@@ -463,6 +464,7 @@ function applyRemoveWidget(state: ValidatedPortfolioJSON, input: { section_type:
   const { sectionIdx, section, grid, item } = findWidget(state, input.section_type, input.widget_id);
   if (item.block.type === "section_content") throw new EditToolError("Impossible de supprimer le contenu natif d'une section avec remove_widget — utilise remove_section pour supprimer la section entière.");
   if (item.block.type === "section_title") throw new EditToolError("Impossible de supprimer le marqueur de titre d'une section avec remove_widget.");
+  if (HERO_MARKER_TYPES.has(item.block.type)) throw new EditToolError("Impossible de supprimer un marqueur de texte du hero avec remove_widget.");
   const nextGrid = grid.filter((it) => it.id !== input.widget_id);
   const nextSection = applyGrid(section, nextGrid);
   return { state: replaceSection(state, sectionIdx, nextSection), diff: [{ label: "Widget supprimé", oldValue: item.block.type, newValue: "", type: "text" }], resultForClaude: "OK" };

@@ -1,12 +1,15 @@
 "use client";
 
 import { useState } from "react";
+import { Wrench, MessageCircle, HelpCircle } from "lucide-react";
 import type { SupportMessage } from "@/lib/db/queries";
 
-const CATEGORY_LABEL: Record<string, string> = {
-  bug: "🔧 Problème",
-  suggestion: "💬 Suggestion",
-  other: "❓ Autre",
+// Icônes lucide-react plutôt que des emoji (🔧 💬 ❓), dont le rendu dépendait
+// de la police installée sur la machine.
+const CATEGORY_LABEL: Record<string, { label: string; Icon: typeof Wrench }> = {
+  bug:        { label: "Problème",   Icon: Wrench },
+  suggestion: { label: "Suggestion", Icon: MessageCircle },
+  other:      { label: "Autre",      Icon: HelpCircle },
 };
 
 export default function AdminSupportList({ messages }: { messages: SupportMessage[] }) {
@@ -39,14 +42,15 @@ export default function AdminSupportList({ messages }: { messages: SupportMessag
     <div className="flex flex-col gap-2">
       {rows.map((m) => {
         const resolved = m.status === "resolved";
+        const cat = CATEGORY_LABEL[m.category];
         return (
           <div key={m.id} className="rounded-2xl p-4"
             style={{ background: resolved ? "rgba(0,0,0,0.02)" : "#f0ece6", border: "1px solid rgba(0,0,0,0.06)", opacity: resolved ? 0.6 : 1 }}>
             <div className="flex items-start justify-between gap-4 mb-2">
               <div className="flex items-center gap-3 min-w-0">
-                <span className="mono rounded px-1.5 py-0.5 text-xs shrink-0"
+                <span className="mono rounded px-1.5 py-0.5 text-xs shrink-0 inline-flex items-center gap-1"
                   style={{ background: "rgba(0,0,0,0.04)", color: "#a09a94" }}>
-                  {CATEGORY_LABEL[m.category] ?? m.category}
+                  {cat ? <><cat.Icon size={11} strokeWidth={2} />{cat.label}</> : m.category}
                 </span>
                 <span className="text-xs truncate" style={{ color: "#a09a94" }}>{m.email}</span>
                 <span className="mono text-xs shrink-0" style={{ color: "#c8c4bf" }}>

@@ -3,6 +3,8 @@
 import { useState, useRef, useEffect, useCallback, forwardRef, useImperativeHandle } from "react";
 import { useRouter } from "next/navigation";
 import RGL from "react-grid-layout";
+import { Image as ImageIcon, GalleryHorizontalEnd, Type, Quote, BarChart3, MousePointerClick, Link2, Minus,
+         PenLine, Zap, FolderOpen, Briefcase, Mail, Laptop, Lightbulb, Palette, Antenna, Youtube, Github, Sparkles } from "lucide-react";
 import type { ValidatedPortfolioJSON, ContentBlock, GridItem } from "@/lib/anthropic/schema";
 import type { GitHubRepo, YouTubeVideo } from "@/types/portfolio";
 import { THEME_PRESETS } from "@/lib/portfolio/themes";
@@ -10,7 +12,7 @@ import { BlockContent, WidgetFrame, nativeZoom, WIDGET_FONT_OPTIONS, WIDGET_FONT
 import RichText from "@/components/portfolio/RichText";
 import { RichTextField, RichTextArea } from "@/components/portfolio/RichTextEditable";
 import { stripRichTags, richOrUndefined } from "@/lib/portfolio/rich-text";
-import { GRID_COLS, GRID_ROW_HEIGHT, GRID_MARGIN, DEFAULT_SIZE, MIN_SIZE, gridUid, sortGridItems, nextY, migrateToGrid, nativeContentH, getGrid, applyGrid, resolveNativeOverlap } from "@/lib/portfolio/grid";
+import { GRID_COLS, GRID_ROW_HEIGHT, GRID_MARGIN, DEFAULT_SIZE, MIN_SIZE, HERO_MARKER_TYPES, gridUid, sortGridItems, nextY, migrateToGrid, nativeContentH, getGrid, applyGrid, resolveNativeOverlap } from "@/lib/portfolio/grid";
 import { createDefaultBlock, createDefaultSection } from "@/lib/portfolio/section-factory";
 import HeroBackgroundCarousel from "@/components/portfolio/HeroBackgroundCarousel";
 import HeroDecoration from "@/components/portfolio/HeroDecoration";
@@ -73,12 +75,14 @@ function getSectionSuggestions(profileType: string) {
     fashion:  { projects: { label: "Campagnes",    desc: "Tes shootings et éditos" },  experience: { label: "Agences",       desc: "Tes collabs et agences" } },
   };
   const o = ov[profileType] ?? {};
+  // Icônes lucide-react (cf. BLOCK_SUGGESTIONS) : les anciens glyphes Unicode
+  // (✍ ⚡ ◈ ◷ ✉) dépendaient de la police installée sur la machine du visiteur.
   return [
-    { type: "about"      as const, icon: "✍", label: o.about?.label ?? "À propos",       desc: o.about?.desc ?? "Présente-toi en quelques phrases" },
-    { type: "skills"     as const, icon: "⚡", label: o.skills?.label ?? "Compétences",   desc: "Tes compétences ou services" },
-    { type: "projects"   as const, icon: "◈",  label: o.projects?.label ?? "Projets",     desc: o.projects?.desc ?? "Tes créations et réalisations" },
-    { type: "experience" as const, icon: "◷",  label: o.experience?.label ?? "Expérience",desc: o.experience?.desc ?? "Ton parcours" },
-    { type: "contact"    as const, icon: "✉",  label: "Contact",                           desc: "Comment te joindre" },
+    { type: "about"      as const, Icon: PenLine,    label: o.about?.label ?? "À propos",       desc: o.about?.desc ?? "Présente-toi en quelques phrases" },
+    { type: "skills"     as const, Icon: Zap,        label: o.skills?.label ?? "Compétences",   desc: "Tes compétences ou services" },
+    { type: "projects"   as const, Icon: FolderOpen, label: o.projects?.label ?? "Projets",     desc: o.projects?.desc ?? "Tes créations et réalisations" },
+    { type: "experience" as const, Icon: Briefcase,  label: o.experience?.label ?? "Expérience",desc: o.experience?.desc ?? "Ton parcours" },
+    { type: "contact"    as const, Icon: Mail,       label: "Contact",                          desc: "Comment te joindre" },
   ];
 }
 
@@ -238,15 +242,18 @@ function getIllustrations(profileType: string): Illustration[] {
   return [...(ILLUSTRATION_SETS[profileType] ?? []), ...ILLUSTRATION_SETS.default];
 }
 
-const BLOCK_SUGGESTIONS: { type: ContentBlock["type"]; icon: string }[] = [
-  { type: "image",    icon: "🖼" },
-  { type: "carousel", icon: "▤"  },
-  { type: "text",     icon: "¶"  },
-  { type: "quote",    icon: "❝"  },
-  { type: "stats",    icon: "◫"  },
-  { type: "button",   icon: "⇒"  },
-  { type: "links",    icon: "🔗" },
-  { type: "divider",  icon: "─"  },
+// Icônes lucide-react plutôt que des caractères Unicode : les anciens glyphes
+// (🖼 pour l'image, 🔗 pour les liens, ▤ ◫ ❝ …) dépendaient de la police
+// installée, d'où un rendu illisible ou incohérent d'une machine à l'autre.
+const BLOCK_SUGGESTIONS: { type: ContentBlock["type"]; Icon: typeof ImageIcon }[] = [
+  { type: "image",    Icon: ImageIcon },
+  { type: "carousel", Icon: GalleryHorizontalEnd },
+  { type: "text",     Icon: Type },
+  { type: "quote",    Icon: Quote },
+  { type: "stats",    Icon: BarChart3 },
+  { type: "button",   Icon: MousePointerClick },
+  { type: "links",    Icon: Link2 },
+  { type: "divider",  Icon: Minus },
 ];
 type BlockLabels = ReturnType<typeof getDictionary>["editor"]["blockLabels"];
 function blockLabel(t: BlockLabels, type: ContentBlock["type"]): string {
@@ -258,8 +265,12 @@ function sectionLabel(t: SectionLabels, type: string): string {
 }
 
 // ── Main editor ───────────────────────────────────────────────────────────────
-export default function VisualEditor({ initialData, portfolioId, slug, profileType }: {
+export default function VisualEditor({ initialData, portfolioId, slug, profileType, hideTour }: {
   initialData: ValidatedPortfolioJSON; portfolioId: string; slug: string; profileType: string;
+  // Uniquement pour la route de capture locale (app/shot/editor) : le tuto
+  // s'afficherait systématiquement sur un profil navigateur neuf (localStorage
+  // vide) et masquerait l'éditeur sur la capture. Non fourni en usage normal.
+  hideTour?: boolean;
 }) {
   const router = useRouter();
   const [locale, setLocale] = useLocale();
@@ -402,10 +413,10 @@ export default function VisualEditor({ initialData, portfolioId, slug, profileTy
     }));
   };
 
-  // Contenu natif ET titre : un seul par section, jamais supprimables ni
-  // duplicables (que ce soit un par un ou en groupe) — seule la suppression
-  // de la section entière les retire.
-  const isProtected = (b: ContentBlock) => b.type === "section_content" || b.type === "section_title";
+  // Contenu natif, titre ET les 4 textes du hero : un seul de chaque par
+  // section, jamais supprimables ni duplicables (que ce soit un par un ou en
+  // groupe) — seule la suppression de la section entière les retire.
+  const isProtected = (b: ContentBlock) => b.type === "section_content" || b.type === "section_title" || HERO_MARKER_TYPES.has(b.type);
 
   const removeBlock = (sectionIdx: number, id: string) => {
     mutateGrid(sectionIdx, items => items.filter(it => it.id !== id || isProtected(it.block)));
@@ -459,7 +470,7 @@ export default function VisualEditor({ initialData, portfolioId, slug, profileTy
     const ids = multiSelectedIds.length >= 2 ? multiSelectedIds : selectedBlock ? [selectedBlock] : [];
     if (ids.length === 0) return;
     const idSet = new Set(ids);
-    const picked = getGrid(data.sections[selectedIdx]).filter(it => idSet.has(it.id) && it.block.type !== "section_content" && it.block.type !== "section_title");
+    const picked = getGrid(data.sections[selectedIdx]).filter(it => idSet.has(it.id) && !isProtected(it.block));
     if (picked.length === 0) return;
     const minX = Math.min(...picked.map(it => it.x)), minY = Math.min(...picked.map(it => it.y));
     clipboardRef.current = picked.map(it => ({ block: it.block, x: it.x - minX, y: it.y - minY, w: it.w, h: it.h }));
@@ -547,7 +558,7 @@ export default function VisualEditor({ initialData, portfolioId, slug, profileTy
   if (isMobile) {
     return (
       <div style={{ minHeight:"100vh", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:"2rem 1.5rem", textAlign:"center", background:"#1c1917", fontFamily:"system-ui,sans-serif" }}>
-        <span style={{ fontSize:"2rem", marginBottom:"1rem" }}>💻</span>
+        <Laptop size={32} strokeWidth={1.5} color="#c9a96e" style={{ marginBottom:"1rem" }} />
         <h1 style={{ color:"white", fontSize:"1.125rem", fontWeight:600, marginBottom:"0.625rem" }}>{t.mobile.title}</h1>
         <p style={{ color:"#a8a29e", fontSize:"0.875rem", lineHeight:1.6, marginBottom:"2rem", maxWidth:340 }}>
           {t.mobile.desc}
@@ -570,16 +581,18 @@ export default function VisualEditor({ initialData, portfolioId, slug, profileTy
     <div style={{ display:"flex", height:"100vh", overflow:"hidden", fontFamily:"system-ui,sans-serif" }}>
       {/* Tuto de première ouverture de l'éditeur — s'auto-affiche une seule fois
           (clé localStorage distincte de celle de la page de gestion). */}
-      <ProductTour
-        storageKey="folyo_tour_editor_v1"
-        ui={{ skip: t.tour.skip, prev: t.tour.prev, next: t.tour.next, done: t.tour.done }}
-        steps={[
-          { target: null, ...t.tour.steps[0] },
-          { target: '[data-tour="editor-canvas"]', ...t.tour.steps[1] },
-          { target: '[data-tour="editor-panel"]', ...t.tour.steps[2] },
-          { target: '[data-tour="editor-save"]', ...t.tour.steps[3] },
-        ]}
-      />
+      {!hideTour && (
+        <ProductTour
+          storageKey="folyo_tour_editor_v1"
+          ui={{ skip: t.tour.skip, prev: t.tour.prev, next: t.tour.next, done: t.tour.done }}
+          steps={[
+            { target: null, ...t.tour.steps[0] },
+            { target: '[data-tour="editor-canvas"]', ...t.tour.steps[1] },
+            { target: '[data-tour="editor-panel"]', ...t.tour.steps[2] },
+            { target: '[data-tour="editor-save"]', ...t.tour.steps[3] },
+          ]}
+        />
+      )}
       {/* ── LEFT ── */}
       <div ref={previewScrollRef} data-tour="editor-canvas" style={{ flex:1, overflowY:"auto", minWidth:0 }}
         onDragOver={e => { if (secDragSrc !== null) dragYRef.current = e.clientY; }}
@@ -667,7 +680,7 @@ export default function VisualEditor({ initialData, portfolioId, slug, profileTy
             t={getDictionary(locale).editor}
           />
         ) : (
-          <ThemeEditor meta={data.meta} theme={data.theme} updateMeta={updateMeta} updateTheme={updateTheme} profileType={profileType} portfolioId={portfolioId} t={getDictionary(locale).editor.theme} tShared={getDictionary(locale).editor.shared} />
+          <ThemeEditor meta={data.meta} theme={data.theme} heroSection={data.sections.find(s=>s.type==="hero")} updateMeta={updateMeta} updateTheme={updateTheme} profileType={profileType} portfolioId={portfolioId} t={getDictionary(locale).editor.theme} tShared={getDictionary(locale).editor.shared} />
         )}
       </div>
     </div>
@@ -708,7 +721,7 @@ function SectionGap({ insertAt, profileType, pri, onAdd }: { insertAt:number; pr
               <button key={s.type} onClick={()=>{onAdd(s.type,insertAt);setOpen(false);setHov(false);}}
                 style={{display:"flex",alignItems:"flex-start",gap:"0.5rem",padding:"0.625rem 0.75rem",background:"#f8f5f0",border:"1px solid rgba(0,0,0,0.07)",borderRadius:"0.625rem",cursor:"pointer",textAlign:"left"}}
                 onMouseEnter={e=>(e.currentTarget.style.background=`${pri}12`)} onMouseLeave={e=>(e.currentTarget.style.background="#f8f5f0")}>
-                <span style={{fontSize:"1rem",flexShrink:0}}>{s.icon}</span>
+                <s.Icon size={17} strokeWidth={1.75} color="#57534e" style={{flexShrink:0,marginTop:1}} />
                 <div><p style={{fontSize:"0.7875rem",fontWeight:600,color:"#1c1917",margin:0}}>{s.label}</p><p style={{fontSize:"0.675rem",color:"#78716c",margin:0,lineHeight:1.4}}>{s.desc}</p></div>
               </button>
             ))}
@@ -747,7 +760,7 @@ function AddWidgetButton({ pri, bg, onAdd, blockLabels }: {
               <button key={s.type} onClick={()=>{onAdd(s.type);setOpen(false);setHov(false);}}
                 style={{display:"flex",flexDirection:"column",alignItems:"center",gap:"0.2rem",padding:"0.4rem 0.25rem",background:"#f8f5f0",border:"1px solid rgba(0,0,0,0.07)",borderRadius:"0.4rem",cursor:"pointer"}}
                 onMouseEnter={e=>(e.currentTarget.style.background=`${pri}12`)} onMouseLeave={e=>(e.currentTarget.style.background="#f8f5f0")}>
-                <span style={{fontSize:"1rem"}}>{s.icon}</span>
+                <s.Icon size={17} strokeWidth={1.75} color="#57534e" />
                 <span style={{fontSize:"0.575rem",color:"#78716c",fontWeight:500}}>{blockLabel(blockLabels,s.type)}</span>
               </button>
             ))}
@@ -796,8 +809,8 @@ const HOLD_TO_DRAG_MS = 180;
 // délai écoulé (si le bouton est toujours enfoncé) : react-grid-layout le
 // reçoit comme un vrai mousedown et démarre son suivi de glissement à partir
 // de là. Un relâchement avant le délai annule le timer → simple clic.
-function GridItemChrome({ children, selected, pri, label, removable, onSelect, onRemove, onMouseDown }: {
-  children:React.ReactNode; selected:boolean; pri:string; label?:string; removable:boolean;
+function GridItemChrome({ children, selected, pri, label, removable, overflowVisible, onSelect, onRemove, onMouseDown }: {
+  children:React.ReactNode; selected:boolean; pri:string; label?:string; removable:boolean; overflowVisible?:boolean;
   onSelect:()=>void; onRemove:()=>void; onMouseDown?:()=>void;
 }) {
   const [hov, setHov] = useState(false);
@@ -845,7 +858,7 @@ function GridItemChrome({ children, selected, pri, label, removable, onSelect, o
           {removable&&<button onClick={onRemove} style={{background:"#dc2626",color:"#fff",border:"none",borderRadius:4,width:18,height:18,cursor:"pointer",fontSize:9,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>}
         </div>
       )}
-      <div style={{height:"100%",overflow:"hidden"}}>{children}</div>
+      <div style={{height:"100%",overflow:overflowVisible?"visible":"hidden"}}>{children}</div>
     </div>
   );
 }
@@ -907,6 +920,9 @@ const GridBlocksArea = forwardRef<GridBlocksAreaHandle, {
   widgetStyle:WidgetStyle; pri:string; bg:string; txt:string; hFont:string;
   renderNative?:()=>React.ReactNode;
   renderTitle?:()=>React.ReactNode;
+  // Un des 4 marqueurs hero_title/hero_tagline/hero_subtitle/hero_cta — reçoit
+  // le bloc (pas juste le type) pour pouvoir lire son fontSize/fontFamily.
+  renderHero?:(block:ContentBlock)=>React.ReactNode;
   onSelect:(id:string)=>void; onSelectNative:()=>void; onRemove:(id:string)=>void;
   onAddBlock:(type:ContentBlock["type"])=>void;
   onCommitLayout:(layout:Layout[])=>void;
@@ -915,7 +931,7 @@ const GridBlocksArea = forwardRef<GridBlocksAreaHandle, {
   multiSelectedIds:string[]; onSelectMany:(ids:string[])=>void;
   onDuplicateRequest:(ids:string[])=>void;
   previewScrollRef:React.RefObject<HTMLDivElement>;
-}>(({ items, editMode, selectedId, widgetStyle, pri, bg, txt, hFont, renderNative, renderTitle, onSelect, onSelectNative, onRemove, onAddBlock, onCommitLayout, onGridDragChange, blockLabels, duplicateLabel, multiSelectedIds, onSelectMany, onDuplicateRequest, previewScrollRef }, forwardedRef) => {
+}>(({ items, editMode, selectedId, widgetStyle, pri, bg, txt, hFont, renderNative, renderTitle, renderHero, onSelect, onSelectNative, onRemove, onAddBlock, onCommitLayout, onGridDragChange, blockLabels, duplicateLabel, multiSelectedIds, onSelectMany, onDuplicateRequest, previewScrollRef }, forwardedRef) => {
   // Un simple clic ne doit pas commit ni supprimer la sélection : on ne commit
   // qu'après un vrai déplacement (dragMoved), et on avale le click de fin de drag.
   const dragMoved = useRef(false);
@@ -978,7 +994,7 @@ const GridBlocksArea = forwardRef<GridBlocksAreaHandle, {
             {BLOCK_SUGGESTIONS.map(s=>(
               <button key={s.type} onClick={e=>{e.stopPropagation();onAddBlock(s.type);}}
                 style={{display:"flex",alignItems:"center",gap:"0.25rem",padding:"0.3rem 0.6rem",background:`${pri}10`,border:"none",borderRadius:"0.375rem",cursor:"pointer",fontSize:"0.7rem",color:pri,fontWeight:600}}>
-                {s.icon} {blockLabel(blockLabels,s.type)}
+                <s.Icon size={13} strokeWidth={2} /> {blockLabel(blockLabels,s.type)}
               </button>
             ))}
           </div>
@@ -1237,25 +1253,32 @@ const GridBlocksArea = forwardRef<GridBlocksAreaHandle, {
         {items.map(it=>{
           const isNative = it.block.type==="section_content";
           const isTitle  = it.block.type==="section_title";
+          const isHero   = HERO_MARKER_TYPES.has(it.block.type);
           return (
             <div key={it.id} onContextMenu={e=>{
-              if (isNative || isTitle) return; // pas de duplication pour ceux-là
+              if (isNative || isTitle || isHero) return; // pas de duplication pour ceux-là
               e.preventDefault();
               setContextMenuFor({ id: it.id, x: e.clientX, y: e.clientY });
             }}>
               <GridItemChrome selected={selectedId===it.id || multiSelectedIds.includes(it.id)} pri={pri}
-                label={isNative?"Contenu →":isTitle?"Titre →":undefined} removable={!isNative && !isTitle}
+                label={isNative?"Contenu →":isTitle?"Titre →":undefined} removable={!isNative && !isTitle && !isHero}
+                overflowVisible={isHero}
                 onMouseDown={()=>{ dragMoved.current = false; }}
                 // Le titre n'a pas d'éditeur dédié : il ouvre le même panneau
                 // que le contenu natif (SectionEditor, qui porte déjà le champ
-                // "Titre de la section" + l'alignement).
+                // "Titre de la section" + l'alignement). Les 4 textes du hero,
+                // eux, ouvrent le panneau widget normal (BlockEditor) : ils ont
+                // leur propre fontSize/fontFamily réglable comme un widget
+                // texte ordinaire, seul le contenu reste édité ailleurs.
                 onSelect={()=>{ if(dragMoved.current) return; if(isNative||isTitle) onSelectNative(); else onSelect(it.id); }}
                 onRemove={()=>onRemove(it.id)}>
                 {isTitle
                   // Pas de WidgetFrame (pas de carte) : un simple texte, comme
                   // avant son passage en item de grille.
                   ? <div style={{height:"100%",display:"flex",alignItems:"center"}}>{renderTitle?.()}</div>
-                  : (
+                  : isHero
+                    ? <div style={{height:"100%",display:"flex",alignItems:"center",justifyContent:"center"}}>{renderHero?.(it.block)}</div>
+                    : (
                     <WidgetFrame widgetStyle={widgetStyle} block={it.block} bg={bg} txt={txt}>
                       {it.block.type==="section_content"
                         // overflowY auto (pas hidden) : même correctif que le rendu
@@ -1505,6 +1528,30 @@ function SectionRender({ section, meta, theme, bg, txt, pri, acc, hFont, section
   const gridBlocksRef = useRef<GridBlocksAreaHandle>(null);
   const onSectionMouseDown = (e: React.MouseEvent) => gridBlocksRef.current?.onSectionMouseDown(e);
 
+  // Les 4 textes du hero — même geste que NativeSectionContent/SectionTitleContent
+  // ci-dessous, mais un rendu par type de marqueur puisqu'il y en a 4 (pas 1).
+  // Reprend exactement les styles de l'ancienne mise en page fixe (voir le cas
+  // "hero" plus bas), juste paramétrés par fontSize/fontFamily du bloc.
+  const renderHeroMarker = (block: ContentBlock): React.ReactNode => {
+    if (section.type !== "hero") return null;
+    switch (block.type) {
+      case "hero_title":
+        return <h1 style={{fontSize:block.fontSize?`${block.fontSize}px`:"clamp(2rem,5vw,3.5rem)",fontWeight:700,fontFamily:block.fontFamily||hFont,color:txt,lineHeight:1.1,margin:0}}><RichText html={section.title||meta.name}/></h1>;
+      case "hero_tagline":
+        return <p style={{fontSize:block.fontSize?`${block.fontSize}px`:"1.0625rem",fontWeight:500,color:pri,fontFamily:block.fontFamily||undefined,margin:0}}><RichText html={meta.title}/></p>;
+      case "hero_subtitle":
+        return <p style={{fontSize:block.fontSize?`${block.fontSize}px`:"1rem",color:`${txt}70`,fontFamily:block.fontFamily||undefined,maxWidth:520,margin:"0 auto",lineHeight:1.6}}><RichText html={section.subtitle||meta.tagline}/></p>;
+      case "hero_cta":
+        return (
+          <div style={{display:"flex",gap:"0.875rem",flexWrap:"wrap",justifyContent:"center"}}>
+            <span style={{background:pri,color:"#fff",padding:"0.75rem 1.75rem",borderRadius:"0.75rem",fontWeight:600,fontSize:block.fontSize?`${block.fontSize}px`:"0.875rem",fontFamily:block.fontFamily||undefined}}><RichText html={section.cta_text}/></span>
+            {meta.github_url&&<span style={{border:`1px solid ${txt}20`,color:`${txt}80`,padding:"0.75rem 1.75rem",borderRadius:"0.75rem",fontSize:"0.875rem"}}>GitHub →</span>}
+          </div>
+        );
+      default: return null;
+    }
+  };
+
   const blocksArea = (
     <GridBlocksArea
       ref={gridBlocksRef}
@@ -1514,6 +1561,7 @@ function SectionRender({ section, meta, theme, bg, txt, pri, acc, hFont, section
       pri={pri} bg={bg} txt={txt} hFont={hFont}
       renderNative={()=> <NativeSectionContent section={section} bg={bg} txt={txt} pri={pri} hFont={hFont}/>}
       renderTitle={()=> <SectionTitleContent section={section} hFont={hFont} txt={txt}/>}
+      renderHero={renderHeroMarker}
       onSelect={onSelectBlock}
       onSelectNative={onSelectNative}
       onRemove={onRemoveBlock}
@@ -1533,21 +1581,41 @@ function SectionRender({ section, meta, theme, bg, txt, pri, acc, hFont, section
       const heroImg=theme.hero_image_url, overlay=theme.overlay_opacity??0.8;
       const heroImages=theme.hero_images??[];
       const hasCarousel=heroImages.length>0;
+      // Portfolio jamais rouvert dans l'éditeur depuis ce chantier : les 4
+      // textes ne sont pas encore des items de grille (migrateToGrid ne les a
+      // pas injectés — normalement impossible ici puisque migrateToGrid tourne
+      // au montage de l'éditeur, mais on garde le repli fixe par robustesse,
+      // même geste que sectionBody/GridStatic pour les autres sections).
+      const hasHeroMarkers = getGrid(section).some(it=>it.block.type==="hero_title");
       return (
         <section draggable={false} onMouseDown={onSectionMouseDown} onClick={e=>e.stopPropagation()} style={{position:"relative",minHeight:"90vh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"6rem 1.5rem 3rem",textAlign:"center",backgroundImage:!hasCarousel&&heroImg?`url(${heroImg})`:undefined,backgroundSize:"cover",backgroundPosition:"center"}}>
           {hasCarousel&&<HeroBackgroundCarousel images={heroImages} intervalSeconds={theme.hero_interval??5}/>}
           {(hasCarousel||heroImg)&&<div style={{position:"absolute",inset:0,background:bg,opacity:overlay}}/>}
           <HeroDecoration variant={theme.hero_decoration} color={acc}/>
           <div style={{position:"relative",zIndex:1,display:"flex",flexDirection:"column",alignItems:"center",maxWidth:640,width:"100%"}}>
-            {meta.avatar_url&&<img src={meta.avatar_url} alt={stripRichTags(meta.name)} width={88} height={88} style={{borderRadius:"50%",marginBottom:"1.5rem",border:`2px solid ${pri}`,objectFit:"cover"}}/>}
-            <h1 style={{fontSize:"clamp(2rem,5vw,3.5rem)",fontWeight:700,fontFamily:hFont,color:txt,marginBottom:"0.75rem",lineHeight:1.1}}><RichText html={section.title||meta.name}/></h1>
-            <p style={{fontSize:"1.0625rem",fontWeight:500,color:pri,marginBottom:"0.5rem"}}><RichText html={meta.title}/></p>
-            <p style={{fontSize:"1rem",color:`${txt}70`,maxWidth:520,marginBottom:"2.5rem",lineHeight:1.6}}><RichText html={section.subtitle||meta.tagline}/></p>
-            <div style={{display:"flex",gap:"0.875rem",flexWrap:"wrap",justifyContent:"center"}}>
-              <span style={{background:pri,color:"#fff",padding:"0.75rem 1.75rem",borderRadius:"0.75rem",fontWeight:600,fontSize:"0.875rem"}}><RichText html={section.cta_text}/></span>
-              {meta.github_url&&<span style={{border:`1px solid ${txt}20`,color:`${txt}80`,padding:"0.75rem 1.75rem",borderRadius:"0.75rem",fontSize:"0.875rem"}}>GitHub →</span>}
-            </div>
-            {blocksArea}
+            {/* marginBottom nul quand la grille prend le relais : GridBlocksArea
+                ajoute déjà son propre marginTop, un marginBottom ici cumulerait
+                les deux écarts (régression visuelle vs. avant la migration). */}
+            {meta.avatar_url&&<img src={meta.avatar_url} alt={stripRichTags(meta.name)} width={88} height={88} style={{borderRadius:"50%",marginBottom:hasHeroMarkers?0:"1.5rem",border:`2px solid ${pri}`,objectFit:"cover"}}/>}
+            {/* width:"100%" explicite : le parent est un flex column avec
+                alignItems:"center", donc un enfant en width:auto (comme le
+                wrapper de GridBlocksArea, dont le contenu react-grid-layout
+                est en position:absolute et n'a pas de largeur intrinsèque)
+                se réduirait à une largeur quasi nulle au lieu de remplir les
+                640px — WidthProvider mesurerait alors ça et écraserait toute
+                la grille sur quelques colonnes. */}
+            {hasHeroMarkers ? <div style={{width:"100%"}}>{blocksArea}</div> : (
+              <>
+                <h1 style={{fontSize:"clamp(2rem,5vw,3.5rem)",fontWeight:700,fontFamily:hFont,color:txt,marginBottom:"0.75rem",lineHeight:1.1}}><RichText html={section.title||meta.name}/></h1>
+                <p style={{fontSize:"1.0625rem",fontWeight:500,color:pri,marginBottom:"0.5rem"}}><RichText html={meta.title}/></p>
+                <p style={{fontSize:"1rem",color:`${txt}70`,maxWidth:520,marginBottom:"2.5rem",lineHeight:1.6}}><RichText html={section.subtitle||meta.tagline}/></p>
+                <div style={{display:"flex",gap:"0.875rem",flexWrap:"wrap",justifyContent:"center"}}>
+                  <span style={{background:pri,color:"#fff",padding:"0.75rem 1.75rem",borderRadius:"0.75rem",fontWeight:600,fontSize:"0.875rem"}}><RichText html={section.cta_text}/></span>
+                  {meta.github_url&&<span style={{border:`1px solid ${txt}20`,color:`${txt}80`,padding:"0.75rem 1.75rem",borderRadius:"0.75rem",fontSize:"0.875rem"}}>GitHub →</span>}
+                </div>
+                {blocksArea}
+              </>
+            )}
           </div>
         </section>
       );
@@ -1601,7 +1669,7 @@ function SuggestionChips({ label, items, pri, onPick }: { label:string; items:st
   if (items.length===0) return null;
   return (
     <div style={{marginBottom:"0.875rem"}}>
-      <p style={{fontSize:"0.6rem",fontWeight:700,textTransform:"uppercase",letterSpacing:"0.06em",color:"#a09a94",marginBottom:"0.375rem"}}>💡 {label}</p>
+      <p style={{fontSize:"0.6rem",fontWeight:700,textTransform:"uppercase",letterSpacing:"0.06em",color:"#a09a94",marginBottom:"0.375rem",display:"flex",alignItems:"center",gap:"0.3rem"}}><Lightbulb size={11} strokeWidth={2} />{label}</p>
       <div style={{display:"flex",flexWrap:"wrap",gap:"0.3rem"}}>
         {items.map((s,i)=>(
           <button key={i} onClick={()=>onPick(s)}
@@ -1618,7 +1686,7 @@ function SuggestionChips({ label, items, pri, onPick }: { label:string; items:st
 function IllustrationPicker({ items, pri, onPick }: { items:Illustration[]; pri:string; onPick:(url:string)=>void }) {
   return (
     <div style={{marginBottom:"0.875rem"}}>
-      <p style={{fontSize:"0.6rem",fontWeight:700,textTransform:"uppercase",letterSpacing:"0.06em",color:"#a09a94",marginBottom:"0.375rem"}}>🎨 Illustrations (sans photo)</p>
+      <p style={{fontSize:"0.6rem",fontWeight:700,textTransform:"uppercase",letterSpacing:"0.06em",color:"#a09a94",marginBottom:"0.375rem",display:"flex",alignItems:"center",gap:"0.3rem"}}><Palette size={11} strokeWidth={2} />Illustrations (sans photo)</p>
       <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:"0.375rem"}}>
         {items.map(ill=>(
           <button key={ill.id} onClick={()=>onPick(ill.icon(pri))}
@@ -1643,6 +1711,11 @@ function BlockEditor({ block, pri, profileType, meta, onUpdate, onRemove, onBack
   const fileRef = useRef<HTMLInputElement>(null);
   const [scrapeState, setScrapeState] = useState<{loading:"yt"|"gh"|null; error:string|null}>({loading:null, error:null});
   if (!block) return null;
+  // Les 4 textes du hero (titre/accroche/sous-titre/CTA) : marqueurs non
+  // supprimables dont le contenu s'édite ailleurs (panneau de la section) —
+  // seule leur position/taille et leur police se règlent ici, comme un
+  // widget ordinaire.
+  const isHeroMarker = block.type==="hero_title"||block.type==="hero_tagline"||block.type==="hero_subtitle"||block.type==="hero_cta";
 
   const fmt = (n:number) => n.toLocaleString("fr-FR");
   async function fetchYoutubeStats() {
@@ -1696,8 +1769,8 @@ function BlockEditor({ block, pri, profileType, meta, onUpdate, onRemove, onBack
       {/* Layout hint + repositionnement rapide vs. le contenu natif */}
       <div style={{marginBottom:"1.25rem",padding:"0.625rem",background:"#f0ece6",borderRadius:"0.625rem"}}>
         <p style={{fontSize:"0.6rem",fontWeight:700,textTransform:"uppercase",letterSpacing:"0.08em",color:"#a09a94",marginBottom:"0.5rem"}}>Disposition</p>
-        <p style={{fontSize:"0.675rem",color:"#a09a94",margin:0}}>💡 Glisse le widget pour le déplacer (même à côté du contenu), tire les poignées (bord droit, bas, coin) pour le redimensionner</p>
-        {onMoveAcrossNative&&(
+        <p style={{fontSize:"0.675rem",color:"#a09a94",margin:0,display:"flex",alignItems:"flex-start",gap:"0.3rem"}}><Lightbulb size={12} strokeWidth={2} style={{flexShrink:0,marginTop:2}} />Glisse le widget pour le déplacer (même à côté du contenu), tire les poignées (bord droit, bas, coin) pour le redimensionner</p>
+        {onMoveAcrossNative&&!isHeroMarker&&(
           <>
             <p style={{fontSize:"0.625rem",color:"#a09a94",margin:"0.5rem 0 0.375rem"}}>Le contenu principal peut être trop grand pour glisser par-dessus à la souris — utilise ces boutons :</p>
             <div style={{display:"flex",gap:"0.375rem"}}>
@@ -1767,7 +1840,7 @@ function BlockEditor({ block, pri, profileType, meta, onUpdate, onRemove, onBack
 
       {/* Police & taille du texte — widgets textuels (menus déroulants façon Word).
           Pour le carrousel : régit la description + la légende (proportionnelle), voir Carousel.tsx. */}
-      {(block.type==="text"||block.type==="quote"||block.type==="stats"||block.type==="button"||block.type==="links"||block.type==="carousel")&&(
+      {(block.type==="text"||block.type==="quote"||block.type==="stats"||block.type==="button"||block.type==="links"||block.type==="carousel"||isHeroMarker)&&(
         <div style={{marginBottom:"1.25rem",display:"flex",gap:"0.5rem"}}>
           <div style={{flex:2}}>
             <label style={{display:"block",fontSize:"0.7rem",color:"#78716c",marginBottom:"0.375rem"}}>Police</label>
@@ -1877,18 +1950,18 @@ function BlockEditor({ block, pri, profileType, meta, onUpdate, onRemove, onBack
           <p style={{fontSize:"0.7rem",color:"#a09a94",marginBottom:"0.75rem"}}>Affichés côte à côte</p>
           {(meta.youtube_url||meta.github_url)&&(
             <div style={{marginBottom:"0.875rem",padding:"0.625rem",background:`${pri}0a`,borderRadius:"0.5rem"}}>
-              <p style={{fontSize:"0.6rem",fontWeight:700,textTransform:"uppercase",letterSpacing:"0.06em",color:`${pri}`,marginBottom:"0.5rem"}}>📡 Récupérer les vraies stats</p>
+              <p style={{fontSize:"0.6rem",fontWeight:700,textTransform:"uppercase",letterSpacing:"0.06em",color:`${pri}`,marginBottom:"0.5rem",display:"flex",alignItems:"center",gap:"0.3rem"}}><Antenna size={11} strokeWidth={2} />Récupérer les vraies stats</p>
               <div style={{display:"flex",gap:"0.375rem"}}>
                 {meta.youtube_url&&(
                   <button onClick={fetchYoutubeStats} disabled={scrapeState.loading!==null}
-                    style={{flex:1,padding:"0.4rem 0.5rem",fontSize:"0.7rem",fontWeight:600,color:"#1c1917",background:"white",border:"1px solid rgba(0,0,0,0.12)",borderRadius:"0.4rem",cursor:scrapeState.loading?"default":"pointer",opacity:scrapeState.loading&&scrapeState.loading!=="yt"?0.5:1}}>
-                    {scrapeState.loading==="yt"?"…":"▶ YouTube"}
+                    style={{flex:1,padding:"0.4rem 0.5rem",fontSize:"0.7rem",fontWeight:600,color:"#1c1917",background:"white",border:"1px solid rgba(0,0,0,0.12)",borderRadius:"0.4rem",cursor:scrapeState.loading?"default":"pointer",opacity:scrapeState.loading&&scrapeState.loading!=="yt"?0.5:1,display:"flex",alignItems:"center",justifyContent:"center",gap:"0.3rem"}}>
+                    {scrapeState.loading==="yt"?"…":<><Youtube size={12} strokeWidth={2} />YouTube</>}
                   </button>
                 )}
                 {meta.github_url&&(
                   <button onClick={fetchGithubStats} disabled={scrapeState.loading!==null}
-                    style={{flex:1,padding:"0.4rem 0.5rem",fontSize:"0.7rem",fontWeight:600,color:"#1c1917",background:"white",border:"1px solid rgba(0,0,0,0.12)",borderRadius:"0.4rem",cursor:scrapeState.loading?"default":"pointer",opacity:scrapeState.loading&&scrapeState.loading!=="gh"?0.5:1}}>
-                    {scrapeState.loading==="gh"?"…":"⌥ GitHub"}
+                    style={{flex:1,padding:"0.4rem 0.5rem",fontSize:"0.7rem",fontWeight:600,color:"#1c1917",background:"white",border:"1px solid rgba(0,0,0,0.12)",borderRadius:"0.4rem",cursor:scrapeState.loading?"default":"pointer",opacity:scrapeState.loading&&scrapeState.loading!=="gh"?0.5:1,display:"flex",alignItems:"center",justifyContent:"center",gap:"0.3rem"}}>
+                    {scrapeState.loading==="gh"?"…":<><Github size={12} strokeWidth={2} />GitHub</>}
                   </button>
                 )}
               </div>
@@ -1962,19 +2035,22 @@ function BlockEditor({ block, pri, profileType, meta, onUpdate, onRemove, onBack
         </div>
       )}
       {block.type==="divider"&&<p style={{fontSize:"0.7875rem",color:"#a09a94",textAlign:"center",padding:"1rem 0"}}>Ligne de séparation — pas de configuration</p>}
+      {isHeroMarker&&<p style={{fontSize:"0.7875rem",color:"#a09a94",textAlign:"center",padding:"1rem 0"}}>Le texte se modifie depuis le panneau de la section (bouton « ← Section » ci-dessus)</p>}
 
-      <div style={{marginTop:"1.5rem",paddingTop:"1rem",borderTop:"1px solid rgba(0,0,0,0.06)"}}>
-        <button onClick={onRemove} style={{width:"100%",padding:"0.5rem",fontSize:"0.75rem",color:"#dc2626",background:"rgba(220,38,38,0.05)",border:"1px solid rgba(220,38,38,0.15)",borderRadius:"0.5rem",cursor:"pointer"}}>
-          Supprimer ce widget
-        </button>
-      </div>
+      {!isHeroMarker&&(
+        <div style={{marginTop:"1.5rem",paddingTop:"1rem",borderTop:"1px solid rgba(0,0,0,0.06)"}}>
+          <button onClick={onRemove} style={{width:"100%",padding:"0.5rem",fontSize:"0.75rem",color:"#dc2626",background:"rgba(220,38,38,0.05)",border:"1px solid rgba(220,38,38,0.15)",borderRadius:"0.5rem",cursor:"pointer"}}>
+            Supprimer ce widget
+          </button>
+        </div>
+      )}
     </div>
   );
 }
 
 // ── Theme editor ───────────────────────────────────────────────────────────────
-function ThemeEditor({ meta, theme, updateMeta, updateTheme, profileType, portfolioId, t, tShared }: {
-  meta:VMeta; theme:VTheme; updateMeta:(u:Partial<VMeta>)=>void; updateTheme:(u:Partial<VTheme>)=>void;
+function ThemeEditor({ meta, theme, heroSection, updateMeta, updateTheme, profileType, portfolioId, t, tShared }: {
+  meta:VMeta; theme:VTheme; heroSection:VSection|undefined; updateMeta:(u:Partial<VMeta>)=>void; updateTheme:(u:Partial<VTheme>)=>void;
   profileType:string; portfolioId:string; t:ReturnType<typeof getDictionary>["editor"]["theme"];
   tShared:ReturnType<typeof getDictionary>["editor"]["shared"];
 }) {
@@ -2008,7 +2084,16 @@ function ThemeEditor({ meta, theme, updateMeta, updateTheme, profileType, portfo
 
   async function genAiTheme() {
     setAiStatus("loading"); setAiReason(""); setAiError("");
-    try{const res=await fetch(`/api/portfolio/${portfolioId}/generate-theme`,{method:"POST"});if(!res.ok)throw new Error();const{theme:t,reasoning}=await res.json();updateTheme(t);setAiReason(reasoning);setAiStatus("done");}
+    // Envoie le titre/sous-titre hero tels qu'édités en mémoire (même si non
+    // enregistrés) pour que la génération IA reflète ce que l'utilisateur voit
+    // à l'écran, pas la dernière version sauvegardée en base.
+    const h = heroSection?.type==="hero" ? heroSection : null;
+    const body = { heroTitle: stripRichTags(h?.title ?? ""), heroSubtitle: stripRichTags(h?.subtitle ?? "") };
+    try{
+      const res=await fetch(`/api/portfolio/${portfolioId}/generate-theme`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+      if(!res.ok)throw new Error();
+      const{theme:t,reasoning}=await res.json();updateTheme(t);setAiReason(reasoning);setAiStatus("done");
+    }
     catch{setAiStatus("error");}
   }
   async function genThemeFromUrl() {
@@ -2030,13 +2115,13 @@ function ThemeEditor({ meta, theme, updateMeta, updateTheme, profileType, portfo
           <button onClick={genAiTheme} disabled={aiStatus==="loading"}
             style={{gridColumn:"1/-1",border:theme.theme_preset_id==="ai-generated"?"2px solid #c9a96e":"1px solid rgba(201,169,110,0.4)",borderRadius:"0.5rem",overflow:"hidden",cursor:aiStatus==="loading"?"wait":"pointer",background:"none",padding:0,textAlign:"left",opacity:aiStatus==="loading"?0.7:1}}>
             <div style={{height:44,background:"linear-gradient(135deg,#1c1917,#3b1f0a,#1c1917)",display:"flex",alignItems:"center",justifyContent:"center",gap:"0.5rem"}}>
-              {aiStatus==="loading"?<span style={{fontSize:"0.75rem",color:"#c9a96e"}}>{t.aiGenerating}</span>:<><span style={{fontSize:"0.9rem"}}>✦</span><span style={{fontSize:"0.75rem",fontWeight:700,color:"#c9a96e"}}>{t.aiGenerate}</span></>}
+              {aiStatus==="loading"?<span style={{fontSize:"0.75rem",color:"#c9a96e"}}>{t.aiGenerating}</span>:<><Sparkles size={14} strokeWidth={2} color="#c9a96e" /><span style={{fontSize:"0.75rem",fontWeight:700,color:"#c9a96e"}}>{t.aiGenerate}</span></>}
             </div>
             <div style={{padding:"0.3rem 0.5rem",background:"white"}}><p style={{fontSize:"0.675rem",color:"#78716c",margin:0}}>{aiStatus==="done"&&aiReason?aiReason:t.aiDefaultDesc}</p></div>
           </button>
 
           <div style={{gridColumn:"1/-1",border:theme.theme_preset_id==="style-url"?"2px solid #c9a96e":"1px solid rgba(0,0,0,0.1)",borderRadius:"0.5rem",padding:"0.625rem",background:"#faf9f7"}}>
-            <p style={{fontSize:"0.675rem",fontWeight:700,color:"#1c1917",margin:"0 0 0.375rem"}}>{t.copyStyleTitle}</p>
+            <p style={{fontSize:"0.675rem",fontWeight:700,color:"#1c1917",margin:"0 0 0.375rem",display:"flex",alignItems:"center",gap:"0.3rem"}}><Palette size={12} strokeWidth={2} />{t.copyStyleTitle}</p>
             <div style={{display:"flex",gap:"0.375rem"}}>
               <input type="text" value={styleUrl} onChange={e=>setStyleUrl(e.target.value)}
                 onKeyDown={e=>{if(e.key==="Enter"){e.preventDefault();genThemeFromUrl();}}}
@@ -2420,8 +2505,9 @@ function SectionEditor({ section, idx, updateSection, removeSection, onClose, me
 }) {
   const update=(s:VSection)=>updateSection(idx,s);
   const [picker,setPicker]=useState<"github"|"youtube"|null>(null);
-  const gridItems=sortGridItems(getGrid(section)).filter(it=>it.block.type!=="section_content"&&it.block.type!=="section_title");
-  const tl:Record<string,string> = Object.fromEntries(BLOCK_SUGGESTIONS.map(s=>[s.type,`${s.icon} ${blockLabel(t.blockLabels,s.type)}`]));
+  const gridItems=sortGridItems(getGrid(section)).filter(it=>it.block.type!=="section_content"&&it.block.type!=="section_title"&&!HERO_MARKER_TYPES.has(it.block.type));
+  const tl:Record<string,string> = Object.fromEntries(BLOCK_SUGGESTIONS.map(s=>[s.type,blockLabel(t.blockLabels,s.type)]));
+  const tIcon:Record<string,typeof ImageIcon> = Object.fromEntries(BLOCK_SUGGESTIONS.map(s=>[s.type,s.Icon]));
   // Police & taille du contenu natif (bloc "section_content" de la grille) —
   // mêmes menus déroulants que pour les widgets ordinaires.
   const nativeItem = getGrid(section).find(it=>it.block.type==="section_content");
@@ -2443,6 +2529,8 @@ function SectionEditor({ section, idx, updateSection, removeSection, onClose, me
         <div style={{height:1,background:"rgba(0,0,0,0.06)",margin:"0.75rem 0 1rem"}}/>
         <PanelField label={t.section.heroTitle}    value={section.title}    onChange={v=>update({...section,title:v})} rich/>
         <PanelTextarea label={t.section.heroSubtitle} value={section.subtitle} onChange={v=>update({...section,subtitle:v})} rich/>
+        {/* Police & taille : désormais réglées comme un widget ordinaire —
+            clique le titre/sous-titre dans l'aperçu pour ouvrir ces contrôles. */}
         <PanelField label={t.section.ctaText} value={section.cta_text} onChange={v=>update({...section,cta_text:v})} rich/>
         <PanelField label={t.section.ctaUrl}  value={section.cta_url}  onChange={v=>update({...section,cta_url:v})}/>
       </>}
@@ -2517,8 +2605,8 @@ function SectionEditor({ section, idx, updateSection, removeSection, onClose, me
       {section.type==="projects"&&<div>
         {(meta.github_url||meta.youtube_url)&&(
           <div style={{display:"flex",gap:"0.5rem",marginBottom:"0.75rem",flexWrap:"wrap"}}>
-            {meta.github_url&&<button onClick={()=>setPicker("github")} style={{flex:1,minWidth:140,padding:"0.4rem 0.5rem",fontSize:"0.7rem",fontWeight:600,color:"#1c1917",background:"white",border:"1px solid rgba(0,0,0,0.1)",borderRadius:"0.5rem",cursor:"pointer"}}>{t.section.browseGithub}</button>}
-            {meta.youtube_url&&<button onClick={()=>setPicker("youtube")} style={{flex:1,minWidth:140,padding:"0.4rem 0.5rem",fontSize:"0.7rem",fontWeight:600,color:"#1c1917",background:"white",border:"1px solid rgba(0,0,0,0.1)",borderRadius:"0.5rem",cursor:"pointer"}}>{t.section.browseYoutube}</button>}
+            {meta.github_url&&<button onClick={()=>setPicker("github")} style={{flex:1,minWidth:140,padding:"0.4rem 0.5rem",fontSize:"0.7rem",fontWeight:600,color:"#1c1917",background:"white",border:"1px solid rgba(0,0,0,0.1)",borderRadius:"0.5rem",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:"0.3rem"}}><Github size={12} strokeWidth={2} />{t.section.browseGithub}</button>}
+            {meta.youtube_url&&<button onClick={()=>setPicker("youtube")} style={{flex:1,minWidth:140,padding:"0.4rem 0.5rem",fontSize:"0.7rem",fontWeight:600,color:"#1c1917",background:"white",border:"1px solid rgba(0,0,0,0.1)",borderRadius:"0.5rem",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:"0.3rem"}}><Youtube size={12} strokeWidth={2} />{t.section.browseYoutube}</button>}
           </div>
         )}
         {section.items.map((p,pi)=>{const img=(p as {image_url?:string}).image_url;return(
@@ -2579,6 +2667,7 @@ function SectionEditor({ section, idx, updateSection, removeSection, onClose, me
           <div style={{marginBottom:"0.5rem"}}>
             {gridItems.map(it=>(
               <div key={it.id} style={{display:"flex",alignItems:"center",gap:"0.375rem",padding:"0.35rem 0.5rem",background:"white",borderRadius:"0.5rem",border:"1px solid rgba(0,0,0,0.07)",cursor:"pointer",marginBottom:"0.3rem"}} onClick={()=>onSelectBlock(it.id)}>
+                {(() => { const I = tIcon[it.block.type]; return I ? <I size={13} strokeWidth={1.75} color="#a09a94" /> : null; })()}
                 <span style={{fontSize:"0.7rem",flex:1,color:"#1c1917",fontWeight:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{tl[it.block.type]??it.block.type}</span>
                 <span style={{fontSize:"0.6rem",color:"#c8c4bf",flexShrink:0}}>{it.w}×{it.h}</span>
                 <button onClick={e=>{e.stopPropagation();onRemoveBlock(it.id);}}
@@ -2592,7 +2681,7 @@ function SectionEditor({ section, idx, updateSection, removeSection, onClose, me
             <button key={s.type} onClick={()=>onAddBlock(s.type)}
               style={{display:"flex",flexDirection:"column",alignItems:"center",gap:"0.2rem",padding:"0.5rem 0.25rem",background:"#f8f5f0",border:"1px solid rgba(0,0,0,0.07)",borderRadius:"0.5rem",cursor:"pointer"}}
               onMouseEnter={e=>(e.currentTarget.style.background="#f0ece6")} onMouseLeave={e=>(e.currentTarget.style.background="#f8f5f0")}>
-              <span style={{fontSize:"1rem"}}>{s.icon}</span>
+              <s.Icon size={17} strokeWidth={1.75} color="#57534e" />
               <span style={{fontSize:"0.6rem",color:"#78716c",fontWeight:500}}>{blockLabel(t.blockLabels,s.type)}</span>
             </button>
           ))}
@@ -2677,7 +2766,7 @@ function BgImageUpload({ heroImageUrl, heroImages, heroInterval, overlayOpacity,
       </button>
       {gallery.length>1&&(
         <div style={{marginBottom:"0.625rem"}}>
-          <p style={{fontSize:"0.675rem",color:"#a09a94",margin:"0 0 0.4rem"}}>{t.galleryHint(gallery.length)}</p>
+          <p style={{fontSize:"0.675rem",color:"#a09a94",margin:"0 0 0.4rem",display:"flex",alignItems:"flex-start",gap:"0.3rem"}}><Lightbulb size={12} strokeWidth={2} style={{flexShrink:0,marginTop:2}} />{t.galleryHint(gallery.length)}</p>
           <div style={{display:"flex",justifyContent:"space-between",marginBottom:"0.2rem"}}>
             <label style={{fontSize:"0.7rem",color:"#78716c"}}>{t.scrollSpeed}</label>
             <span style={{fontSize:"0.7rem",color:"#a09a94"}}>{heroInterval}s</span>

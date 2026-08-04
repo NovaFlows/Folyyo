@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Eraser } from "lucide-react";
+import { Eraser, Bold, Italic, Underline, Baseline, Highlighter, Link2 } from "lucide-react";
 import { sanitizeRichText, richTextLength, isSafeRichTextUrl } from "@/lib/portfolio/rich-text";
 
 // Champs texte "riches" (gras/italique/souligné/surligné/couleur/lien) pour
@@ -189,12 +189,12 @@ function Toolbar({ onBold, onItalic, onUnderline, onLink, onTextColor, onHighlig
 }) {
   return (
     <div style={{ display: "flex", gap: 3 }}>
-      <ToolbarButton onClick={onBold} title="Gras">B</ToolbarButton>
-      <ToolbarButton onClick={onItalic} title="Italique" style={{ fontStyle: "italic" }}>I</ToolbarButton>
-      <ToolbarButton onClick={onUnderline} title="Souligné" style={{ textDecoration: "underline" }}>U</ToolbarButton>
-      <ToolbarButton onClick={onTextColor} title="Couleur du texte" style={{ borderBottom: "2px solid #c9a96e" }}>A</ToolbarButton>
-      <ToolbarButton onClick={onHighlight} title="Surligner">🖍</ToolbarButton>
-      <ToolbarButton onClick={onLink} title="Transformer la sélection en lien">🔗</ToolbarButton>
+      <ToolbarButton onClick={onBold} title="Gras"><Bold size={11} strokeWidth={2.5} /></ToolbarButton>
+      <ToolbarButton onClick={onItalic} title="Italique"><Italic size={11} strokeWidth={2.5} /></ToolbarButton>
+      <ToolbarButton onClick={onUnderline} title="Souligné"><Underline size={11} strokeWidth={2.5} /></ToolbarButton>
+      <ToolbarButton onClick={onTextColor} title="Couleur du texte" style={{ borderBottom: "2px solid #c9a96e" }}><Baseline size={11} strokeWidth={2} /></ToolbarButton>
+      <ToolbarButton onClick={onHighlight} title="Surligner"><Highlighter size={11} strokeWidth={2} /></ToolbarButton>
+      <ToolbarButton onClick={onLink} title="Transformer la sélection en lien"><Link2 size={11} strokeWidth={2} /></ToolbarButton>
       <ToolbarButton onClick={onClearFormat} title="Effacer la mise en forme (gras, couleur, surlignage…)">
         <Eraser size={11} strokeWidth={2} />
       </ToolbarButton>

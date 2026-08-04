@@ -5,6 +5,7 @@ import { callClaude } from "@/lib/anthropic/client";
 import { generateThemeFromUrl } from "@/lib/anthropic/style-from-url";
 import type { ValidatedPortfolioJSON } from "@/lib/anthropic/schema";
 import { hasActiveAccess } from "@/lib/billing/access";
+import { stripRichTags } from "@/lib/portfolio/rich-text";
 
 export const maxDuration = 60;
 
@@ -53,6 +54,12 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   // (aucune hero_image_url renvoyée : le client merge en partiel et garde la photo actuelle).
   const body = await request.json().catch(() => ({}));
   const styleUrl = typeof body?.styleUrl === "string" ? body.styleUrl.trim() : "";
+  // Titre/sous-titre hero tels qu'édités côté client (potentiellement non
+  // sauvegardés) — priment sur ceux figés en base pour que la génération IA
+  // colle à ce que l'utilisateur voit réellement dans l'éditeur. Bornés en
+  // longueur : ce texte part directement dans le prompt Claude.
+  const heroTitle = typeof body?.heroTitle === "string" ? body.heroTitle.trim().slice(0, 300) : "";
+  const heroSubtitle = typeof body?.heroSubtitle === "string" ? body.heroSubtitle.trim().slice(0, 500) : "";
   if (styleUrl) {
     const urlTheme = await generateThemeFromUrl(styleUrl);
     if (!urlTheme) {
@@ -78,12 +85,23 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     .map((img) => `  { "id": "${img.id}", "tags": [${img.tags.map(t => `"${t}"`).join(", ")}] }`)
     .join("\n");
 
+  // Texte hero réellement affiché au visiteur (H1 + sous-titre) — signal
+  // principal pour le choix d'image/ton, distinct de meta.title (le poste,
+  // ex. "Développeur Full-Stack"). Priorité au texte envoyé par le client
+  // (édité en mémoire, pas forcément enregistré) puis à la valeur en base.
+  const heroSectionJson = siteJson.sections.find((s) => s.type === "hero");
+  const dbHeroTitle = heroSectionJson?.type === "hero" ? stripRichTags(heroSectionJson.title) : "";
+  const dbHeroSubtitle = heroSectionJson?.type === "hero" ? stripRichTags(heroSectionJson.subtitle) : "";
+  const effectiveHeroTitle = heroTitle || dbHeroTitle || siteJson.meta.name;
+  const effectiveHeroSubtitle = heroSubtitle || dbHeroSubtitle || siteJson.meta.tagline;
+
   const prompt = `Tu es un directeur artistique expert. Analyse ce portfolio et génère un thème visuel parfaitement adapté.
 
 PROFIL : ${profileType}
 NOM : ${siteJson.meta.name}
-TITRE : ${siteJson.meta.title}
-TAGLINE : ${siteJson.meta.tagline}
+TITRE PROFESSIONNEL : ${siteJson.meta.title}
+TEXTE HERO AFFICHÉ AU VISITEUR (H1) : ${effectiveHeroTitle}
+SOUS-TITRE HERO AFFICHÉ AU VISITEUR : ${effectiveHeroSubtitle}
 SECTIONS : ${siteJson.sections.map(s => s.type).join(", ")}
 THÈME ACTUEL : fond ${siteJson.theme.background_color}, texte ${siteJson.theme.text_color}, primaire ${siteJson.theme.primary_color}
 
