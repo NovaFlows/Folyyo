@@ -14,6 +14,7 @@ import HeroDecoration from "@/components/portfolio/HeroDecoration";
 import RichText from "@/components/portfolio/RichText";
 import { stripRichTags, isSafeRichTextUrl } from "@/lib/portfolio/rich-text";
 import { hasActiveAccess } from "@/lib/billing/access";
+import { heroImageUrl } from "@/lib/portfolio/hero-image";
 import { getLocale } from "@/lib/i18n/locale";
 import { getDictionary } from "@/lib/i18n/dictionaries";
 import PortfolioPausedNotice from "@/components/billing/PortfolioPausedNotice";
@@ -280,7 +281,7 @@ export default async function PublicPortfolioPage({ params }: { params: { slug: 
             }
           };
           return (
-            <section key={i} className="pf-hero" style={{ position: "relative", minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", backgroundImage: !hasCarousel && theme.hero_image_url ? `url(${theme.hero_image_url})` : undefined, backgroundSize: "cover", backgroundPosition: "center", backgroundAttachment: heroParallax && !hasCarousel && theme.hero_image_url ? "fixed" : undefined }}>
+            <section key={i} className="pf-hero" style={{ position: "relative", minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", backgroundImage: !hasCarousel && theme.hero_image_url ? `url(${heroImageUrl(theme.hero_image_url)})` : undefined, backgroundSize: "cover", backgroundPosition: "center", backgroundAttachment: heroParallax && !hasCarousel && theme.hero_image_url ? "fixed" : undefined }}>
               {hasCarousel && <HeroBackgroundCarousel images={heroImages} intervalSeconds={theme.hero_interval ?? 5} />}
               {(hasCarousel || theme.hero_image_url) && <div style={{ position: "absolute", inset: 0, background: bg, opacity: theme.overlay_opacity ?? 0.8 }} />}
               <HeroDecoration variant={theme.hero_decoration} color={acc} />
@@ -326,18 +327,13 @@ export default async function PublicPortfolioPage({ params }: { params: { slug: 
                 </>
               )}
               </div>
-              {!hasCarousel && theme.hero_image_credit && (
-                <p style={{ position: "absolute", bottom: "0.75rem", right: "0.75rem", zIndex: 2, fontSize: "0.6875rem", color: `${txt}60`, margin: 0 }}>
-                  Photo :{" "}
-                  <a href={`${theme.hero_image_credit.profileUrl}?utm_source=folyo&utm_medium=referral`} target="_blank" rel="noopener noreferrer" style={{ color: `${txt}60` }}>
-                    {theme.hero_image_credit.name}
-                  </a>
-                  {" / "}
-                  <a href="https://unsplash.com/?utm_source=folyo&utm_medium=referral" target="_blank" rel="noopener noreferrer" style={{ color: `${txt}60` }}>
-                    Unsplash
-                  </a>
-                </p>
-              )}
+              {/* Crédit photo retiré du hero sur décision de l'exploitant.
+                  À savoir si on revient dessus : le champ `hero_image_credit`
+                  est toujours rempli à la génération, donc réafficher la
+                  mention ne demande que de remettre ce bloc — aucune donnée
+                  n'est perdue. Les Unsplash API Guidelines demandent cette
+                  attribution ; une position moins visible (pied de page)
+                  serait un compromis si le sujet revient. */}
             </section>
           );
           }
