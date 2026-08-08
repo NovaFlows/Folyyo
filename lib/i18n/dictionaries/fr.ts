@@ -349,6 +349,12 @@ const fr = {
     views: (n: number) => `${n} vue${n > 1 ? "s" : ""}`,
     viewsThisWeek: (n: number) => `+${n} cette semaine`,
     noViewsYet: "Pas encore de vue",
+    trialBanner: {
+      daysLeftUrgent: "Dernier jour d'essai",
+      daysLeft: (n: number) => `J-${n} avant expiration`,
+      views: (n: number) => n === 0 ? "Aucune vue pour l'instant sur ton portfolio" : `${n} vue${n > 1 ? "s" : ""} sur ton portfolio`,
+      cta: "S'abonner",
+    },
   },
   portfolioDetail: {
     back: "← Dashboard",
@@ -571,6 +577,16 @@ const fr = {
       errorCvUpload: "Échec upload CV",
       errorGithub: "Impossible de récupérer le profil GitHub",
       errorGenerate: "Erreur de génération",
+    },
+    share: {
+      title: "Ton portfolio est en ligne",
+      subtitle: "Partage-le maintenant — plus vite il est vu, mieux c'est.",
+      linkLabel: "Ton lien",
+      captionLabel: "Légende suggérée (LinkedIn, bio Instagram…)",
+      captionText: (link: string) => `Je viens de mettre en ligne mon portfolio : ${link}`,
+      copy: "Copier",
+      copied: "Copié !",
+      continueBtn: "Aller à mon dashboard →",
     },
   },
   support: {

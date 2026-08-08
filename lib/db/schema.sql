@@ -20,8 +20,16 @@ CREATE TABLE IF NOT EXISTS users (
   stripe_customer_id TEXT,
   stripe_subscription_id TEXT,
   stripe_price_id TEXT,
-  subscription_current_period_end TIMESTAMPTZ
+  subscription_current_period_end TIMESTAMPTZ,
+  -- Suivi d'idempotence de la séquence e-mail d'essai (app/api/cron/trial-emails
+  -- + déclenchement direct à la génération pour le J0) — NULL = pas encore
+  -- envoyé. Un email par colonne, jamais renvoyé une fois la colonne posée.
+  trial_email_j0_sent_at      TIMESTAMPTZ,
+  trial_email_relance_sent_at TIMESTAMPTZ,
+  trial_email_j3_sent_at      TIMESTAMPTZ
 );
+-- NOTE: `trial_email_*_sent_at` ajoutées en prod via ALTER TABLE ad-hoc (pas de
+-- système de migration dans ce repo, voir la note plus bas pour `portfolios`).
 
 CREATE TABLE IF NOT EXISTS portfolios (
   id               UUID        PRIMARY KEY DEFAULT gen_random_uuid(),

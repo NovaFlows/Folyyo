@@ -351,6 +351,12 @@ const de = {
     views: (n: number) => `${n} Aufruf${n > 1 ? "e" : ""}`,
     viewsThisWeek: (n: number) => `+${n} diese Woche`,
     noViewsYet: "Noch keine Aufrufe",
+    trialBanner: {
+      daysLeftUrgent: "Letzter Tag der Testphase",
+      daysLeft: (n: number) => `Noch ${n} Tag${n > 1 ? "e" : ""}`,
+      views: (n: number) => n === 0 ? "Noch keine Aufrufe für dein Portfolio" : `${n} Aufruf${n > 1 ? "e" : ""} auf deinem Portfolio`,
+      cta: "Abonnieren",
+    },
   },
   portfolioDetail: {
     back: "← Dashboard",
@@ -573,6 +579,16 @@ const de = {
       errorCvUpload: "Lebenslauf-Upload fehlgeschlagen",
       errorGithub: "GitHub-Profil konnte nicht abgerufen werden",
       errorGenerate: "Fehler bei der Generierung",
+    },
+    share: {
+      title: "Dein Portfolio ist online",
+      subtitle: "Teile es jetzt — je früher es gesehen wird, desto besser.",
+      linkLabel: "Dein Link",
+      captionLabel: "Vorschlag für deine Bio (LinkedIn, Instagram…)",
+      captionText: (link: string) => `Mein neues Portfolio ist online: ${link}`,
+      copy: "Kopieren",
+      copied: "Kopiert!",
+      continueBtn: "Zu meinem Dashboard →",
     },
   },
   support: {

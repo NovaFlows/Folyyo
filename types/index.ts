@@ -16,6 +16,9 @@ export type UserSettings = {
   stripe_subscription_id: string | null;
   stripe_price_id: string | null;
   subscription_current_period_end: string | null;
+  trial_email_j0_sent_at: string | null;
+  trial_email_relance_sent_at: string | null;
+  trial_email_j3_sent_at: string | null;
 };
 
 export type Portfolio = {

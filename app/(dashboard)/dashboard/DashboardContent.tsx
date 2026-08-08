@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Clock } from "lucide-react";
 import { getPortfoliosByUser, getViewCountsForUser, getUserSettings, hasUserReviewed } from "@/lib/db/queries";
 import { checkFreshness } from "@/lib/freshness/check";
 import PortfolioCard from "./PortfolioCard";
@@ -8,6 +9,7 @@ import ReviewPopup from "./ReviewPopup";
 import { getDictionary } from "@/lib/i18n/dictionaries";
 import type { Locale } from "@/lib/i18n/types";
 import { isAdmin } from "@/lib/auth/admin";
+import type { UserSettings } from "@/types";
 
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -62,6 +64,10 @@ export default async function DashboardContent({
   return (
     <div>
       {withReviewPopup && <ReviewPopup locale={locale} eligible={reviewPopupEligible} />}
+
+      {settings && (
+        <TrialBanner settings={settings} totalViews={Object.values(viewCounts).reduce((sum, v) => sum + v.total, 0)} locale={locale} />
+      )}
 
       <div className="mb-10 flex items-end justify-between">
         <div>
@@ -131,6 +137,35 @@ function PortfolioPreviewPanel({ slug }: { slug: string }) {
         <iframe src={`/${slug}`} title={`Aperçu de folyo.page/${slug}`}
           style={{ width: "100%", flex: 1, minHeight: 0, border: "none", display: "block" }} />
       </div>
+    </div>
+  );
+}
+
+// Bandeau "J-X avant expiration · X vues" — visible uniquement pendant
+// l'essai (jamais après, actif ou expiré : pas de bruit visuel permanent une
+// fois l'essai terminé, voir hasActiveAccess pour la garde d'accès réelle,
+// gérée ailleurs). Placé tout en haut du dashboard, avant même le titre —
+// c'est le levier de conversion le plus visible de la page.
+function TrialBanner({ settings, totalViews, locale }: { settings: UserSettings; totalViews: number; locale: Locale }) {
+  const t = getDictionary(locale).dashboard.trialBanner;
+  if (settings.subscription_status !== "trialing") return null;
+  const daysLeft = Math.ceil((new Date(settings.trial_ends_at).getTime() - Date.now()) / ONE_DAY_MS);
+  if (daysLeft <= 0) return null;
+
+  return (
+    <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl p-4"
+      style={{ background: "rgba(201,169,110,0.08)", border: "1px solid rgba(201,169,110,0.2)" }}>
+      <div className="flex items-center gap-2.5">
+        <Clock size={16} strokeWidth={1.75} style={{ flexShrink: 0, color: "#c9a96e" }} />
+        <p className="text-sm" style={{ color: "#1c1917" }}>
+          <strong>{daysLeft <= 1 ? t.daysLeftUrgent : t.daysLeft(daysLeft)}</strong> · {t.views(totalViews)}
+        </p>
+      </div>
+      <Link href="/billing"
+        className="shrink-0 rounded-full px-4 py-2 text-xs font-medium text-white transition hover:opacity-80"
+        style={{ background: "#1c1917" }}>
+        {t.cta}
+      </Link>
     </div>
   );
 }

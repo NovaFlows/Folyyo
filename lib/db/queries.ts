@@ -42,6 +42,52 @@ export async function grantLifetimeAccess(userId: string): Promise<void> {
   await sql`UPDATE users SET subscription_status = 'lifetime', updated_at = now() WHERE user_id = ${userId}`;
 }
 
+// ── Séquence e-mail d'essai (J0 à la génération + relance/J3 via le cron
+//    app/api/cron/trial-emails) — voir lib/email/notify.ts. Une colonne par
+//    e-mail, jamais renvoyé une fois posée (idempotence).
+export async function markTrialEmailJ0Sent(userId: string): Promise<void> {
+  await sql`UPDATE users SET trial_email_j0_sent_at = now() WHERE user_id = ${userId}`;
+}
+export async function markTrialEmailRelanceSent(userId: string): Promise<void> {
+  await sql`UPDATE users SET trial_email_relance_sent_at = now() WHERE user_id = ${userId}`;
+}
+export async function markTrialEmailJ3Sent(userId: string): Promise<void> {
+  await sql`UPDATE users SET trial_email_j3_sent_at = now() WHERE user_id = ${userId}`;
+}
+
+export interface TrialEmailCandidate {
+  user_id: string;
+  language: "fr" | "en" | "es" | "de";
+  trial_ends_at: string;
+  trial_email_relance_sent_at: string | null;
+  trial_email_j3_sent_at: string | null;
+  slug: string;
+  views: number;
+}
+
+// Comptes en essai avec un portfolio déjà en ligne, candidats à la relance
+// (J1-J2) ou à l'e-mail d'urgence (dernier jour) — le cron décide lequel
+// envoyer selon `trial_ends_at`. Le J0 (à la génération) est déclenché
+// directement depuis /api/portfolio/generate, pas ici. On exclut les essais
+// expirés depuis plus d'un jour : inutile de les rescanner indéfiniment.
+export async function getTrialEmailCandidates(): Promise<TrialEmailCandidate[]> {
+  const rows = await sql`
+    SELECT u.user_id, u.language, u.trial_ends_at,
+           u.trial_email_relance_sent_at, u.trial_email_j3_sent_at,
+           p.slug,
+           COALESCE(v.total, 0)::int AS views
+    FROM users u
+    JOIN portfolios p ON p.user_id = u.user_id AND p.status = 'live' AND p.slug IS NOT NULL
+    LEFT JOIN (
+      SELECT portfolio_id, COUNT(*)::int AS total FROM portfolio_views GROUP BY portfolio_id
+    ) v ON v.portfolio_id = p.id
+    WHERE u.subscription_status = 'trialing'
+      AND u.trial_ends_at > now() - interval '1 day'
+    ORDER BY u.trial_ends_at ASC
+  `;
+  return many<TrialEmailCandidate>(rows);
+}
+
 // ── Teaser CV public (landing page, sans compte) ────────────────────────────
 
 export async function countRecentTeaserRequests(ip: string, sinceHours: number): Promise<number> {

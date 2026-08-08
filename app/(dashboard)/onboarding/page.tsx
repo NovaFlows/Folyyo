@@ -13,6 +13,7 @@ import ArtistFormStep from "./_steps/ArtistFormStep";
 import FashionFormStep from "./_steps/FashionFormStep";
 import MusicianFormStep from "./_steps/MusicianFormStep";
 import GeneratingStep from "./_steps/GeneratingStep";
+import ShareStep from "./_steps/ShareStep";
 
 export type OnboardingData = {
   profileType: "developer" | "designer" | "photographe" | "artist" | "fashion" | "other" | "musicien" | null;
@@ -43,8 +44,11 @@ export default function OnboardingPage() {
   const [locale, setLocale] = useLocale();
   const t = getDictionary(locale);
   const STEP_LABELS = t.onboarding.stepLabels;
-  const [step, setStep] = useState<"checking" | "country" | "type" | "template" | "form" | "generating">("checking");
+  const [step, setStep] = useState<"checking" | "country" | "type" | "template" | "form" | "generating" | "share">("checking");
   const [data, setData] = useState<OnboardingData>(INITIAL_DATA);
+  // Portfolio fraîchement généré — connu dès "share", utilisé seulement à la
+  // navigation finale vers son détail dans le dashboard.
+  const [generatedPortfolioId, setGeneratedPortfolioId] = useState<string | null>(null);
 
   // Le pays n'est demandé qu'une fois, à la toute première visite de
   // l'onboarding (juste après la création du compte) — s'il est déjà
@@ -100,7 +104,7 @@ export default function OnboardingPage() {
     setData((prev) => ({ ...prev, ...partial }));
   }
 
-  const stepIndex = { checking: -1, country: -1, type: 0, template: 1, form: 2, generating: 3 }[step];
+  const stepIndex = { checking: -1, country: -1, type: 0, template: 1, form: 2, generating: 3, share: 3 }[step];
 
   if (step === "checking") {
     return <div className="flex min-h-screen items-center justify-center px-4" style={{ background: "#f8f5f0" }} />;
@@ -184,7 +188,13 @@ export default function OnboardingPage() {
         )}
 
         {step === "generating" && (
-          <GeneratingStep data={data} t={t.onboarding} onDone={(id) => router.push(`/portfolio/${id}`)} />
+          <GeneratingStep data={data} t={t.onboarding}
+            onDone={(id) => { setGeneratedPortfolioId(id); setStep("share"); }} />
+        )}
+
+        {step === "share" && (
+          <ShareStep slug={data.slug} t={t.onboarding}
+            onContinue={() => router.push(`/portfolio/${generatedPortfolioId}`)} />
         )}
       </div>
     </div>

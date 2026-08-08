@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 export const maxDuration = 120;
-import { auth } from "@clerk/nextjs/server";
+import { auth, currentUser } from "@clerk/nextjs/server";
 import { callClaude } from "@/lib/anthropic/client";
 import { buildGenerateSystemPrompt, buildGenerateUserPrompt } from "@/lib/anthropic/prompts/generate-portfolio";
 import { generateThemeFromUrl } from "@/lib/anthropic/style-from-url";
@@ -11,8 +11,9 @@ import { PortfolioJSONSchema } from "@/lib/anthropic/schema";
 import { generateDeveloperCode } from "@/lib/portfolio/code-generator";
 import { keys } from "@/lib/r2/client";
 import { readCvBuffer, writeSourceCode } from "@/lib/dev-storage";
-import { createPortfolio, setPortfolioReady, setPortfolioError, getFeaturedPortfolioById, getUserSettings, upsertUserSettings, hasAnyPortfolio } from "@/lib/db/queries";
+import { createPortfolio, setPortfolioReady, setPortfolioError, getFeaturedPortfolioById, getUserSettings, upsertUserSettings, hasAnyPortfolio, markTrialEmailJ0Sent } from "@/lib/db/queries";
 import { hasActiveAccess } from "@/lib/billing/access";
+import { sendTrialLiveEmail } from "@/lib/email/notify";
 import { parsePdfText } from "@/lib/pdf-parse";
 import { isReservedSlug } from "@/lib/portfolio/reserved-slugs";
 import { languageForCountry } from "@/lib/i18n/country-language";
@@ -66,7 +67,10 @@ export async function POST(request: NextRequest) {
   // donc l'appeler systématiquement est sans risque — et ça garantit que la
   // ligne `users` (donc `trial_ends_at`, l'ancre de l'essai) existe toujours
   // dès la première génération, même sans pays résolu.
-  await upsertUserSettings(userId, { country: resolvedCountry, language }).catch(() => {});
+  // Résultat capturé (plus seulement `.catch(() => {})` ignoré) : trial_ends_at
+  // et subscription_status servent juste en dessous à déclencher le J0 de la
+  // séquence e-mail d'essai.
+  const settings = await upsertUserSettings(userId, { country: resolvedCountry, language }).catch(() => existingSettings);
 
   let portfolio;
   try {
@@ -174,6 +178,19 @@ export async function POST(request: NextRequest) {
     const sourceCodeKey = await storeSourceCode(portfolio.id, sourceCode);
 
     await setPortfolioReady(portfolio.id, { siteJson, inputData, sourceCodeKey });
+
+    // J0 de la séquence e-mail d'essai (levier conversion) — "ton portfolio
+    // est en ligne, il te reste 3 jours". Best-effort (sendTrialLiveEmail
+    // n'interrompt jamais le flux) et idempotent via trial_email_j0_sent_at :
+    // ne repart jamais en boucle si l'utilisateur régénère après suppression.
+    if (portfolio.slug && settings?.subscription_status === "trialing" && !settings.trial_email_j0_sent_at) {
+      const clerkUser = await currentUser().catch(() => null);
+      const to = clerkUser?.primaryEmailAddress?.emailAddress ?? clerkUser?.emailAddresses?.[0]?.emailAddress;
+      if (to) {
+        await sendTrialLiveEmail({ to, locale: settings.language, slug: portfolio.slug, trialEndsAt: settings.trial_ends_at });
+        await markTrialEmailJ0Sent(userId).catch(() => {});
+      }
+    }
 
     return NextResponse.json({ portfolioId: portfolio.id });
   } catch (err) {

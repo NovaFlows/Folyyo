@@ -351,6 +351,12 @@ const en = {
     views: (n: number) => `${n} view${n > 1 ? "s" : ""}`,
     viewsThisWeek: (n: number) => `+${n} this week`,
     noViewsYet: "No views yet",
+    trialBanner: {
+      daysLeftUrgent: "Last day of your trial",
+      daysLeft: (n: number) => `${n} day${n > 1 ? "s" : ""} left`,
+      views: (n: number) => n === 0 ? "No views yet on your portfolio" : `${n} view${n > 1 ? "s" : ""} on your portfolio`,
+      cta: "Subscribe",
+    },
   },
   portfolioDetail: {
     back: "← Dashboard",
@@ -573,6 +579,16 @@ const en = {
       errorCvUpload: "Resume upload failed",
       errorGithub: "Couldn't fetch the GitHub profile",
       errorGenerate: "Generation error",
+    },
+    share: {
+      title: "Your portfolio is live",
+      subtitle: "Share it now — the sooner it's seen, the better.",
+      linkLabel: "Your link",
+      captionLabel: "Suggested caption (LinkedIn, Instagram bio…)",
+      captionText: (link: string) => `Just launched my portfolio: ${link}`,
+      copy: "Copy",
+      copied: "Copied!",
+      continueBtn: "Go to my dashboard →",
     },
   },
   support: {

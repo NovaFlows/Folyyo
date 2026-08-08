@@ -15,6 +15,7 @@ const STEPS: Record<string, ShotStep> = {
   template: "template", style: "template",
   form: "form", infos: "form", formulaire: "form",
   generating: "generating", generation: "generating",
+  share: "share", partage: "share",
 };
 
 const PROFILES: Record<string, ShotProfile> = {
@@ -38,6 +39,7 @@ const PROFILES: Record<string, ShotProfile> = {
 //   /shot/onboarding?step=template&profile=developer
 //   /shot/onboarding?step=form&profile=musicien
 //   /shot/onboarding?step=generating&profile=developer&gstep=2
+//   /shot/onboarding?step=share&profile=developer
 //
 // Options communes : ?locale=fr|en|es|de (langue de l'interface),
 // ?chrome=0 (sans la barre de navigation du dashboard, étape isolée),

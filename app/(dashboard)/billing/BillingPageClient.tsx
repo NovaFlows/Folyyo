@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { getDictionary } from "@/lib/i18n/dictionaries";
 import type { Locale } from "@/lib/i18n/locale";
@@ -47,10 +47,14 @@ export default function BillingPageClient({ locale, subscriptionStatus, trialEnd
   const canSubscribe = subscriptionStatus !== "active" && subscriptionStatus !== "lifetime";
   const monthlyEquivalent = cycle === "yearly" ? YEARLY_PRICE / 12 : MONTHLY_PRICE;
 
-  async function startCheckout() {
+  // Plan explicite en paramètre (pas lu depuis `cycle`) : l'auto-déclenchement
+  // ci-dessous appelle ça juste après un setCycle, dont l'effet ne serait pas
+  // encore visible dans ce même rendu (mise à jour d'état asynchrone) — lire
+  // `cycle` ici renverrait alors la formule précédente.
+  async function runCheckout(plan: "monthly" | "yearly") {
     setLoading("checkout"); setError(null);
     try {
-      const res = await fetch("/api/billing/checkout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ plan: cycle === "yearly" ? "yearly" : "monthly" }) });
+      const res = await fetch("/api/billing/checkout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ plan }) });
       const data = await res.json();
       if (!res.ok || !data.url) throw new Error();
       window.location.href = data.url;
@@ -58,6 +62,19 @@ export default function BillingPageClient({ locale, subscriptionStatus, trialEnd
       setError(t.genericError); setLoading(null);
     }
   }
+  const startCheckout = () => runCheckout(cycle === "yearly" ? "yearly" : "monthly");
+
+  // Lien direct depuis l'e-mail d'urgence de fin d'essai (lib/email/notify.ts,
+  // sendTrialLastDayEmail → /billing?checkout=monthly) : lance le Checkout
+  // Stripe immédiatement, sans exiger un clic de plus sur cette page.
+  useEffect(() => {
+    const intent = searchParams.get("checkout");
+    if (!intent || !canSubscribe) return;
+    const plan = intent === "yearly" ? "yearly" : "monthly";
+    setCycle(plan);
+    runCheckout(plan);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function openPortal() {
     setLoading("portal"); setError(null);

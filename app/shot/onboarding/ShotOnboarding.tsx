@@ -12,9 +12,10 @@ import ArtistFormStep from "@/app/(dashboard)/onboarding/_steps/ArtistFormStep";
 import FashionFormStep from "@/app/(dashboard)/onboarding/_steps/FashionFormStep";
 import MusicianFormStep from "@/app/(dashboard)/onboarding/_steps/MusicianFormStep";
 import GeneratingStep from "@/app/(dashboard)/onboarding/_steps/GeneratingStep";
+import ShareStep from "@/app/(dashboard)/onboarding/_steps/ShareStep";
 import type { OnboardingData } from "@/app/(dashboard)/onboarding/page";
 
-export type ShotStep = "country" | "type" | "template" | "form" | "generating";
+export type ShotStep = "country" | "type" | "template" | "form" | "generating" | "share";
 export type ShotProfile = NonNullable<OnboardingData["profileType"]>;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -152,7 +153,7 @@ export default function ShotOnboarding({ step: initialStep, profile, locale: ini
 
   if (!ready) return null;
 
-  const stepIndex = { country: -1, type: 0, template: 1, form: 2, generating: 3 }[step];
+  const stepIndex = { country: -1, type: 0, template: 1, form: 2, generating: 3, share: 3 }[step];
   // Le métier gouverne le formulaire affiché ; sur l'étape « type » il peut
   // rester nul (aucune carte sélectionnée), d'où le repli sur "developer".
   const formProfile = data.profileType ?? "developer";
@@ -230,6 +231,10 @@ export default function ShotOnboarding({ step: initialStep, profile, locale: ini
 
         {step === "generating" && (
           <GeneratingStep data={{ ...data, profileType: formProfile }} t={t.onboarding} onDone={noopDone} />
+        )}
+
+        {step === "share" && (
+          <ShareStep slug={data.slug || "demo"} t={t.onboarding} onContinue={noopDone} />
         )}
       </div>
     </div>
