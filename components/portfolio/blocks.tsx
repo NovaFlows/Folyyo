@@ -168,37 +168,14 @@ export function WidgetFrame({ widgetStyle, block, bg, txt, children }: {
     justifyContent: isMedia ? "stretch" : isNative ? "flex-start" : "center",
   };
   if (widgetStyle === "glass") {
-    // Verre dépoli façon iOS. Trois ingrédients, et il faut les trois :
-    //
-    //  1. Un vrai FLOU D'ARRIÈRE-PLAN (44px) avec forte saturation. La
-    //     saturation est ce qui donne l'impression que la lumière traverse :
-    //     sans elle, on obtient du plexiglas gris.
-    //  2. Une TEINTE BLANCHE en dégradé, pas une couleur plate. Du verre
-    //     dépoli diffuse la lumière, donc il paraît plus clair que ce qu'il y a
-    //     derrière — et le dégradé simule l'angle d'incidence.
-    //  3. Des ARÊTES ÉCLAIRÉES : un liseré vif en haut (la lumière accroche le
-    //     bord), plus sombre en bas. C'est ce détail qui donne l'épaisseur ;
-    //     sans lui la carte reste un rectangle translucide.
-    //
-    // La teinte est blanche et non `txt` : sur un thème clair, un voile sombre
-    // donnerait du verre fumé au lieu du givre attendu. `txt` ne sert qu'à
-    // dessiner le contour, pour que la carte reste délimitée sur fond clair.
-    const glass = "blur(52px) saturate(200%) brightness(1.06)";
     return (
       <div className="widget-soft widget-glass" style={{
         ...base,
-        background:
-          `linear-gradient(148deg, rgba(255,255,255,0.32) 0%, rgba(255,255,255,0.11) 46%, rgba(255,255,255,0.20) 100%), ${txt}12`,
-        backdropFilter: glass,
-        WebkitBackdropFilter: glass,
-        border: `1px solid ${txt}26`,
-        boxShadow: [
-          "inset 0 1px 0 rgba(255,255,255,0.55)",   // arête haute éclairée
-          "inset 0 -1px 0 rgba(255,255,255,0.12)",  // arête basse, plus discrète
-          `inset 0 0 0 1px ${txt}0a`,               // épaisseur du verre
-          "0 14px 44px rgba(0,0,0,0.22)",
-          "0 2px 8px rgba(0,0,0,0.10)",
-        ].join(", "),
+        background: `${txt}0a`,
+        backdropFilter: "blur(18px) saturate(1.5)",
+        WebkitBackdropFilter: "blur(18px) saturate(1.5)",
+        border: `1px solid ${txt}22`,
+        boxShadow: `inset 0 1px 0 ${txt}1e, 0 8px 28px rgba(0,0,0,0.12)`,
       }}>
         {children}
       </div>
