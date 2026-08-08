@@ -28,3 +28,6 @@ npm-debug.log*
 # symlinks à chemins absolus, non portables d'une machine à l'autre)
 .agents/
 .claude/skills/
+
+.vercel
+.env*

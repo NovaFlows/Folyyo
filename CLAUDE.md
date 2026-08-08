@@ -7,7 +7,8 @@ Routage par défaut :
 - Code, bug, refactor, maintenance, **audit/faille de sécurité** → sous-agent **`dev-folyo`** (ingénieur senior + expert cybersécurité).
 - Décider **quoi produire, où et quand** poster (X, TikTok, LinkedIn, Insta), calendrier, angles → **`marketing-strategie`**.
 - **Produire** le contenu (scripts vidéo, carrousels slide par slide, threads, posts) → **`marketing-creation`**.
-- Veille e-mail (MCP Gmail), paperasse, factures, échéances, plan d'ensemble → tu le fais directement (ou l'agent `orchestrateur` pour un passage dédié).
+- Veille e-mail (MCP Gmail), paperasse, factures fournisseurs, échéances, plan d'ensemble → tu le fais directement (ou l'agent `orchestrateur` pour un passage dédié).
+- **Comptabilité/fiscalité** (micro-entreprise, cotisations URSSAF, seuils de CA, TVA, conformité des factures, rapprochement Stripe) → **`comptabilite`**.
 
 **Enchaîne les agents** quand c'est logique sans repasser la main à chaque étape (ex. « je veux 3 TikTok » → `marketing-strategie` sort les briefs → `marketing-creation` produit le contenu → tu présentes le résultat consolidé).
 
