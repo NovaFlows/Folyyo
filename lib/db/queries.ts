@@ -356,6 +356,33 @@ export async function getAllLivePortfoliosForAdmin(): Promise<Portfolio[]> {
   return many<Portfolio>(rows);
 }
 
+// Portfolios candidats au sitemap : en ligne, avec un slug, ET accompagnés de
+// l'état d'abonnement de leur propriétaire.
+//
+// Ce dernier point est le but de la requête. Un portfolio dont le
+// propriétaire n'a plus d'accès actif est rendu en `noindex` par
+// app/[slug]/page.tsx ; le déclarer quand même au sitemap revient à demander à
+// Google d'indexer une page qu'on lui interdit ensuite d'indexer — ce que la
+// Search Console remonte comme une erreur. Le filtrage lui-même n'est PAS fait
+// en SQL : il est laissé à `hasActiveAccess`, pour que le sitemap et la page
+// appliquent forcément la même règle.
+export type SitemapPortfolio = {
+  slug: string | null;
+  updated_at: string | null;
+  owner_subscription_status: string | null;
+  owner_trial_ends_at: string;
+};
+export async function getPortfoliosForSitemap(): Promise<SitemapPortfolio[]> {
+  const rows = await sql`
+    SELECT p.slug, p.updated_at,
+           u.subscription_status AS owner_subscription_status,
+           u.trial_ends_at       AS owner_trial_ends_at
+    FROM portfolios p
+    JOIN users u ON u.user_id = p.user_id
+    WHERE p.status = 'live' AND p.slug IS NOT NULL`;
+  return many<SitemapPortfolio>(rows);
+}
+
 export async function setPortfolioFeatured(id: string, featured: boolean): Promise<void> {
   if (featured) {
     await sql`UPDATE portfolios SET featured = true, featured_at = now(), updated_at = now() WHERE id = ${id}`;

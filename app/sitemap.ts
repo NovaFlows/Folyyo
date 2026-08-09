@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 import { SITE_URL } from "@/lib/seo";
-import { getAllLivePortfoliosForAdmin } from "@/lib/db/queries";
+import { getPortfoliosForSitemap } from "@/lib/db/queries";
+import { hasActiveAccess } from "@/lib/billing/access";
 import { getAllPosts } from "@/lib/blog/posts";
 
 // Régénéré toutes les heures — les nouveaux portfolios apparaissent sans build.
@@ -26,13 +27,27 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.6,
   }));
 
-  // Tous les portfolios publics — best-effort : si la base est indisponible,
-  // on renvoie au moins les pages statiques plutôt que de casser le sitemap.
+  // Portfolios publics — uniquement ceux réellement indexables.
+  //
+  // Le filtre passe par `hasActiveAccess`, la MÊME fonction que celle utilisée
+  // par app/[slug]/page.tsx pour décider du `noindex`. C'est volontaire : si la
+  // règle d'accès change un jour, les deux suivent ensemble. Réécrire la
+  // condition ici (en SQL ou à la main) les ferait diverger silencieusement, et
+  // on se retrouverait à nouveau à déclarer à Google des pages qu'on lui
+  // interdit d'indexer — ce que la Search Console signale comme une erreur.
+  //
+  // Best-effort : si la base est indisponible, on renvoie au moins les pages
+  // statiques plutôt que de casser le sitemap entier.
   let portfolios: MetadataRoute.Sitemap = [];
   try {
-    const live = await getAllLivePortfoliosForAdmin();
+    const live = await getPortfoliosForSitemap();
     portfolios = live
-      .filter((p) => p.slug)
+      .filter((p) =>
+        hasActiveAccess({
+          subscription_status: p.owner_subscription_status,
+          trial_ends_at: p.owner_trial_ends_at,
+        } as Parameters<typeof hasActiveAccess>[0])
+      )
       .map((p) => ({
         url: `${SITE_URL}/${p.slug}`,
         lastModified: p.updated_at ? new Date(p.updated_at) : undefined,
