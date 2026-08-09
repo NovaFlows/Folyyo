@@ -3,36 +3,47 @@
 // sendTrialLiveEmail/sendTrialReminderEmail/sendTrialLastDayEmail — déclenchées
 // depuis /api/portfolio/generate et app/api/cron/trial-emails).
 //
-// Envoi via l'API HTTP de Resend (aucune dépendance ajoutée — simple fetch).
-// Conçu pour ne JAMAIS interrompre le flux appelant : si RESEND_API_KEY est
-// absente, ou si l'appel échoue, on journalise et on retourne sans lever
-// d'exception (un webhook Stripe doit répondre 200 même si l'e-mail échoue).
+// Envoi via l'API HTTP de Brevo (aucune dépendance ajoutée — simple fetch).
+//
+// Pourquoi Brevo et pas Resend : le compte Resend de l'exploitant héberge déjà
+// washboard.fr, et le plan gratuit n'autorise qu'UN domaine par équipe (créer
+// une seconde équipe impose un plan payant). Envoyer les e-mails Folyo depuis
+// washboard.fr aurait dérouté les destinataires. Brevo permet de vérifier
+// folyo.page sur son offre gratuite, avec un quota plus large (300/jour contre
+// 3 000/mois), et laisse WashBoard sur Resend sans interférence.
+//
+// Conçu pour ne JAMAIS interrompre le flux appelant : si la clé est absente ou
+// si l'appel échoue, on journalise et on retourne sans lever d'exception (un
+// webhook Stripe doit répondre 200 même si l'e-mail échoue).
 
 import { SITE_URL } from "@/lib/seo";
 import type { Locale } from "@/lib/i18n/types";
 
-const RESEND_ENDPOINT = "https://api.resend.com/emails";
+const BREVO_ENDPOINT = "https://api.brevo.com/v3/smtp/email";
 
 // Adresse qui reçoit les notifications (par défaut l'e-mail de l'exploitant).
 function adminEmail(): string {
   return process.env.ADMIN_NOTIFY_EMAIL || "novaflows.pro@gmail.com";
 }
 
-// Expéditeur. Par défaut le domaine de test Resend (n'autorise l'envoi que vers
-// l'e-mail du compte Resend). Une fois folyo.page vérifié dans Resend, passer
-// EMAIL_FROM à "Folyo <notifications@folyo.page>".
-function fromAddress(): string {
-  return process.env.EMAIL_FROM || "Folyo <onboarding@resend.dev>";
+// Expéditeur, au format "Nom <adresse>" ou simple adresse. Le domaine doit être
+// vérifié dans Brevo, sinon l'envoi est refusé.
+function fromAddress(): { name: string; email: string } {
+  const raw = process.env.EMAIL_FROM || "Folyo <notifications@folyo.page>";
+  const m = raw.match(/^\s*(.*?)\s*<\s*([^>]+?)\s*>\s*$/);
+  // `.trim()` sur l'adresse : un espace résiduel avant le `>` suffirait à
+  // faire rejeter l'envoi par Brevo.
+  return m ? { name: m[1] || "Folyo", email: m[2].trim() } : { name: "Folyo", email: raw.trim() };
 }
 
 // Transport bas niveau, partagé par les notifications admin ET les e-mails
 // client (séquence d'essai) — seul le destinataire change. Ne lève jamais :
 // un webhook Stripe ou une génération de portfolio doit répondre normalement
-// même si Resend est mal configuré ou indisponible.
+// même si le fournisseur d'e-mail est mal configuré ou indisponible.
 async function sendEmail(to: string, subject: string, html: string): Promise<void> {
-  const key = process.env.RESEND_API_KEY;
+  const key = process.env.BREVO_API_KEY;
   if (!key) {
-    console.warn("[email] RESEND_API_KEY absente — email ignoré:", subject);
+    console.warn("[email] BREVO_API_KEY absente — email ignoré:", subject);
     return;
   }
   if (!to) {
@@ -40,10 +51,16 @@ async function sendEmail(to: string, subject: string, html: string): Promise<voi
     return;
   }
   try {
-    const res = await fetch(RESEND_ENDPOINT, {
+    const res = await fetch(BREVO_ENDPOINT, {
       method: "POST",
-      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ from: fromAddress(), to: [to], subject, html }),
+      // Brevo attend la clé dans l'en-tête `api-key`, pas en Bearer.
+      headers: { "api-key": key, "Content-Type": "application/json", accept: "application/json" },
+      body: JSON.stringify({
+        sender: fromAddress(),
+        to: [{ email: to }],
+        subject,
+        htmlContent: html,
+      }),
     });
     if (!res.ok) {
       const body = await res.text().catch(() => "");
