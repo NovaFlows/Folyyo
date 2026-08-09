@@ -256,6 +256,14 @@ const fr = {
     titleEm: "comprend de toi",
     titlePost: " — sans compte.",
   },
+  film: {
+    kicker: "En 1 minute",
+    titlePre: "Pourquoi ",
+    titleEm: "Folyo",
+    titlePost: " existe.",
+    play: "Lire le film de présentation",
+    duration: "1:13",
+  },
   examples: {
     kicker: "Exemples réels",
     titleLine1: "Différents profils,",

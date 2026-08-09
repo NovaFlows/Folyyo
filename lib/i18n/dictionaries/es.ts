@@ -258,6 +258,14 @@ const es = {
     titleEm: "entiende de ti",
     titlePost: " — sin necesidad de cuenta.",
   },
+  film: {
+    kicker: "En 1 minuto",
+    titlePre: "Por qué existe ",
+    titleEm: "Folyo",
+    titlePost: ".",
+    play: "Ver el vídeo de presentación",
+    duration: "1:13",
+  },
   examples: {
     kicker: "Ejemplos reales",
     titleLine1: "Distintos perfiles,",

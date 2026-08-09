@@ -258,6 +258,14 @@ const de = {
     titleEm: "über dich versteht",
     titlePost: " — ganz ohne Konto.",
   },
+  film: {
+    kicker: "In 1 Minute",
+    titlePre: "Warum es ",
+    titleEm: "Folyo",
+    titlePost: " gibt.",
+    play: "Präsentationsfilm abspielen",
+    duration: "1:13",
+  },
   examples: {
     kicker: "Echte Beispiele",
     titleLine1: "Verschiedene Profile,",

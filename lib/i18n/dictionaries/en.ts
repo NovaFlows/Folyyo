@@ -258,6 +258,14 @@ const en = {
     titleEm: "understands about you",
     titlePost: " — no account needed.",
   },
+  film: {
+    kicker: "In 1 minute",
+    titlePre: "Why ",
+    titleEm: "Folyo",
+    titlePost: " exists.",
+    play: "Play the presentation film",
+    duration: "1:13",
+  },
   examples: {
     kicker: "Real examples",
     titleLine1: "Different profiles,",

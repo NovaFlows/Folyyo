@@ -11,6 +11,7 @@ import FAQ from "@/components/landing/FAQ";
 import LanguageToggle from "@/components/i18n/LanguageToggle";
 import { getLocale } from "@/lib/i18n/locale";
 import { getDictionary } from "@/lib/i18n/dictionaries";
+import FilmSection from "@/components/landing/FilmSection";
 import type { ReactNode } from "react";
 import type { Metadata } from "next";
 import { SITE_URL } from "@/lib/seo";
@@ -260,6 +261,16 @@ export default async function LandingPage() {
         <CvTeaser locale={locale} />
       </section>
 
+      {/* ── FILM DE PRÉSENTATION ───────────────────── */}
+      <section className="ld-reveal px-6 pb-24">
+        <div className="mx-auto max-w-xl text-center mb-8">
+          <p className="text-sm tracking-widest uppercase mb-3" style={{ color: "#a09a94" }}>{t.film.kicker}</p>
+          <h2 className="text-3xl" style={{ fontFamily: "'Playfair Display', Georgia, serif", fontWeight: 500, color: "#1c1917" }}>
+            {t.film.titlePre}<em className="font-normal" style={{ color: "#c9a96e" }}>{t.film.titleEm}</em>{t.film.titlePost}
+          </h2>
+        </div>
+        <FilmSection locale={locale} />
+      </section>
       {/* ── EXAMPLES ───────────────────────────────── */}
       <section id="examples" className="ld-reveal px-6 py-24" style={{ background: "#f0ece6" }}>
         <div className="mx-auto max-w-5xl">
