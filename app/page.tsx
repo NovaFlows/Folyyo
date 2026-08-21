@@ -8,6 +8,7 @@ import EditChatMock from "@/components/landing/EditChatMock";
 import CvTeaser from "@/components/landing/CvTeaser";
 import SlugChecker from "@/components/landing/SlugChecker";
 import FAQ from "@/components/landing/FAQ";
+import Pricing from "@/components/landing/Pricing";
 import LanguageToggle from "@/components/i18n/LanguageToggle";
 import { getLocale } from "@/lib/i18n/locale";
 import { getDictionary } from "@/lib/i18n/dictionaries";
@@ -152,6 +153,7 @@ export default async function LandingPage() {
             <a href="#how"      className="nav-link hover:text-[#1c1917] transition-colors">{t.nav.how}</a>
             <a href="#examples" className="nav-link hover:text-[#1c1917] transition-colors">{t.nav.examples}</a>
             <a href="#features" className="nav-link hover:text-[#1c1917] transition-colors">{t.nav.features}</a>
+            <a href="#tarifs"   className="nav-link hover:text-[#1c1917] transition-colors">{t.nav.pricing}</a>
             <a href="#faq"      className="nav-link hover:text-[#1c1917] transition-colors">{t.nav.faq}</a>
             <Link href="/blog"    className="nav-link hover:text-[#1c1917] transition-colors">Blog</Link>
             <Link href="/contact" className="nav-link hover:text-[#1c1917] transition-colors">{t.nav.contact}</Link>
@@ -179,14 +181,6 @@ export default async function LandingPage() {
 
           {/* Left column: copy */}
           <div className="flex-1 min-w-0 flex flex-col items-center lg:items-start text-center lg:text-left">
-            <div
-              className="mb-8 inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs"
-              style={{ background: "rgba(201,169,110,0.12)", border: "1px solid rgba(201,169,110,0.25)", color: "#c9a96e" }}
-            >
-              <span className="h-1.5 w-1.5 rounded-full animate-pulse" style={{ background: "#c9a96e" }} />
-              {t.hero.badge}
-            </div>
-
             <h1
               className="mb-6 leading-[1.05] tracking-tight"
               style={{ fontSize: "clamp(2.75rem, 6vw, 5rem)", fontFamily: "'Playfair Display', Georgia, serif", fontWeight: 500, color: "#1c1917" }}
@@ -432,40 +426,11 @@ export default async function LandingPage() {
         <TestimonialMarquee locale={locale} />
       </section>
 
+      {/* ── TARIFS ─────────────────────────────────── */}
+      <Pricing locale={locale} />
+
       {/* ── FAQ ────────────────────────────────────── */}
       <FAQ locale={locale} />
-
-      {/* ── CTA ────────────────────────────────────── */}
-      <section className="ld-reveal px-6 py-32" style={{ background: "#1c1917" }}>
-        <div className="mx-auto max-w-3xl text-center">
-          <p className="text-sm tracking-widest uppercase mb-5" style={{ color: "rgba(201,169,110,0.6)" }}>{t.cta.kicker}</p>
-          <h2
-            className="mb-6 leading-tight"
-            style={{
-              fontFamily: "'Playfair Display', Georgia, serif",
-              fontWeight: 500,
-              fontSize: "clamp(2.5rem, 6vw, 4.5rem)",
-              color: "#f8f5f0",
-            }}
-          >
-            {t.cta.titleLine1}<br />
-            <em style={{ color: "#c9a96e", fontStyle: "italic" }}>{t.cta.titleEm}</em>
-          </h2>
-          <p className="mb-10 text-lg leading-relaxed" style={{ color: "rgba(248,245,240,0.4)" }}>
-            {t.cta.subtitle}
-          </p>
-          <Link
-            href="/signup"
-            className="inline-flex items-center gap-3 rounded-2xl px-10 py-5 text-lg font-medium transition hover:opacity-90 hover:-translate-y-0.5"
-            style={{ background: "#c9a96e", color: "#1c1917" }}
-          >
-            {t.cta.button}
-          </Link>
-          <p className="mt-5 text-sm" style={{ color: "rgba(248,245,240,0.2)" }}>
-            {t.cta.footnote}
-          </p>
-        </div>
-      </section>
 
       {/* ── FOOTER ─────────────────────────────────── */}
       <footer className="px-6 py-10" style={{ background: "#1c1917", borderTop: "1px solid rgba(255,255,255,0.05)" }}>
